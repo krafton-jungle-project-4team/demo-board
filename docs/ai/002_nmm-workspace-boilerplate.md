@@ -5,6 +5,7 @@
 ## 이유
 
 `Temp.md`의 진행 문서를 기준으로 npm workspaces + Vite React TS + Nest API + shared 패키지 보일러플레이트를 실제 동작 가능한 상태로 만들기 위해서다.
+001에서 프로젝트 목적과 AI 기록 규칙만 정리된 상태였으므로, 실제 개발을 시작할 수 있는 최소 앱 구조가 필요했다.
 
 ## 작업
 
@@ -14,6 +15,7 @@
 - shared 계약/도메인 코드, Vite proxy, Nest API, React Todo 화면을 추가했다.
 - 최신 TypeScript/tsup 환경에서 동작하도록 `ignoreDeprecations`, shared conditional exports, shared watch clean 설정을 보완했다.
 - `npm install`로 workspace lockfile을 생성했다.
+- 이 작업은 이후 003 프로젝트 표준 검증과 004 TSConfig 정리의 기반이 되었다.
 
 ## 결과
 
