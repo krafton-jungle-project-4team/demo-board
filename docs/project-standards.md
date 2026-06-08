@@ -23,6 +23,15 @@
 - 앱 내부 absolute import는 `@/*`를 쓴다.
 - workspace 간 import는 패키지 이름으로 한다.
 
+## TypeScript 설정
+
+기준: https://www.totaltypescript.com/tsconfig-cheat-sheet
+
+- 공통 strict/base 옵션은 `tsconfig.base.json`에 둔다.
+- Vite web과 shared는 `module: "preserve"`와 `noEmit: true`를 쓴다.
+- Nest API는 tsc 출력이 필요하므로 `module: "NodeNext"`, `outDir`, `sourceMap`, `declaration`을 쓴다.
+- Nest API는 현재 CJS 출력 호환을 위해 `verbatimModuleSyntax: false`를 유지한다.
+
 ## 모듈 규칙
 
 | 모듈              | 허용                                               | 금지                                  |

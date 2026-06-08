@@ -2,10 +2,8 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "module": "preserve",
-    "moduleResolution": "Bundler",
     "lib": ["ES2022"],
     "noEmit": true,
-    "verbatimModuleSyntax": true,
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
