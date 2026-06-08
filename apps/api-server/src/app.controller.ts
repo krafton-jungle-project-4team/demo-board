@@ -1,35 +1,19 @@
-import { randomUUID } from "node:crypto";
-import { Body, Controller, Get, Post } from "@nestjs/common";
-import { CreateTodoRequestSchema, type Todo } from "@nmm/shared";
+import { Controller, Get } from "@nestjs/common";
+import { ApiOkResponse, ApiProperty, ApiTags } from "@nestjs/swagger";
 
+class HealthResponseDto {
+  @ApiProperty({ type: Boolean, example: true })
+  ok!: boolean;
+}
+
+@ApiTags("app")
 @Controller()
 export class AppController {
-  private todos: Todo[] = [];
-
   @Get("health")
+  @ApiOkResponse({ type: HealthResponseDto })
   health() {
     return {
       ok: true
     };
-  }
-
-  @Get("todos")
-  findTodos(): Todo[] {
-    return this.todos;
-  }
-
-  @Post("todos")
-  createTodo(@Body() body: unknown): Todo {
-    const dto = CreateTodoRequestSchema.parse(body);
-
-    const todo: Todo = {
-      id: randomUUID(),
-      title: dto.title,
-      done: false
-    };
-
-    this.todos.push(todo);
-
-    return todo;
   }
 }

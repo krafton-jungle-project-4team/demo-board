@@ -15,6 +15,8 @@
     "build:web": "npm run build -w @nmm/web-client",
     "build:api": "npm run build -w @nmm/api-server",
     "build:shared": "npm run build -w @nmm/shared",
+    "openapi:spec": "npm run build -w @nmm/shared && npm run openapi:emit -w @nmm/api-server",
+    "openapi:generate": "npm run openapi:spec && npm run codegen -w @nmm/web-client",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "eslint . --max-warnings=0",
     "format": "prettier --write .",

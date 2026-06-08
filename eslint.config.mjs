@@ -16,7 +16,12 @@ const restrictImports = (patterns) => [
 export default [
   {
     // 설치 파일과 빌드 산출물은 검사하지 않는다.
-    ignores: ["node_modules/**", "**/dist/**"]
+    ignores: [
+      "node_modules/**",
+      "**/dist/**",
+      "apps/web-client/src/routeTree.gen.ts",
+      "apps/web-client/src/shared/api/generated/**"
+    ]
   },
 
   js.configs.recommended,
@@ -35,13 +40,26 @@ export default [
       }
     },
     plugins: {
-      "@typescript-eslint": tsPlugin,
-      "check-file": checkFile
+      "@typescript-eslint": tsPlugin
     },
     rules: {
       ...tsPlugin.configs.recommended.rules,
-      "no-undef": "off",
+      "no-undef": "off"
+    }
+  },
 
+  {
+    name: "file naming rules",
+    files: ["**/*.{ts,tsx}"],
+    ignores: [
+      "apps/web-client/src/routes/**/*.{ts,tsx}",
+      "apps/web-client/src/routeTree.gen.ts",
+      "apps/web-client/src/shared/api/generated/**/*.{ts,tsx}"
+    ],
+    plugins: {
+      "check-file": checkFile
+    },
+    rules: {
       // 소스 파일명을 예측 가능하게 유지한다. *.spec.ts 같은 중간 확장자는 허용한다.
       "check-file/filename-naming-convention": [
         "error",
@@ -78,10 +96,13 @@ export default [
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "error",
 
-      // Web은 API를 HTTP로 호출하고 계약/타입만 공유한다.
+      // Web은 API를 HTTP로 호출하고, shadcn 내부 유틸은 UI 패키지 안에 둔다.
       "no-restricted-imports": restrictImports([
         "@nmm/api-server",
         "@nmm/api-server/*",
+        "@nmm/ui/lib/*",
+        "@/components/ui/*",
+        "@/lib/utils",
         "@nestjs/*",
         "node:*"
       ])
@@ -99,6 +120,8 @@ export default [
       "no-restricted-imports": restrictImports([
         "@nmm/web-client",
         "@nmm/web-client/*",
+        "@nmm/ui",
+        "@nmm/ui/*",
         "react",
         "react-dom",
         "react-dom/*",
@@ -118,10 +141,36 @@ export default [
         "@nmm/web-client/*",
         "@nmm/api-server",
         "@nmm/api-server/*",
+        "@nmm/ui",
+        "@nmm/ui/*",
         "@nestjs/*",
         "react",
         "react-dom",
         "react-dom/*",
+        "vite",
+        "@vitejs/*",
+        "node:*"
+      ])
+    }
+  },
+
+  {
+    name: "ui package rules",
+    files: ["packages/ui/**/*.{ts,tsx}"],
+    languageOptions: {
+      globals: globals.browser
+    },
+    rules: {
+      // UI 패키지는 앱/서버 도메인에 의존하지 않고 shadcn 내부 import는 package imports를 쓴다.
+      "no-restricted-imports": restrictImports([
+        "@/*",
+        "@nmm/web-client",
+        "@nmm/web-client/*",
+        "@nmm/api-server",
+        "@nmm/api-server/*",
+        "@nmm/shared",
+        "@nmm/shared/*",
+        "@nestjs/*",
         "vite",
         "@vitejs/*",
         "node:*"
