@@ -1,13 +1,23 @@
 {
-  "name": "github",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "@nmm/root",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "predev": "npm run build -w @nmm/shared",
+    "dev": "concurrently -n shared,web,api \"npm run dev -w @nmm/shared\" \"npm run dev -w @nmm/web-client\" \"npm run start:dev -w @nmm/api-server\"",
+    "dev:web": "npm run dev -w @nmm/web-client",
+    "dev:api": "npm run start:dev -w @nmm/api-server",
+    "dev:shared": "npm run dev -w @nmm/shared",
+    "build": "npm run build -w @nmm/shared && npm run build -w @nmm/web-client && npm run build -w @nmm/api-server",
+    "build:web": "npm run build -w @nmm/web-client",
+    "build:api": "npm run build -w @nmm/api-server",
+    "build:shared": "npm run build -w @nmm/shared",
+    "typecheck": "npm run typecheck --workspaces --if-present"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs"
+  "devDependencies": {
+    "concurrently": "latest"
+  }
 }
