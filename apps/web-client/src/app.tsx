@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CreateTodoRequestSchema, type Todo } from "@nmm/shared";
 
 export default function App() {
@@ -6,7 +6,7 @@ export default function App() {
   const [title, setTitle] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  async function loadTodos() {
+  const loadTodos = useCallback(async () => {
     const res = await fetch("/api/todos");
 
     if (!res.ok) {
@@ -15,7 +15,7 @@ export default function App() {
 
     const data = (await res.json()) as Todo[];
     setTodos(data);
-  }
+  }, []);
 
   async function createTodo() {
     setError(null);
@@ -44,7 +44,7 @@ export default function App() {
     void loadTodos().catch((err: unknown) => {
       setError(err instanceof Error ? err.message : "Failed to load todos");
     });
-  }, []);
+  }, [loadTodos]);
 
   return (
     <main className="app-shell">
@@ -56,7 +56,9 @@ export default function App() {
           onSubmit={(event) => {
             event.preventDefault();
             void createTodo().catch((err: unknown) => {
-              setError(err instanceof Error ? err.message : "Failed to create todo");
+              setError(
+                err instanceof Error ? err.message : "Failed to create todo"
+              );
             });
           }}
         >

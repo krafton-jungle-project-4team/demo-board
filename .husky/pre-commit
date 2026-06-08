@@ -1,0 +1,2 @@
+# Staged 파일만 먼저 자동 포맷/수정한 뒤 전체 검증을 실행한다.
+npx lint-staged && npm run verify

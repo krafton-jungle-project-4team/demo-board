@@ -1,4 +1,4 @@
-import type { Todo } from "../contracts/todo.contract";
+import type { Todo } from "@/contracts/todo.contract";
 
 export type TodoState = {
   todos: Record<string, Todo>;
