@@ -1,4 +1,4 @@
-import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import {
   postsControllerCreatePost,
   postsControllerDeletePost,
@@ -17,9 +17,11 @@ export const postQueryKeys = {
 };
 
 export function usePostListQuery(params: PostsControllerFindPostsParams) {
-  return useSuspenseQuery({
+  return useQuery({
     queryKey: postQueryKeys.list(params),
-    queryFn: ({ signal }) => postsControllerFindPosts(params, { signal })
+    queryFn: ({ signal }) => postsControllerFindPosts(params, { signal }),
+    placeholderData: keepPreviousData,
+    throwOnError: true
   });
 }
 

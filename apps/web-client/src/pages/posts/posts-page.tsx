@@ -19,9 +19,10 @@ const sortLabels = {
 } as const;
 
 export function PostsPage() {
-  const { search, setSearch, params } = usePostSearch();
+  const { queryDraft, search, setQueryDraft, setSearch, submitQueryDraft, params } = usePostSearch();
   const queryClient = useQueryClient();
-  const postsData = usePostListQuery(params).data;
+  const postsQuery = usePostListQuery(params);
+  const postsData = postsQuery.data;
   const deleteMutation = useDeletePostMutation({
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: postQueryKeys.listPrefix });
@@ -47,21 +48,30 @@ export function PostsPage() {
         />
       </div>
 
-      <div className="grid gap-3 md:grid-cols-[1fr_160px_auto]">
-        <div className="relative">
-          <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-          <Input
-            className="pl-9"
-            placeholder="검색어"
-            value={search.q}
-            onChange={(event) => {
-              void setSearch({
-                q: event.target.value,
-                page: 1
-              });
-            }}
-          />
-        </div>
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_160px_auto]">
+        <form
+          className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]"
+          onSubmit={(event) => {
+            event.preventDefault();
+            submitQueryDraft();
+          }}
+        >
+          <div className="relative">
+            <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+            <Input
+              className="pl-9"
+              placeholder="검색어"
+              value={queryDraft}
+              onChange={(event) => {
+                setQueryDraft(event.target.value);
+              }}
+            />
+          </div>
+          <Button type="submit" variant="outline">
+            <Search />
+            검색
+          </Button>
+        </form>
         <Select
           value={search.sort}
           onValueChange={(sort) => {
@@ -114,39 +124,45 @@ export function PostsPage() {
         </div>
       </div>
 
-      {search.view === "table" ? (
-        <PostTable posts={postsData.items} onDelete={(id) => deleteMutation.mutate(id)} />
-      ) : (
-        <PostCards posts={postsData.items} onDelete={(id) => deleteMutation.mutate(id)} />
-      )}
+      {postsData ? (
+        <>
+          {search.view === "table" ? (
+            <PostTable posts={postsData.items} onDelete={(id) => deleteMutation.mutate(id)} />
+          ) : (
+            <PostCards posts={postsData.items} onDelete={(id) => deleteMutation.mutate(id)} />
+          )}
 
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-muted-foreground text-sm">
-          {search.page} / {postsData.totalPages}
-        </p>
-        <div className="flex gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={search.page <= 1}
-            onClick={() => {
-              void setSearch({ page: Math.max(1, search.page - 1) });
-            }}
-          >
-            이전
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={search.page >= postsData.totalPages}
-            onClick={() => {
-              void setSearch({ page: Math.min(postsData.totalPages, search.page + 1) });
-            }}
-          >
-            다음
-          </Button>
-        </div>
-      </div>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-muted-foreground text-sm">
+              {search.page} / {postsData.totalPages}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={search.page <= 1}
+                onClick={() => {
+                  void setSearch({ page: Math.max(1, search.page - 1) });
+                }}
+              >
+                이전
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={search.page >= postsData.totalPages}
+                onClick={() => {
+                  void setSearch({ page: Math.min(postsData.totalPages, search.page + 1) });
+                }}
+              >
+                다음
+              </Button>
+            </div>
+          </div>
+        </>
+      ) : (
+        <p className="text-muted-foreground text-sm">불러오는 중</p>
+      )}
     </section>
   );
 }
