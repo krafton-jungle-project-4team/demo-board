@@ -12,7 +12,8 @@ import {
     type UpdatePostRequest,
     type User
 } from "@nmm/shared";
-import { BOARD_REPOSITORY, boardErrors, type BoardRepository, type BoardUser } from "../domain";
+import type { ActiveUser } from "../../auth/domain";
+import { BOARD_REPOSITORY, boardErrors, type BoardRepository } from "../domain";
 import { BoardQueryService } from "./board-query.service";
 
 @Injectable()
@@ -22,11 +23,11 @@ export class BoardCommandService {
         private readonly boardQueryService: BoardQueryService
     ) {}
 
-    async createPost(request: CreatePostRequest, user: BoardUser): Promise<Post> {
+    async createPost(request: CreatePostRequest, user: ActiveUser): Promise<Post> {
         return this.boardQueryService.toPost(await this.boardRepository.createPost(request, user));
     }
 
-    async updatePost(id: number, request: UpdatePostRequest, user: BoardUser): Promise<Post> {
+    async updatePost(id: number, request: UpdatePostRequest, user: ActiveUser): Promise<Post> {
         const post = await this.boardQueryService.findExistingPost(id);
 
         this.assertOwner(post, user);
@@ -34,7 +35,7 @@ export class BoardCommandService {
         return this.boardQueryService.toPost(await this.boardRepository.savePost(post, request));
     }
 
-    async deletePost(id: number, user: BoardUser): Promise<DeletePostResponse> {
+    async deletePost(id: number, user: ActiveUser): Promise<DeletePostResponse> {
         const post = await this.boardQueryService.findExistingPost(id);
 
         this.assertOwner(post, user);
@@ -43,7 +44,7 @@ export class BoardCommandService {
         return DeletePostResponseSchema.parse({ ok: true, id });
     }
 
-    async createComment(postId: number, request: CreateCommentRequest, user: BoardUser): Promise<Comment> {
+    async createComment(postId: number, request: CreateCommentRequest, user: ActiveUser): Promise<Comment> {
         await this.boardQueryService.findExistingPost(postId);
 
         return this.boardQueryService.toComment(await this.boardRepository.createComment(postId, request, user));
@@ -53,7 +54,7 @@ export class BoardCommandService {
         postId: number,
         commentId: number,
         request: UpdateCommentRequest,
-        user: BoardUser
+        user: ActiveUser
     ): Promise<Comment> {
         await this.boardQueryService.findExistingPost(postId);
 
@@ -64,7 +65,7 @@ export class BoardCommandService {
         return this.boardQueryService.toComment(await this.boardRepository.saveComment(comment, request));
     }
 
-    async deleteComment(postId: number, commentId: number, user: BoardUser): Promise<DeleteCommentResponse> {
+    async deleteComment(postId: number, commentId: number, user: ActiveUser): Promise<DeleteCommentResponse> {
         await this.boardQueryService.findExistingPost(postId);
 
         const comment = await this.boardQueryService.findExistingComment(postId, commentId);
