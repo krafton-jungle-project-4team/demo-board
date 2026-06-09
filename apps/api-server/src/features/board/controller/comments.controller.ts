@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from "@nestjs/common";
 import { CreateCommentRequestSchema, ResourceIdSchema, UpdateCommentRequestSchema } from "@nmm/shared";
-import { ActiveUserGuard, CurrentUser, type ActiveUser } from "../../auth";
+import { ActiveUserGuard, CurrentAuth, type AuthClaims } from "../../auth";
 import { BoardCommandService } from "../service/board-command.service";
 import { BoardQueryService } from "../service/board-query.service";
 
@@ -18,11 +18,11 @@ export class CommentsController {
 
     @Post()
     @UseGuards(ActiveUserGuard)
-    async createComment(@Param("postId") postId: string, @Body() body: unknown, @CurrentUser() user: ActiveUser) {
+    async createComment(@Param("postId") postId: string, @Body() body: unknown, @CurrentAuth() claims: AuthClaims) {
         return this.boardCommandService.createComment(
             ResourceIdSchema.parse(postId),
             CreateCommentRequestSchema.parse(body),
-            user
+            claims
         );
     }
 
@@ -32,13 +32,13 @@ export class CommentsController {
         @Param("postId") postId: string,
         @Param("commentId") commentId: string,
         @Body() body: unknown,
-        @CurrentUser() user: ActiveUser
+        @CurrentAuth() claims: AuthClaims
     ) {
         return this.boardCommandService.updateComment(
             ResourceIdSchema.parse(postId),
             ResourceIdSchema.parse(commentId),
             UpdateCommentRequestSchema.parse(body),
-            user
+            claims
         );
     }
 
@@ -47,12 +47,12 @@ export class CommentsController {
     async deleteComment(
         @Param("postId") postId: string,
         @Param("commentId") commentId: string,
-        @CurrentUser() user: ActiveUser
+        @CurrentAuth() claims: AuthClaims
     ) {
         return this.boardCommandService.deleteComment(
             ResourceIdSchema.parse(postId),
             ResourceIdSchema.parse(commentId),
-            user
+            claims
         );
     }
 }

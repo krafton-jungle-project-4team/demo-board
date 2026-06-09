@@ -1,12 +1,15 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { UserSchema } from "@nmm/shared";
-import { Repository } from "typeorm";
-import { type AuthRepository, type AuthUserProfile, UserEntity, type UserRecord } from "../domain";
+import { Not, Repository } from "typeorm";
+import { SessionEntity, type AuthRepository, type AuthUserProfile, UserEntity, type UserRecord } from "../domain";
 
 @Injectable()
 export class AuthTypeOrmRepository implements AuthRepository {
-    constructor(@InjectRepository(UserEntity) private readonly users: Repository<UserEntity>) {}
+    constructor(
+        @InjectRepository(UserEntity) private readonly users: Repository<UserEntity>,
+        @InjectRepository(SessionEntity) private readonly sessions: Repository<SessionEntity>
+    ) {}
 
     async findUser(id: string): Promise<UserRecord | undefined> {
         const user = await this.users.findOneBy({ id });
@@ -23,6 +26,13 @@ export class AuthTypeOrmRepository implements AuthRepository {
                 updatedAt: new Date()
             }
         );
+    }
+
+    async deleteUserSessions(userId: string, exceptSessionId?: string) {
+        await this.sessions.delete({
+            userId,
+            ...(exceptSessionId ? { id: Not(exceptSessionId) } : {})
+        });
     }
 
     private toUserRecord(user: UserEntity): UserRecord {

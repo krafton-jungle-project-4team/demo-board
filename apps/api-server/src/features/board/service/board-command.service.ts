@@ -9,10 +9,10 @@ import {
     type DeletePostResponse,
     type Post,
     type UpdateCommentRequest,
-    type UpdatePostRequest,
-    type User
+    type UpdatePostRequest
 } from "@nmm/shared";
-import type { ActiveUser } from "../../auth/domain";
+import { AuthQueryService } from "../../auth";
+import type { AuthClaims } from "../../auth/domain";
 import { BOARD_REPOSITORY, boardErrors, type BoardRepository } from "../domain";
 import { BoardQueryService } from "./board-query.service";
 
@@ -20,32 +20,36 @@ import { BoardQueryService } from "./board-query.service";
 export class BoardCommandService {
     constructor(
         @Inject(BOARD_REPOSITORY) private readonly boardRepository: BoardRepository,
-        private readonly boardQueryService: BoardQueryService
+        private readonly boardQueryService: BoardQueryService,
+        private readonly authQueryService: AuthQueryService
     ) {}
 
-    async createPost(request: CreatePostRequest, user: ActiveUser): Promise<Post> {
+    async createPost(request: CreatePostRequest, claims: AuthClaims): Promise<Post> {
+        const user = await this.authQueryService.requireCompletedUserRecord(claims);
+
         return this.boardQueryService.toPost(await this.boardRepository.createPost(request, user));
     }
 
-    async updatePost(id: number, request: UpdatePostRequest, user: ActiveUser): Promise<Post> {
+    async updatePost(id: number, request: UpdatePostRequest, claims: AuthClaims): Promise<Post> {
         const post = await this.boardQueryService.findExistingPost(id);
 
-        this.assertOwner(post, user);
+        this.assertOwner(post, claims);
 
         return this.boardQueryService.toPost(await this.boardRepository.savePost(post, request));
     }
 
-    async deletePost(id: number, user: ActiveUser): Promise<DeletePostResponse> {
+    async deletePost(id: number, claims: AuthClaims): Promise<DeletePostResponse> {
         const post = await this.boardQueryService.findExistingPost(id);
 
-        this.assertOwner(post, user);
+        this.assertOwner(post, claims);
         await this.boardRepository.deletePostWithComments(post);
 
         return DeletePostResponseSchema.parse({ ok: true, id });
     }
 
-    async createComment(postId: number, request: CreateCommentRequest, user: ActiveUser): Promise<Comment> {
+    async createComment(postId: number, request: CreateCommentRequest, claims: AuthClaims): Promise<Comment> {
         await this.boardQueryService.findExistingPost(postId);
+        const user = await this.authQueryService.requireCompletedUserRecord(claims);
 
         return this.boardQueryService.toComment(await this.boardRepository.createComment(postId, request, user));
     }
@@ -54,30 +58,30 @@ export class BoardCommandService {
         postId: number,
         commentId: number,
         request: UpdateCommentRequest,
-        user: ActiveUser
+        claims: AuthClaims
     ): Promise<Comment> {
         await this.boardQueryService.findExistingPost(postId);
 
         const comment = await this.boardQueryService.findExistingComment(postId, commentId);
 
-        this.assertOwner(comment, user);
+        this.assertOwner(comment, claims);
 
         return this.boardQueryService.toComment(await this.boardRepository.saveComment(comment, request));
     }
 
-    async deleteComment(postId: number, commentId: number, user: ActiveUser): Promise<DeleteCommentResponse> {
+    async deleteComment(postId: number, commentId: number, claims: AuthClaims): Promise<DeleteCommentResponse> {
         await this.boardQueryService.findExistingPost(postId);
 
         const comment = await this.boardQueryService.findExistingComment(postId, commentId);
 
-        this.assertOwner(comment, user);
+        this.assertOwner(comment, claims);
         await this.boardRepository.deleteComment(comment);
 
         return DeleteCommentResponseSchema.parse({ ok: true, id: commentId });
     }
 
-    private assertOwner(resource: { authorId: string }, user: User) {
-        if (resource.authorId !== user.id && user.role !== "ADMIN") {
+    private assertOwner(resource: { authorId: string }, claims: Pick<AuthClaims, "role" | "userId">) {
+        if (resource.authorId !== claims.userId && claims.role !== "ADMIN") {
             throw boardErrors.notResourceOwner();
         }
     }

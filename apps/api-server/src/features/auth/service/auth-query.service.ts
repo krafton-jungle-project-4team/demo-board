@@ -1,6 +1,13 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { BETTER_AUTH, type BetterAuth } from "../database";
-import { authErrors, type ActiveUser, type UserRecord } from "../domain";
+import {
+    AUTH_REPOSITORY,
+    authErrors,
+    type AuthClaims,
+    type AuthRepository,
+    type CompletedUserRecord,
+    type UserRecord
+} from "../domain";
 
 export type AuthRequestContext = {
     authorization?: string;
@@ -10,40 +17,53 @@ export type AuthRequestContext = {
 
 @Injectable()
 export class AuthQueryService {
-    constructor(@Inject(BETTER_AUTH) private readonly auth: BetterAuth) {}
+    constructor(
+        @Inject(BETTER_AUTH) private readonly auth: BetterAuth,
+        @Inject(AUTH_REPOSITORY) private readonly authRepository: AuthRepository
+    ) {}
 
-    async requireUserRecord(context: AuthRequestContext): Promise<UserRecord> {
+    async requireAuthClaims(context: AuthRequestContext): Promise<AuthClaims> {
         const session = await this.auth.api.getSession({
             headers: this.toHeaders(context),
             query: {
                 disableCookieCache: true
             }
         });
-        const user = session ? this.toUserRecord(session.user) : undefined;
+        const claims = session ? this.toAuthClaims(session) : undefined;
+
+        if (!claims) {
+            throw authErrors.sessionRequired();
+        }
+
+        if (claims.status === "SUSPENDED") {
+            throw authErrors.userSuspended();
+        }
+
+        if (claims.status === "PENDING" && !context.allowPending) {
+            throw authErrors.signupRequired();
+        }
+
+        return claims;
+    }
+
+    async findUserRecord(claims: AuthClaims): Promise<UserRecord> {
+        const user = await this.authRepository.findUser(claims.userId);
 
         if (!user) {
             throw authErrors.sessionRequired();
         }
 
-        if (user.status === "SUSPENDED") {
-            throw authErrors.userSuspended();
-        }
-
-        if (user.status === "PENDING" && !context.allowPending) {
-            throw authErrors.signupRequired();
-        }
-
         return user;
     }
 
-    async requireActiveUserRecord(context: AuthRequestContext): Promise<ActiveUser> {
-        const user = await this.requireUserRecord(context);
+    async requireCompletedUserRecord(claims: AuthClaims): Promise<CompletedUserRecord> {
+        const user = await this.findUserRecord(claims);
 
         if (user.status !== "ACTIVE" || !user.name) {
             throw authErrors.signupRequired();
         }
 
-        return user as ActiveUser;
+        return user as CompletedUserRecord;
     }
 
     private toHeaders(context: AuthRequestContext) {
@@ -60,15 +80,12 @@ export class AuthQueryService {
         return headers;
     }
 
-    private toUserRecord(user: BetterAuth["$Infer"]["Session"]["user"]): UserRecord {
+    private toAuthClaims(session: BetterAuth["$Infer"]["Session"]): AuthClaims {
         return {
-            id: user.id,
-            email: user.email,
-            name: user.name.trim() || null,
-            image: user.image ?? null,
-            role: user.role === "ADMIN" ? "ADMIN" : "USER",
-            status: this.toUserStatus(user.status),
-            createdAt: user.createdAt.toISOString()
+            userId: session.user.id,
+            sessionId: session.session.id,
+            role: session.user.role === "ADMIN" ? "ADMIN" : "USER",
+            status: this.toUserStatus(session.user.status)
         };
     }
 

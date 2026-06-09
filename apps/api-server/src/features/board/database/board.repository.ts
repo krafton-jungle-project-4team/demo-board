@@ -2,7 +2,7 @@ import { Injectable, type OnModuleInit } from "@nestjs/common";
 import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
 import { DataSource, In, Repository } from "typeorm";
 import type { CreateCommentRequest, CreatePostRequest, UpdateCommentRequest, UpdatePostRequest } from "@nmm/shared";
-import type { ActiveUser } from "../../auth/domain";
+import type { CompletedUserRecord } from "../../auth/domain";
 import {
     boardErrors,
     CommentEntity,
@@ -62,7 +62,7 @@ export class BoardTypeOrmRepository implements BoardRepository, OnModuleInit {
         return post ? this.toExistingPostEntity(post) : undefined;
     }
 
-    async createPost(request: CreatePostRequest, user: ActiveUser) {
+    async createPost(request: CreatePostRequest, user: CompletedUserRecord) {
         const tags = await this.resolveTags(request.tagIds);
 
         return this.insertPostWithTags(request, user, tags);
@@ -96,7 +96,7 @@ export class BoardTypeOrmRepository implements BoardRepository, OnModuleInit {
         );
     }
 
-    async createComment(postId: number, request: CreateCommentRequest, user: ActiveUser) {
+    async createComment(postId: number, request: CreateCommentRequest, user: CompletedUserRecord) {
         return this.toExistingCommentEntity(await this.comments.save(this.toNewCommentEntity(postId, request, user)));
     }
 
@@ -172,7 +172,7 @@ export class BoardTypeOrmRepository implements BoardRepository, OnModuleInit {
 
     private toNewPostEntity(
         request: CreatePostRequest,
-        user: Pick<ActiveUser, "id" | "name">,
+        user: Pick<CompletedUserRecord, "id" | "name">,
         createdAt: string
     ): Omit<PostEntity, "id"> {
         return {
@@ -228,7 +228,7 @@ export class BoardTypeOrmRepository implements BoardRepository, OnModuleInit {
     private toNewCommentEntity(
         postId: number,
         request: CreateCommentRequest,
-        user: Pick<ActiveUser, "id" | "name">
+        user: Pick<CompletedUserRecord, "id" | "name">
     ): Omit<CommentEntity, "id"> {
         const now = new Date();
 
@@ -244,7 +244,7 @@ export class BoardTypeOrmRepository implements BoardRepository, OnModuleInit {
 
     private async insertPostWithTags(
         request: CreatePostRequest,
-        user: Pick<ActiveUser, "id" | "name">,
+        user: Pick<CompletedUserRecord, "id" | "name">,
         tags: PostTagEntity[],
         createdAt = new Date().toISOString()
     ) {

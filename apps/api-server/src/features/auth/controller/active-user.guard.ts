@@ -9,7 +9,7 @@ export class ActiveUserGuard implements CanActivate {
     async canActivate(context: ExecutionContext) {
         const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
 
-        request.currentUser = await this.authQueryService.requireActiveUserRecord(toAuthRequestContext(request));
+        request.authClaims = await this.authQueryService.requireAuthClaims(toAuthRequestContext(request));
 
         return true;
     }

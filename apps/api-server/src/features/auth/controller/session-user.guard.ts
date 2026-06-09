@@ -9,7 +9,7 @@ export class SessionUserGuard implements CanActivate {
     async canActivate(context: ExecutionContext) {
         const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
 
-        request.currentUser = await this.authQueryService.requireUserRecord({
+        request.authClaims = await this.authQueryService.requireAuthClaims({
             ...toAuthRequestContext(request),
             allowPending: true
         });

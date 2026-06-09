@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post as HttpPost, Query, UseGuards } from "@nestjs/common";
 import { CreatePostRequestSchema, ListPostsQuerySchema, ResourceIdSchema, UpdatePostRequestSchema } from "@nmm/shared";
-import { ActiveUserGuard, CurrentUser, type ActiveUser } from "../../auth";
+import { ActiveUserGuard, CurrentAuth, type AuthClaims } from "../../auth";
 import { BoardCommandService } from "../service/board-command.service";
 import { BoardQueryService } from "../service/board-query.service";
 
@@ -23,23 +23,23 @@ export class PostsController {
 
     @HttpPost()
     @UseGuards(ActiveUserGuard)
-    async createPost(@Body() body: unknown, @CurrentUser() user: ActiveUser) {
-        return this.boardCommandService.createPost(CreatePostRequestSchema.parse(body), user);
+    async createPost(@Body() body: unknown, @CurrentAuth() claims: AuthClaims) {
+        return this.boardCommandService.createPost(CreatePostRequestSchema.parse(body), claims);
     }
 
     @Patch(":id")
     @UseGuards(ActiveUserGuard)
-    async updatePost(@Param("id") id: string, @Body() body: unknown, @CurrentUser() user: ActiveUser) {
+    async updatePost(@Param("id") id: string, @Body() body: unknown, @CurrentAuth() claims: AuthClaims) {
         return this.boardCommandService.updatePost(
             ResourceIdSchema.parse(id),
             UpdatePostRequestSchema.parse(body),
-            user
+            claims
         );
     }
 
     @Delete(":id")
     @UseGuards(ActiveUserGuard)
-    async deletePost(@Param("id") id: string, @CurrentUser() user: ActiveUser) {
-        return this.boardCommandService.deletePost(ResourceIdSchema.parse(id), user);
+    async deletePost(@Param("id") id: string, @CurrentAuth() claims: AuthClaims) {
+        return this.boardCommandService.deletePost(ResourceIdSchema.parse(id), claims);
     }
 }

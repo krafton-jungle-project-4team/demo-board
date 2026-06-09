@@ -69,8 +69,11 @@
 - Docker Compose는 `npm run dev:api`의 `--env-file apps/api-server/.env`로 env 값을 주입한다.
 - 필요한 env 키는 `apps/api-server/.env.example`에 둔다.
 - API 서버 인증은 Better Auth social provider와 TypeORM adapter를 기준으로 한다.
-- 인증이 필요한 controller method는 guard가 세션을 검증하고 `@CurrentUser()`로 사용자 정보를 받는다.
+- 인증이 필요한 controller method는 guard가 세션을 검증하고 `@CurrentAuth()`로 `AuthClaims`를 받는다.
 - controller는 인증 헤더/cookie를 직접 읽지 않는다.
+- 인증 guard는 세션에서 `AuthClaims`만 request에 둔다.
+- `AuthClaims`는 `userId`, `sessionId`, `role`, `status`만 포함하고, `name` 같은 프로필 정보는 필요할 때 DB에서 조회한다.
+- 사용자 `role` 또는 `status` 변경은 service가 해당 사용자의 기존 세션을 만료한다.
 - 게시글/댓글/태그처럼 생성되는 리소스 ID는 DB `bigint` auto-increment를 사용하고 앱 코드에서 직접 만들지 않는다.
 - API 요청/응답의 ID는 숫자로 다루고, URL 파라미터 경계에서만 문자열을 숫자로 파싱한다.
 - API 서버 feature는 `controller`, `service`, `database`를 우선 사용한다.

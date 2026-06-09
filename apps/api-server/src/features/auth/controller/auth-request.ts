@@ -1,11 +1,11 @@
 import type { ApiRequest } from "../../../infra/http";
-import type { UserRecord } from "../domain";
+import type { AuthClaims } from "../domain";
 import type { AuthRequestContext } from "../service/auth-query.service";
 
 type HttpHeaderValue = string | string[] | undefined;
 
 export type AuthenticatedRequest = ApiRequest & {
-    currentUser?: UserRecord;
+    authClaims?: AuthClaims;
 };
 
 export function toAuthRequestContext(request: AuthenticatedRequest): AuthRequestContext {
