@@ -2,13 +2,15 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
-import { AppModule } from "./app.module";
-import { loadServerEnv } from "./env";
-import { sessionCookieName } from "./features/auth";
+import { serverEnv } from "./common/env";
 
 async function emitOpenApiSpec() {
-    loadServerEnv();
-    process.env.NMM_DB_MANUAL_INITIALIZATION ??= "true";
+    serverEnv.database.manualInitialization = true;
+
+    const [{ AppModule }, { sessionCookieName }] = await Promise.all([
+        import("./app.module.js"),
+        import("./features/auth/index.js")
+    ]);
 
     const app = await NestFactory.create(AppModule, {
         logger: false

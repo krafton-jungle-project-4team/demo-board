@@ -17,10 +17,6 @@ const authErrorDefinitions = {
         code: "AUTH_SIGNUP_REQUIRED",
         message: "가입 완료가 필요합니다."
     },
-    oauthConfigMissing: {
-        code: "AUTH_OAUTH_CONFIG_MISSING",
-        message: "GitHub OAuth 환경 변수가 필요합니다."
-    },
     oauthAccessTokenUnavailable: {
         code: "AUTH_OAUTH_ACCESS_TOKEN_UNAVAILABLE",
         message: "GitHub access token을 발급받지 못했습니다."
@@ -54,7 +50,6 @@ export const authErrors = {
     sessionRequired: () => createDomainError(authErrorDefinitions.sessionRequired),
     userSuspended: () => createDomainError(authErrorDefinitions.userSuspended),
     signupRequired: () => createDomainError(authErrorDefinitions.signupRequired),
-    oauthConfigMissing: () => createDomainError(authErrorDefinitions.oauthConfigMissing),
     oauthAccessTokenUnavailable: () => createDomainError(authErrorDefinitions.oauthAccessTokenUnavailable),
     oauthProfileUnavailable: () => createDomainError(authErrorDefinitions.oauthProfileUnavailable),
     oauthEmailUnavailable: () => createDomainError(authErrorDefinitions.oauthEmailUnavailable),

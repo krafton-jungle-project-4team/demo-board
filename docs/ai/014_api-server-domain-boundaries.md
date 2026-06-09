@@ -23,6 +23,8 @@ API 서버 service가 Nest HTTP 예외와 외부 OAuth 호출 세부사항을 �
 - web generated client를 표준 응답 형식에 맞게 갱신하고, web feature 타입은 shared contract를 우선 쓰게 했다.
 - 프로젝트 표준에 응답 형식, 도메인 오류, 외부 클라이언트 경계 규칙을 추가했다.
 - Prettier 들여쓰기 기준을 4칸으로 바꾸고 전체 포맷을 적용했다.
+- API 서버 env 파일은 `apps/api-server/.env`로 고정하고, 없으면 시작 시 예외가 나게 했다.
+- 도메인별 env 필드 타입을 정의하고, common env가 `serverEnv` 전역 객체를 생성하게 했다.
 
 ## 결과
 
@@ -32,5 +34,6 @@ API 서버 service가 Nest HTTP 예외와 외부 OAuth 호출 세부사항을 �
 - OAuth는 구현 중심 인프라 코드가 되었고, auth command service가 그 결과와 실패를 감싼다.
 - API 계약 원본은 shared Zod schema이고, OpenAPI는 FE 요청 함수 생성을 위한 산출물이 된다.
 - 프로젝트 포맷은 4칸 들여쓰기와 120자 줄바꿈 기준을 쓴다.
+- env 사용자는 `process.env` 대신 `serverEnv` 필드를 사용한다.
 - 검증: `npm run openapi:generate`, `npm run typecheck`, `npm run format:check`, `npm run verify` 통과
 - 런타임 검증: `npm run dev:api -- -d` 후 `/api/health`, `/api/posts`, board 404, auth 401 표준 응답 확인

@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { serverEnv } from "../../../common/env";
 import { OAuthProviderError, type OAuthProvider, type OAuthProviderEmail, type OAuthProviderProfile } from "../domain";
 
 @Injectable()
@@ -96,17 +97,10 @@ export class GitHubOAuthClient implements OAuthProvider {
     }
 
     private getOAuthConfig() {
-        const clientId = process.env.NMM_OAUTH_GITHUB_CLIENT_ID;
-        const clientSecret = process.env.NMM_OAUTH_GITHUB_CLIENT_SECRET;
-
-        if (!clientId || !clientSecret) {
-            throw new OAuthProviderError("CONFIG_MISSING");
-        }
-
         return {
-            clientId,
-            clientSecret,
-            callbackUrl: new URL("/api/auth/github/callback", this.apiOrigin).toString()
+            clientId: serverEnv.githubOAuth.clientId,
+            clientSecret: serverEnv.githubOAuth.clientSecret,
+            callbackUrl: new URL("/api/auth/github/callback", serverEnv.githubOAuth.apiOrigin).toString()
         };
     }
 
@@ -140,9 +134,5 @@ export class GitHubOAuthClient implements OAuthProvider {
         const value = record[key];
 
         return typeof value === "number" ? value : undefined;
-    }
-
-    private get apiOrigin() {
-        return process.env.NMM_API_ORIGIN ?? "http://localhost:3000";
     }
 }

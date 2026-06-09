@@ -1,6 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { randomBytes } from "node:crypto";
 import { CompleteSignUpRequestSchema, UpdateCurrentUserRequestSchema, type User } from "@nmm/shared";
+import { serverEnv } from "../../../common/env";
 import {
     AUTH_COMMAND_PROVIDER,
     AUTH_OAUTH_PROVIDER,
@@ -98,7 +99,7 @@ export class AuthCommandService {
         return {
             httpOnly: true,
             sameSite: "lax",
-            secure: process.env.NMM_AUTH_COOKIE_SECURE === "true",
+            secure: serverEnv.auth.sessionCookieSecure,
             path: "/api"
         };
     }
@@ -191,19 +192,19 @@ export class AuthCommandService {
     }
 
     private get webOrigin() {
-        return process.env.NMM_WEB_ORIGIN ?? "http://localhost:5173";
+        return serverEnv.auth.webOrigin;
     }
 
     private get loginRedirectPath() {
-        return process.env.NMM_AUTH_LOGIN_REDIRECT_PATH ?? "/posts";
+        return serverEnv.auth.loginRedirectPath;
     }
 
     private get signupRedirectPath() {
-        return process.env.NMM_AUTH_SIGNUP_REDIRECT_PATH ?? "/auth/complete-signup";
+        return serverEnv.auth.signupRedirectPath;
     }
 
     private get errorRedirectPath() {
-        return process.env.NMM_AUTH_ERROR_REDIRECT_PATH ?? "/auth/error";
+        return serverEnv.auth.errorRedirectPath;
     }
 
     private async requestOAuthProviderResult<T>(request: () => Promise<T>) {
@@ -228,8 +229,6 @@ export class AuthCommandService {
         }
 
         switch (error.failure) {
-            case "CONFIG_MISSING":
-                throw authErrors.oauthConfigMissing();
             case "ACCESS_TOKEN_UNAVAILABLE":
                 throw authErrors.oauthAccessTokenUnavailable();
             case "PROFILE_UNAVAILABLE":

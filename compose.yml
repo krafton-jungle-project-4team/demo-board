@@ -31,6 +31,7 @@ services:
             postgres:
                 condition: service_healthy
         environment:
+            NODE_ENV: development
             PORT: 3000
             NMM_API_ORIGIN: http://localhost:3000
             NMM_WEB_ORIGIN: http://localhost:5173
@@ -40,6 +41,12 @@ services:
             NMM_DB_PASSWORD: ${NMM_DB_PASSWORD:-1234}
             NMM_DB_DATABASE: namanmu
             NMM_DB_SYNCHRONIZE: "true"
+            NMM_DB_LOGGING: "false"
+            NMM_DB_MANUAL_INITIALIZATION: "false"
+            NMM_AUTH_LOGIN_REDIRECT_PATH: /posts
+            NMM_AUTH_SIGNUP_REDIRECT_PATH: /auth/complete-signup
+            NMM_AUTH_ERROR_REDIRECT_PATH: /auth/error
+            NMM_AUTH_COOKIE_SECURE: "false"
         ports:
             - "3000:3000"
         volumes:

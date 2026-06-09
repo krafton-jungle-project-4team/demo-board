@@ -67,6 +67,8 @@
 - JSON 성공 응답은 `{ requestId, data }`, JSON 에러 응답은 `{ requestId, error: { code, message } }`를 쓴다.
 - 도메인 오류는 code/message만 관리하고, HTTP status 변환은 controller/web server boundary에서 처리한다.
 - 외부 시스템 클라이언트는 infrastructure에 두고, domain service가 그 결과와 실패를 감싼다.
+- API 서버 env 파일은 `apps/api-server/.env`로 고정하고, 없으면 서버 시작이 실패한다.
+- env 값은 `serverEnv` 전역 객체로 생성한 뒤 코드에서 직접 사용한다.
 - API 서버 feature의 `domain`은 도메인 객체, entity, 오류, provider 인터페이스를 둔다.
 - TypeORM `DataSource`, repository 구현체와 묶음 작업 구현은 `database`에 둔다.
 - service는 query(read only)와 command(변경 목적)를 파일 단위로 분리한다.

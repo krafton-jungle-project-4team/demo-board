@@ -16,7 +16,6 @@ export type OAuthProviderEmail = {
 };
 
 export type OAuthProviderFailure =
-    | "CONFIG_MISSING"
     | "ACCESS_TOKEN_UNAVAILABLE"
     | "PROFILE_UNAVAILABLE"
     | "EMAIL_UNAVAILABLE"

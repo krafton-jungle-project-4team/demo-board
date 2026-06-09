@@ -1,4 +1,5 @@
 export { authErrors, isAuthErrorCode, type AuthErrorCode } from "./auth.error";
+export type { AuthEnv, GitHubOAuthEnv } from "./auth.env";
 export {
     AUTH_COMMAND_PROVIDER,
     AUTH_QUERY_PROVIDER,

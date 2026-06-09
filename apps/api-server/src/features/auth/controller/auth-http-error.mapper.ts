@@ -29,8 +29,6 @@ function readAuthHttpStatus(code: AuthErrorCode) {
         case "AUTH_USER_SUSPENDED":
         case "AUTH_SIGNUP_REQUIRED":
             return HttpStatus.FORBIDDEN;
-        case "AUTH_OAUTH_CONFIG_MISSING":
-            return HttpStatus.INTERNAL_SERVER_ERROR;
         case "AUTH_OAUTH_RESPONSE_INVALID":
             return HttpStatus.BAD_GATEWAY;
     }
