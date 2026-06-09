@@ -5,8 +5,6 @@
   "scripts": {
     "build": "nest build",
     "openapi:emit": "tsx src/openapi.ts",
-    "start": "nest start",
-    "start:dev": "nest start --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
@@ -14,9 +12,12 @@
     "@nestjs/core": "latest",
     "@nestjs/platform-express": "latest",
     "@nestjs/swagger": "^11.4.4",
+    "@nestjs/typeorm": "^11.0.1",
     "@nmm/shared": "file:../../packages/shared",
+    "pg": "^8.21.0",
     "reflect-metadata": "latest",
-    "rxjs": "latest"
+    "rxjs": "latest",
+    "typeorm": "^1.0.0"
   },
   "devDependencies": {
     "@nestjs/cli": "latest",

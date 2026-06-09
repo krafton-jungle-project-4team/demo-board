@@ -28,8 +28,8 @@ export class AuthController {
   @ApiOperation({ summary: "GitHub OAuth 로그인 시작" })
   @ApiQuery({ name: "redirectTo", required: false, type: String, example: "/posts" })
   @ApiFoundResponse({ description: "GitHub OAuth 승인 화면으로 리다이렉트한다." })
-  startGitHub(@Query("redirectTo") redirectTo: string | undefined, @Res() response: AuthResponse) {
-    response.redirect(this.authService.createGitHubAuthorizationUrl(redirectTo));
+  async startGitHub(@Query("redirectTo") redirectTo: string | undefined, @Res() response: AuthResponse) {
+    response.redirect(await this.authService.createGitHubAuthorizationUrl(redirectTo));
   }
 
   @Get("github/callback")
@@ -66,7 +66,7 @@ export class AuthController {
   @ApiOperation({ summary: "OAuth 가입 완료" })
   @ApiBody({ type: CompleteSignUpDto })
   @ApiOkResponse({ type: UserDto })
-  completeSignUp(
+  async completeSignUp(
     @Body() body: CompleteSignUpDto,
     @Headers("authorization") authorization?: string,
     @Headers("cookie") cookieHeader?: string
@@ -83,7 +83,7 @@ export class AuthController {
   @ApiBearerAuth("session")
   @ApiOperation({ summary: "현재 로그인 사용자 조회" })
   @ApiOkResponse({ type: UserDto })
-  me(@Headers("authorization") authorization?: string, @Headers("cookie") cookieHeader?: string) {
+  async me(@Headers("authorization") authorization?: string, @Headers("cookie") cookieHeader?: string) {
     return this.authService.getCurrentUser({
       authorization,
       cookieHeader
@@ -96,7 +96,7 @@ export class AuthController {
   @ApiOperation({ summary: "현재 사용자 정보 수정" })
   @ApiBody({ type: UpdateCurrentUserDto })
   @ApiOkResponse({ type: UserDto })
-  updateMe(
+  async updateMe(
     @Body() body: UpdateCurrentUserDto,
     @Headers("authorization") authorization?: string,
     @Headers("cookie") cookieHeader?: string
@@ -113,14 +113,14 @@ export class AuthController {
   @ApiBearerAuth("session")
   @ApiOperation({ summary: "로그아웃" })
   @ApiNoContentResponse()
-  logout(
+  async logout(
     @Headers("authorization") authorization: string | undefined,
     @Headers("cookie") cookieHeader: string | undefined,
     @Res({ passthrough: true }) response: AuthResponse
   ) {
     const sessionToken = this.authService.readSessionToken({ authorization, cookieHeader });
 
-    this.authService.deleteSession(sessionToken);
+    await this.authService.deleteSession(sessionToken);
     response.clearCookie(sessionCookieName, this.authService.getClearedSessionCookieOptions());
   }
 }

@@ -14,7 +14,7 @@ export class PostTagsController {
     description: "태그는 별도 PostTag 데이터로 관리한다. 일반 사용자용 태그 생성 API는 제공하지 않는다."
   })
   @ApiOkResponse({ type: PostTagDto, isArray: true })
-  findTags() {
+  async findTags() {
     return this.boardService.findTags();
   }
 }

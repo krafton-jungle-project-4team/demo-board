@@ -32,19 +32,21 @@ type BoardUser = User & {
 export class BoardService {
   constructor(private readonly boardRepository: BoardRepository) {}
 
-  findTags(): PostTag[] {
-    return this.boardRepository.listTags().map((tag) => PostTagSchema.parse(tag));
+  async findTags(): Promise<PostTag[]> {
+    return (await this.boardRepository.listTags()).map((tag) => PostTagSchema.parse(tag));
   }
 
-  findPosts(query: unknown): PostListResponse {
+  async findPosts(query: unknown): Promise<PostListResponse> {
     const parsedQuery = ListPostsQuerySchema.parse(query);
-    const filteredPosts = this.filterPosts(this.boardRepository.listPosts(), parsedQuery);
+    const filteredPosts = await this.filterPosts(await this.boardRepository.listPosts(), parsedQuery);
     const sortedPosts = this.sortPosts(filteredPosts, parsedQuery.sort);
     const totalItems = sortedPosts.length;
     const totalPages = Math.max(1, Math.ceil(totalItems / parsedQuery.pageSize));
     const page = Math.min(parsedQuery.page, totalPages);
     const startIndex = (page - 1) * parsedQuery.pageSize;
-    const items = sortedPosts.slice(startIndex, startIndex + parsedQuery.pageSize).map((post) => this.toPost(post));
+    const items = await Promise.all(
+      sortedPosts.slice(startIndex, startIndex + parsedQuery.pageSize).map((post) => this.toPost(post))
+    );
 
     return PostListResponseSchema.parse({
       items,
@@ -55,11 +57,11 @@ export class BoardService {
     });
   }
 
-  findPost(id: string): Post {
-    return this.toPost(this.findPostRecord(id));
+  async findPost(id: string): Promise<Post> {
+    return this.toPost(await this.findPostRecord(id));
   }
 
-  createPost(input: unknown, user: BoardUser): Post {
+  async createPost(input: unknown, user: BoardUser): Promise<Post> {
     const request = CreatePostRequestSchema.parse(input);
     const now = new Date().toISOString();
     const post: PostRecord = {
@@ -71,17 +73,17 @@ export class BoardService {
       authorName: user.name,
       createdAt: now,
       updatedAt: now,
-      tagIds: this.resolveTagIds(request.tagIds)
+      tagIds: await this.resolveTagIds(request.tagIds)
     };
 
-    this.boardRepository.createPost(post);
+    await this.boardRepository.createPost(post);
 
     return this.toPost(post);
   }
 
-  updatePost(id: string, input: unknown, user: BoardUser): Post {
+  async updatePost(id: string, input: unknown, user: BoardUser): Promise<Post> {
     const request = UpdatePostRequestSchema.parse(input);
-    const post = this.findPostRecord(id);
+    const post = await this.findPostRecord(id);
 
     this.assertOwner(post, user);
 
@@ -98,34 +100,35 @@ export class BoardService {
     }
 
     if (request.tagIds !== undefined) {
-      post.tagIds = this.resolveTagIds(request.tagIds);
+      post.tagIds = await this.resolveTagIds(request.tagIds);
     }
 
     post.updatedAt = new Date().toISOString();
+    await this.boardRepository.savePost(post);
 
     return this.toPost(post);
   }
 
-  deletePost(id: string, user: BoardUser): DeletePostResponse {
-    const post = this.findPostRecord(id);
+  async deletePost(id: string, user: BoardUser): Promise<DeletePostResponse> {
+    const post = await this.findPostRecord(id);
 
     this.assertOwner(post, user);
-    this.boardRepository.deletePost(post);
-    this.boardRepository.deleteCommentsByPostId(id);
+    await this.boardRepository.deletePost(post);
+    await this.boardRepository.deleteCommentsByPostId(id);
 
     return DeletePostResponseSchema.parse({ ok: true, id });
   }
 
-  findComments(postId: string): CommentListResponse {
-    this.findPostRecord(postId);
+  async findComments(postId: string): Promise<CommentListResponse> {
+    await this.findPostRecord(postId);
 
     return CommentListResponseSchema.parse({
-      items: this.boardRepository.listComments(postId)
+      items: await this.boardRepository.listComments(postId)
     });
   }
 
-  createComment(postId: string, input: unknown, user: BoardUser): Comment {
-    this.findPostRecord(postId);
+  async createComment(postId: string, input: unknown, user: BoardUser): Promise<Comment> {
+    await this.findPostRecord(postId);
 
     const request = CreateCommentRequestSchema.parse(input);
     const now = new Date().toISOString();
@@ -139,16 +142,16 @@ export class BoardService {
       updatedAt: now
     });
 
-    this.boardRepository.createComment(comment);
+    await this.boardRepository.createComment(comment);
 
     return comment;
   }
 
-  updateComment(postId: string, commentId: string, input: unknown, user: BoardUser): Comment {
-    this.findPostRecord(postId);
+  async updateComment(postId: string, commentId: string, input: unknown, user: BoardUser): Promise<Comment> {
+    await this.findPostRecord(postId);
 
     const request = UpdateCommentRequestSchema.parse(input);
-    const comment = this.findCommentRecord(postId, commentId);
+    const comment = await this.findCommentRecord(postId, commentId);
 
     this.assertOwner(comment, user);
 
@@ -157,35 +160,44 @@ export class BoardService {
     }
 
     comment.updatedAt = new Date().toISOString();
+    await this.boardRepository.saveComment(comment);
 
     return CommentSchema.parse(comment);
   }
 
-  deleteComment(postId: string, commentId: string, user: BoardUser): DeleteCommentResponse {
-    this.findPostRecord(postId);
+  async deleteComment(postId: string, commentId: string, user: BoardUser): Promise<DeleteCommentResponse> {
+    await this.findPostRecord(postId);
 
-    const comment = this.findCommentRecord(postId, commentId);
+    const comment = await this.findCommentRecord(postId, commentId);
 
     this.assertOwner(comment, user);
-    this.boardRepository.deleteComment(comment);
+    await this.boardRepository.deleteComment(comment);
 
     return DeleteCommentResponseSchema.parse({ ok: true, id: commentId });
   }
 
-  private filterPosts(posts: PostRecord[], query: ListPostsQuery) {
+  private async filterPosts(posts: PostRecord[], query: ListPostsQuery) {
     const keyword = query.q.trim().toLowerCase();
 
-    return posts.filter((post) => {
-      const tags = this.getPostTags(post);
-      const matchesKeyword =
-        !keyword ||
-        [post.title, post.excerpt, post.content, post.authorName, ...tags.map((tag) => tag.name)].some((value) =>
-          value.toLowerCase().includes(keyword)
-        );
-      const matchesTag = !query.tagId || post.tagIds.includes(query.tagId);
+    const postsWithTags = await Promise.all(
+      posts.map(async (post) => ({
+        post,
+        tags: await this.getPostTags(post)
+      }))
+    );
 
-      return matchesKeyword && matchesTag;
-    });
+    return postsWithTags
+      .filter(({ post, tags }) => {
+        const matchesKeyword =
+          !keyword ||
+          [post.title, post.excerpt, post.content, post.authorName, ...tags.map((tag) => tag.name)].some((value) =>
+            value.toLowerCase().includes(keyword)
+          );
+        const matchesTag = !query.tagId || post.tagIds.includes(query.tagId);
+
+        return matchesKeyword && matchesTag;
+      })
+      .map(({ post }) => post);
   }
 
   private sortPosts(posts: PostRecord[], sort: ListPostsQuery["sort"]) {
@@ -202,8 +214,8 @@ export class BoardService {
     });
   }
 
-  private findPostRecord(id: string) {
-    const post = this.boardRepository.findPost(id);
+  private async findPostRecord(id: string) {
+    const post = await this.boardRepository.findPost(id);
 
     if (!post) {
       throw new NotFoundException("게시글을 찾을 수 없습니다.");
@@ -212,8 +224,8 @@ export class BoardService {
     return post;
   }
 
-  private findCommentRecord(postId: string, commentId: string) {
-    const comment = this.boardRepository.findComment(postId, commentId);
+  private async findCommentRecord(postId: string, commentId: string) {
+    const comment = await this.boardRepository.findComment(postId, commentId);
 
     if (!comment) {
       throw new NotFoundException("댓글을 찾을 수 없습니다.");
@@ -222,9 +234,11 @@ export class BoardService {
     return comment;
   }
 
-  private resolveTagIds(tagIds: string[]) {
+  private async resolveTagIds(tagIds: string[]) {
     const uniqueTagIds = [...new Set(tagIds)];
-    const unknownTagIds = uniqueTagIds.filter((tagId) => !this.boardRepository.findTag(tagId));
+    const tags = await this.boardRepository.findTagsByIds(uniqueTagIds);
+    const knownTagIds = new Set(tags.map((tag) => tag.id));
+    const unknownTagIds = uniqueTagIds.filter((tagId) => !knownTagIds.has(tagId));
 
     if (unknownTagIds.length > 0) {
       throw new BadRequestException(`존재하지 않는 태그입니다: ${unknownTagIds.join(", ")}`);
@@ -233,11 +247,11 @@ export class BoardService {
     return uniqueTagIds;
   }
 
-  private getPostTags(post: PostRecord) {
-    return post.tagIds.map((tagId) => this.boardRepository.findTag(tagId)).filter((tag) => tag !== undefined);
+  private async getPostTags(post: PostRecord) {
+    return this.boardRepository.findTagsByIds(post.tagIds);
   }
 
-  private toPost(post: PostRecord): Post {
+  private async toPost(post: PostRecord): Promise<Post> {
     return PostSchema.parse({
       id: post.id,
       title: post.title,
@@ -247,7 +261,7 @@ export class BoardService {
       authorName: post.authorName,
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
-      tags: this.getPostTags(post)
+      tags: await this.getPostTags(post)
     });
   }
 

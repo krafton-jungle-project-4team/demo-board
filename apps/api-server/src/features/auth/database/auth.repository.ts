@@ -1,5 +1,12 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, type OnModuleInit } from "@nestjs/common";
+import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
+import { randomUUID } from "node:crypto";
+import { DataSource, Repository } from "typeorm";
 import type { User } from "@nmm/shared";
+import { OAuthAccountEntity } from "./oauth-account.entity";
+import { OAuthStateEntity } from "./oauth-state.entity";
+import { SessionEntity } from "./session.entity";
+import { UserEntity } from "./user.entity";
 
 export type UserRecord = User;
 
@@ -18,16 +25,25 @@ export type OAuthStateRecord = {
 };
 
 @Injectable()
-export class AuthRepository {
-  private nextUserNumber = 2;
-  private readonly users = new Map<string, UserRecord>();
-  private readonly userIdsByEmail = new Map<string, string>();
-  private readonly sessionUserIds = new Map<string, string>();
-  private readonly oauthAccounts = new Map<string, OAuthAccountRecord>();
-  private readonly oauthStates = new Map<string, OAuthStateRecord>();
+export class AuthRepository implements OnModuleInit {
+  constructor(
+    @InjectDataSource() private readonly dataSource: DataSource,
+    @InjectRepository(UserEntity) private readonly users: Repository<UserEntity>,
+    @InjectRepository(SessionEntity) private readonly sessions: Repository<SessionEntity>,
+    @InjectRepository(OAuthAccountEntity) private readonly oauthAccounts: Repository<OAuthAccountEntity>,
+    @InjectRepository(OAuthStateEntity) private readonly oauthStates: Repository<OAuthStateEntity>
+  ) {}
 
-  constructor() {
-    this.saveUser({
+  async onModuleInit() {
+    if (!this.dataSource.isInitialized) {
+      return;
+    }
+
+    if (await this.users.existsBy({ id: "user-sijun" })) {
+      return;
+    }
+
+    await this.saveUser({
       id: "user-sijun",
       email: "sijun@example.com",
       name: "sijun",
@@ -39,55 +55,123 @@ export class AuthRepository {
   }
 
   createUserId() {
-    return `user-${this.nextUserNumber++}`;
+    return `user-${randomUUID()}`;
   }
 
-  findUserById(id: string) {
-    return this.users.get(id);
+  async findUserById(id: string) {
+    return this.toUserRecord(await this.users.findOneBy({ id }));
   }
 
-  findUserByEmail(email: string) {
-    const userId = this.userIdsByEmail.get(email);
-
-    return userId ? this.findUserById(userId) : undefined;
+  async findUserByEmail(email: string) {
+    return this.toUserRecord(await this.users.findOneBy({ email }));
   }
 
-  findUserBySessionToken(sessionToken: string) {
-    const userId = this.sessionUserIds.get(sessionToken);
+  async findUserBySessionToken(sessionToken: string) {
+    const session = await this.sessions.findOneBy({ token: sessionToken });
 
-    return userId ? this.findUserById(userId) : undefined;
+    return session ? this.findUserById(session.userId) : undefined;
   }
 
-  saveUser(user: UserRecord) {
-    this.users.set(user.id, user);
-    this.userIdsByEmail.set(user.email, user.id);
+  async saveUser(user: UserRecord) {
+    await this.users.save(this.toUserEntity(user));
   }
 
-  saveSession(sessionToken: string, userId: string) {
-    this.sessionUserIds.set(sessionToken, userId);
+  async saveSession(sessionToken: string, userId: string) {
+    await this.sessions.save({
+      token: sessionToken,
+      userId
+    });
   }
 
-  deleteSession(sessionToken: string) {
-    this.sessionUserIds.delete(sessionToken);
+  async deleteSession(sessionToken: string) {
+    await this.sessions.delete({ token: sessionToken });
   }
 
-  findOAuthAccount(key: string) {
-    return this.oauthAccounts.get(key);
+  async findOAuthAccount(key: string) {
+    return this.toOAuthAccountRecord(await this.oauthAccounts.findOneBy({ accountKey: key }));
   }
 
-  saveOAuthAccount(key: string, account: OAuthAccountRecord) {
-    this.oauthAccounts.set(key, account);
+  async saveOAuthAccount(key: string, account: OAuthAccountRecord) {
+    await this.oauthAccounts.save({
+      accountKey: key,
+      provider: account.provider,
+      providerAccountId: account.providerAccountId,
+      userId: account.userId,
+      accessToken: account.accessToken,
+      providerLogin: account.providerLogin,
+      updatedAt: new Date(account.updatedAt)
+    });
   }
 
-  saveOAuthState(state: string, record: OAuthStateRecord) {
-    this.oauthStates.set(state, record);
+  async saveOAuthState(state: string, record: OAuthStateRecord) {
+    await this.oauthStates.save({
+      state,
+      redirectTo: record.redirectTo,
+      expiresAt: record.expiresAt
+    });
   }
 
-  consumeOAuthState(state: string) {
-    const stateRecord = this.oauthStates.get(state);
+  async consumeOAuthState(state: string) {
+    const stateRecord = await this.oauthStates.findOneBy({ state });
 
-    this.oauthStates.delete(state);
+    if (stateRecord) {
+      await this.oauthStates.delete({ state });
+    }
 
-    return stateRecord;
+    return this.toOAuthStateRecord(stateRecord);
+  }
+
+  private toUserEntity(user: UserRecord): UserEntity {
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      image: user.image,
+      role: user.role,
+      status: user.status,
+      createdAt: new Date(user.createdAt)
+    };
+  }
+
+  private toUserRecord(user: UserEntity | null) {
+    if (!user) {
+      return undefined;
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      image: user.image,
+      role: user.role,
+      status: user.status,
+      createdAt: user.createdAt.toISOString()
+    } satisfies UserRecord;
+  }
+
+  private toOAuthAccountRecord(account: OAuthAccountEntity | null) {
+    if (!account) {
+      return undefined;
+    }
+
+    return {
+      provider: account.provider,
+      providerAccountId: account.providerAccountId,
+      userId: account.userId,
+      accessToken: account.accessToken,
+      providerLogin: account.providerLogin,
+      updatedAt: account.updatedAt.toISOString()
+    } satisfies OAuthAccountRecord;
+  }
+
+  private toOAuthStateRecord(state: OAuthStateEntity | null) {
+    if (!state) {
+      return undefined;
+    }
+
+    return {
+      redirectTo: state.redirectTo,
+      expiresAt: state.expiresAt
+    } satisfies OAuthStateRecord;
   }
 }

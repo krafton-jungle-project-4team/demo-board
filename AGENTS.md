@@ -8,6 +8,8 @@
 ## 프로젝트 표준
 
 - 변경 후 `npm run verify`로 lint, format check, typecheck, build를 함께 확인한다.
+- 개발 서버는 루트 npm script로만 실행한다. API 서버는 Docker Compose를 감싼 `npm run dev` 또는 `npm run dev:api`만 사용한다.
+- API 서버를 직접 `nest start`, workspace `start:dev`, 임의 환경 변수 조합으로 실행하지 않는다. 로컬 환경 의존이 실행마다 달라지는 것을 막기 위함이다.
 - 모듈 경계는 `docs/project-standards.md`와 `eslint.config.mjs`를 따른다.
 - `apps/web-client`는 `@nmm/shared`만 workspace import로 사용하고 API는 HTTP로 호출한다.
 - `apps/api-server`는 `@nmm/shared`만 workspace import로 사용하고 web 코드를 import하지 않는다.

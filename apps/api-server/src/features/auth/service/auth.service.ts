@@ -47,11 +47,11 @@ type GitHubEmail = {
 export class AuthService {
   constructor(private readonly authRepository: AuthRepository) {}
 
-  createGitHubAuthorizationUrl(redirectTo?: string) {
+  async createGitHubAuthorizationUrl(redirectTo?: string) {
     const config = this.getGitHubOAuthConfig();
     const state = randomBytes(32).toString("base64url");
 
-    this.authRepository.saveOAuthState(state, {
+    await this.authRepository.saveOAuthState(state, {
       redirectTo: this.normalizeRedirectPath(redirectTo, this.loginRedirectPath),
       expiresAt: Date.now() + 10 * 60 * 1000
     });
@@ -70,17 +70,17 @@ export class AuthService {
       throw new BadRequestException("GitHub OAuth callback code와 state가 필요합니다.");
     }
 
-    const state = this.consumeOAuthState(input.state);
+    const state = await this.consumeOAuthState(input.state);
     const accessToken = await this.exchangeGitHubCode(input.code);
     const profile = await this.fetchGitHubProfile(accessToken);
     const emails = await this.fetchGitHubEmails(accessToken);
     const email = this.pickGitHubEmail(profile, emails);
-    const user = this.upsertGitHubUser({
+    const user = await this.upsertGitHubUser({
       accessToken,
       email,
       profile
     });
-    const sessionToken = this.createSession(user);
+    const sessionToken = await this.createSession(user);
     const redirectPath = user.status === "PENDING" ? this.signupRedirectPath : state.redirectTo;
 
     return {
@@ -90,42 +90,42 @@ export class AuthService {
     };
   }
 
-  completeSignUp(input: unknown, context: AuthRequestContext): User {
+  async completeSignUp(input: unknown, context: AuthRequestContext): Promise<User> {
     const request = CompleteSignUpRequestSchema.parse(input);
-    const user = this.requireUserRecord({ ...context, allowPending: true });
+    const user = await this.requireUserRecord({ ...context, allowPending: true });
 
     user.name = request.name;
     user.status = "ACTIVE";
-    this.authRepository.saveUser(user);
+    await this.authRepository.saveUser(user);
 
     return this.toUser(user);
   }
 
-  updateCurrentUser(input: unknown, context: AuthRequestContext): User {
+  async updateCurrentUser(input: unknown, context: AuthRequestContext): Promise<User> {
     const request = UpdateCurrentUserRequestSchema.parse(input);
-    const user = this.requireActiveUserRecord(context);
+    const user = await this.requireActiveUserRecord(context);
 
     user.name = request.name;
-    this.authRepository.saveUser(user);
+    await this.authRepository.saveUser(user);
 
     return this.toUser(user);
   }
 
-  getCurrentUser(context: AuthRequestContext): User {
-    return this.toUser(this.requireUserRecord({ ...context, allowPending: true }));
+  async getCurrentUser(context: AuthRequestContext): Promise<User> {
+    return this.toUser(await this.requireUserRecord({ ...context, allowPending: true }));
   }
 
-  requireUser(context: AuthRequestContext): ActiveUser {
-    return this.toActiveUser(this.requireUserRecord(context));
+  async requireUser(context: AuthRequestContext): Promise<ActiveUser> {
+    return this.toActiveUser(await this.requireUserRecord(context));
   }
 
   readSessionToken(context: AuthRequestContext) {
     return this.readCookieToken(context.cookieHeader) ?? this.readBearerToken(context.authorization);
   }
 
-  deleteSession(sessionToken: string | undefined) {
+  async deleteSession(sessionToken: string | undefined) {
     if (sessionToken) {
-      this.authRepository.deleteSession(sessionToken);
+      await this.authRepository.deleteSession(sessionToken);
     }
   }
 
@@ -148,9 +148,9 @@ export class AuthService {
     return this.toWebUrl(`${this.errorRedirectPath}?${errorPath}`);
   }
 
-  private requireUserRecord(context: AuthRequestContext): UserRecord {
+  private async requireUserRecord(context: AuthRequestContext): Promise<UserRecord> {
     const sessionToken = this.readSessionToken(context);
-    const user = sessionToken ? this.authRepository.findUserBySessionToken(sessionToken) : undefined;
+    const user = sessionToken ? await this.authRepository.findUserBySessionToken(sessionToken) : undefined;
 
     if (!user) {
       throw new UnauthorizedException("로그인이 필요합니다.");
@@ -167,8 +167,8 @@ export class AuthService {
     return user;
   }
 
-  private requireActiveUserRecord(context: AuthRequestContext): UserRecord {
-    const user = this.requireUserRecord(context);
+  private async requireActiveUserRecord(context: AuthRequestContext): Promise<UserRecord> {
+    const user = await this.requireUserRecord(context);
 
     if (user.status !== "ACTIVE" || !user.name) {
       throw new ForbiddenException("가입 완료가 필요합니다.");
@@ -279,14 +279,18 @@ export class AuthService {
     return this.normalizeEmail(email);
   }
 
-  private upsertGitHubUser(input: { accessToken: string; email: string; profile: GitHubProfile }): UserRecord {
+  private async upsertGitHubUser(input: {
+    accessToken: string;
+    email: string;
+    profile: GitHubProfile;
+  }): Promise<UserRecord> {
     const providerAccountKey = this.createProviderAccountKey("github", String(input.profile.id));
-    const existingAccount = this.authRepository.findOAuthAccount(providerAccountKey);
+    const existingAccount = await this.authRepository.findOAuthAccount(providerAccountKey);
     const now = new Date().toISOString();
-    let user = existingAccount ? this.authRepository.findUserById(existingAccount.userId) : undefined;
+    let user = existingAccount ? await this.authRepository.findUserById(existingAccount.userId) : undefined;
 
     if (!user) {
-      user = this.authRepository.findUserByEmail(input.email);
+      user = await this.authRepository.findUserByEmail(input.email);
     }
 
     if (!user) {
@@ -299,13 +303,13 @@ export class AuthService {
         status: "PENDING",
         createdAt: now
       };
-      this.saveUser(user);
+      await this.saveUser(user);
     } else {
       user.image = input.profile.avatarUrl;
-      this.saveUser(user);
+      await this.saveUser(user);
     }
 
-    this.authRepository.saveOAuthAccount(providerAccountKey, {
+    await this.authRepository.saveOAuthAccount(providerAccountKey, {
       provider: "github",
       providerAccountId: String(input.profile.id),
       userId: user.id,
@@ -317,8 +321,8 @@ export class AuthService {
     return user;
   }
 
-  private consumeOAuthState(state: string) {
-    const stateRecord = this.authRepository.consumeOAuthState(state);
+  private async consumeOAuthState(state: string) {
+    const stateRecord = await this.authRepository.consumeOAuthState(state);
 
     if (!stateRecord || stateRecord.expiresAt < Date.now()) {
       throw new BadRequestException("GitHub OAuth state가 유효하지 않습니다.");
@@ -327,16 +331,16 @@ export class AuthService {
     return stateRecord;
   }
 
-  private createSession(user: UserRecord) {
+  private async createSession(user: UserRecord) {
     const sessionToken = randomBytes(32).toString("base64url");
 
-    this.authRepository.saveSession(sessionToken, user.id);
+    await this.authRepository.saveSession(sessionToken, user.id);
 
     return sessionToken;
   }
 
-  private saveUser(user: UserRecord) {
-    this.authRepository.saveUser(user);
+  private async saveUser(user: UserRecord) {
+    await this.authRepository.saveUser(user);
   }
 
   private toUser(user: UserRecord): User {

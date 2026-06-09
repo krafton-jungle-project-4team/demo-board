@@ -8,6 +8,7 @@ import { sessionCookieName } from "./features/auth";
 
 async function emitOpenApiSpec() {
   loadServerEnv();
+  process.env.NMM_DB_MANUAL_INITIALIZATION ??= "true";
 
   const app = await NestFactory.create(AppModule, {
     logger: false

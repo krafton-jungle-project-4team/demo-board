@@ -31,7 +31,7 @@ export class CommentsController {
   @ApiOperation({ summary: "댓글 목록 조회" })
   @ApiParam({ name: "postId", type: String, example: "post-1" })
   @ApiOkResponse({ type: CommentListResponseDto })
-  findComments(@Param("postId") postId: string) {
+  async findComments(@Param("postId") postId: string) {
     return this.boardService.findComments(postId);
   }
 
@@ -42,13 +42,17 @@ export class CommentsController {
   @ApiParam({ name: "postId", type: String, example: "post-1" })
   @ApiBody({ type: CreateCommentDto })
   @ApiCreatedResponse({ type: CommentDto })
-  createComment(
+  async createComment(
     @Param("postId") postId: string,
     @Body() body: CreateCommentDto,
     @Headers("authorization") authorization?: string,
     @Headers("cookie") cookieHeader?: string
   ) {
-    return this.boardService.createComment(postId, body, this.authService.requireUser({ authorization, cookieHeader }));
+    return this.boardService.createComment(
+      postId,
+      body,
+      await this.authService.requireUser({ authorization, cookieHeader })
+    );
   }
 
   @Patch(":commentId")
@@ -59,7 +63,7 @@ export class CommentsController {
   @ApiParam({ name: "commentId", type: String, example: "comment-1" })
   @ApiBody({ type: UpdateCommentDto })
   @ApiOkResponse({ type: CommentDto })
-  updateComment(
+  async updateComment(
     @Param("postId") postId: string,
     @Param("commentId") commentId: string,
     @Body() body: UpdateCommentDto,
@@ -70,7 +74,7 @@ export class CommentsController {
       postId,
       commentId,
       body,
-      this.authService.requireUser({ authorization, cookieHeader })
+      await this.authService.requireUser({ authorization, cookieHeader })
     );
   }
 
@@ -81,7 +85,7 @@ export class CommentsController {
   @ApiParam({ name: "postId", type: String, example: "post-1" })
   @ApiParam({ name: "commentId", type: String, example: "comment-1" })
   @ApiOkResponse({ type: DeleteCommentResponseDto })
-  deleteComment(
+  async deleteComment(
     @Param("postId") postId: string,
     @Param("commentId") commentId: string,
     @Headers("authorization") authorization?: string,
@@ -90,7 +94,7 @@ export class CommentsController {
     return this.boardService.deleteComment(
       postId,
       commentId,
-      this.authService.requireUser({ authorization, cookieHeader })
+      await this.authService.requireUser({ authorization, cookieHeader })
     );
   }
 }

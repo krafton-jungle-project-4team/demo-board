@@ -51,7 +51,7 @@ export class PostsController {
   })
   @ApiQuery({ name: "view", required: false, enum: ["table", "card"] })
   @ApiOkResponse({ type: PostListResponseDto })
-  findPosts(@Query() query: ListPostsQueryDto) {
+  async findPosts(@Query() query: ListPostsQueryDto) {
     return this.boardService.findPosts(query);
   }
 
@@ -59,7 +59,7 @@ export class PostsController {
   @ApiOperation({ summary: "게시글 단건 조회" })
   @ApiParam({ name: "id", type: String, example: "post-1" })
   @ApiOkResponse({ type: PostDto })
-  findPost(@Param("id") id: string) {
+  async findPost(@Param("id") id: string) {
     return this.boardService.findPost(id);
   }
 
@@ -69,12 +69,12 @@ export class PostsController {
   @ApiOperation({ summary: "게시글 생성" })
   @ApiBody({ type: CreatePostDto })
   @ApiCreatedResponse({ type: PostDto })
-  createPost(
+  async createPost(
     @Body() body: CreatePostDto,
     @Headers("authorization") authorization?: string,
     @Headers("cookie") cookieHeader?: string
   ) {
-    return this.boardService.createPost(body, this.authService.requireUser({ authorization, cookieHeader }));
+    return this.boardService.createPost(body, await this.authService.requireUser({ authorization, cookieHeader }));
   }
 
   @Patch(":id")
@@ -84,13 +84,13 @@ export class PostsController {
   @ApiParam({ name: "id", type: String, example: "post-1" })
   @ApiBody({ type: UpdatePostDto })
   @ApiOkResponse({ type: PostDto })
-  updatePost(
+  async updatePost(
     @Param("id") id: string,
     @Body() body: UpdatePostDto,
     @Headers("authorization") authorization?: string,
     @Headers("cookie") cookieHeader?: string
   ) {
-    return this.boardService.updatePost(id, body, this.authService.requireUser({ authorization, cookieHeader }));
+    return this.boardService.updatePost(id, body, await this.authService.requireUser({ authorization, cookieHeader }));
   }
 
   @Delete(":id")
@@ -99,11 +99,11 @@ export class PostsController {
   @ApiOperation({ summary: "게시글 삭제" })
   @ApiParam({ name: "id", type: String, example: "post-1" })
   @ApiOkResponse({ type: DeletePostResponseDto })
-  deletePost(
+  async deletePost(
     @Param("id") id: string,
     @Headers("authorization") authorization?: string,
     @Headers("cookie") cookieHeader?: string
   ) {
-    return this.boardService.deletePost(id, this.authService.requireUser({ authorization, cookieHeader }));
+    return this.boardService.deletePost(id, await this.authService.requireUser({ authorization, cookieHeader }));
   }
 }
