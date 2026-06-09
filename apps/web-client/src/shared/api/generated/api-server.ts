@@ -5,120 +5,68 @@
  * 나만의 무기 만들기 보일러플레이트용 게시판 API
  * OpenAPI spec version: 0.1.0
  */
-export interface CompleteSignUpDto {
-  name: string;
-}
-
-export type UserDtoRole = typeof UserDtoRole[keyof typeof UserDtoRole];
-
-
-export const UserDtoRole = {
-  USER: 'USER',
-  ADMIN: 'ADMIN',
-} as const;
-
-export type UserDtoStatus = typeof UserDtoStatus[keyof typeof UserDtoStatus];
-
-
-export const UserDtoStatus = {
-  PENDING: 'PENDING',
-  ACTIVE: 'ACTIVE',
-  SUSPENDED: 'SUSPENDED',
-} as const;
-
-export interface UserDto {
-  id: string;
-  email: string;
-  /** @nullable */
-  name: string | null;
-  /** @nullable */
-  image: string | null;
-  role: UserDtoRole;
-  status: UserDtoStatus;
-  createdAt: string;
-}
-
-export interface UpdateCurrentUserDto {
-  name: string;
-}
-
-export interface CommentDto {
-  id: string;
-  postId: string;
-  content: string;
-  authorId: string;
-  authorName: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CommentListResponseDto {
-  items: CommentDto[];
-}
-
-export interface CreateCommentDto {
-  content: string;
-}
-
-export interface UpdateCommentDto {
-  content?: string;
-}
-
-export interface DeleteCommentResponseDto {
-  ok: boolean;
-  id: string;
-}
-
-export interface PostTagDto {
-  id: string;
-  name: string;
-}
-
-export interface PostDto {
-  id: string;
-  title: string;
-  excerpt: string;
-  content: string;
-  authorId: string;
-  authorName: string;
-  createdAt: string;
-  updatedAt: string;
-  tags: PostTagDto[];
-}
-
-export interface PostListResponseDto {
-  items: PostDto[];
-  /** @minimum 1 */
-  page: number;
-  /** @minimum 1 */
-  pageSize: number;
-  /** @minimum 0 */
-  totalItems: number;
-  /** @minimum 1 */
-  totalPages: number;
-}
-
-export interface CreatePostDto {
-  title: string;
-  excerpt: string;
-  content: string;
-  tagIds?: string[];
-}
-
-export interface UpdatePostDto {
-  title?: string;
-  excerpt?: string;
-  content?: string;
-  tagIds?: string[];
-}
-
-export interface DeletePostResponseDto {
-  ok: boolean;
-  id: string;
-}
-
 export type AuthControllerStartGitHubParams = {
 redirectTo?: string;
+};
+
+export type AuthControllerStartGitHub400Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerStartGitHub400 = {
+  requestId: string;
+  error: AuthControllerStartGitHub400Error;
+};
+
+export type AuthControllerStartGitHub401Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerStartGitHub401 = {
+  requestId: string;
+  error: AuthControllerStartGitHub401Error;
+};
+
+export type AuthControllerStartGitHub403Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerStartGitHub403 = {
+  requestId: string;
+  error: AuthControllerStartGitHub403Error;
+};
+
+export type AuthControllerStartGitHub404Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerStartGitHub404 = {
+  requestId: string;
+  error: AuthControllerStartGitHub404Error;
+};
+
+export type AuthControllerStartGitHub500Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerStartGitHub500 = {
+  requestId: string;
+  error: AuthControllerStartGitHub500Error;
+};
+
+export type AuthControllerStartGitHub502Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerStartGitHub502 = {
+  requestId: string;
+  error: AuthControllerStartGitHub502Error;
 };
 
 export type AuthControllerGithubCallbackParams = {
@@ -127,17 +75,806 @@ state?: string;
 code?: string;
 };
 
+export type AuthControllerGithubCallback400Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerGithubCallback400 = {
+  requestId: string;
+  error: AuthControllerGithubCallback400Error;
+};
+
+export type AuthControllerGithubCallback401Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerGithubCallback401 = {
+  requestId: string;
+  error: AuthControllerGithubCallback401Error;
+};
+
+export type AuthControllerGithubCallback403Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerGithubCallback403 = {
+  requestId: string;
+  error: AuthControllerGithubCallback403Error;
+};
+
+export type AuthControllerGithubCallback404Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerGithubCallback404 = {
+  requestId: string;
+  error: AuthControllerGithubCallback404Error;
+};
+
+export type AuthControllerGithubCallback500Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerGithubCallback500 = {
+  requestId: string;
+  error: AuthControllerGithubCallback500Error;
+};
+
+export type AuthControllerGithubCallback502Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerGithubCallback502 = {
+  requestId: string;
+  error: AuthControllerGithubCallback502Error;
+};
+
+export type AuthControllerCompleteSignUpBody = {
+  name: string;
+};
+
+export type AuthControllerCompleteSignUp200DataRole = typeof AuthControllerCompleteSignUp200DataRole[keyof typeof AuthControllerCompleteSignUp200DataRole];
+
+
+export const AuthControllerCompleteSignUp200DataRole = {
+  USER: 'USER',
+  ADMIN: 'ADMIN',
+} as const;
+
+export type AuthControllerCompleteSignUp200DataStatus = typeof AuthControllerCompleteSignUp200DataStatus[keyof typeof AuthControllerCompleteSignUp200DataStatus];
+
+
+export const AuthControllerCompleteSignUp200DataStatus = {
+  PENDING: 'PENDING',
+  ACTIVE: 'ACTIVE',
+  SUSPENDED: 'SUSPENDED',
+} as const;
+
+export type AuthControllerCompleteSignUp200Data = {
+  id: string;
+  email: string;
+  /** @nullable */
+  name: string | null;
+  /** @nullable */
+  image: string | null;
+  role: AuthControllerCompleteSignUp200DataRole;
+  status: AuthControllerCompleteSignUp200DataStatus;
+  createdAt: string;
+};
+
+export type AuthControllerCompleteSignUp200 = {
+  requestId: string;
+  data: AuthControllerCompleteSignUp200Data;
+};
+
+export type AuthControllerCompleteSignUp400Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerCompleteSignUp400 = {
+  requestId: string;
+  error: AuthControllerCompleteSignUp400Error;
+};
+
+export type AuthControllerCompleteSignUp401Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerCompleteSignUp401 = {
+  requestId: string;
+  error: AuthControllerCompleteSignUp401Error;
+};
+
+export type AuthControllerCompleteSignUp403Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerCompleteSignUp403 = {
+  requestId: string;
+  error: AuthControllerCompleteSignUp403Error;
+};
+
+export type AuthControllerCompleteSignUp404Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerCompleteSignUp404 = {
+  requestId: string;
+  error: AuthControllerCompleteSignUp404Error;
+};
+
+export type AuthControllerCompleteSignUp500Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerCompleteSignUp500 = {
+  requestId: string;
+  error: AuthControllerCompleteSignUp500Error;
+};
+
+export type AuthControllerCompleteSignUp502Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerCompleteSignUp502 = {
+  requestId: string;
+  error: AuthControllerCompleteSignUp502Error;
+};
+
+export type AuthControllerMe200DataRole = typeof AuthControllerMe200DataRole[keyof typeof AuthControllerMe200DataRole];
+
+
+export const AuthControllerMe200DataRole = {
+  USER: 'USER',
+  ADMIN: 'ADMIN',
+} as const;
+
+export type AuthControllerMe200DataStatus = typeof AuthControllerMe200DataStatus[keyof typeof AuthControllerMe200DataStatus];
+
+
+export const AuthControllerMe200DataStatus = {
+  PENDING: 'PENDING',
+  ACTIVE: 'ACTIVE',
+  SUSPENDED: 'SUSPENDED',
+} as const;
+
+export type AuthControllerMe200Data = {
+  id: string;
+  email: string;
+  /** @nullable */
+  name: string | null;
+  /** @nullable */
+  image: string | null;
+  role: AuthControllerMe200DataRole;
+  status: AuthControllerMe200DataStatus;
+  createdAt: string;
+};
+
+export type AuthControllerMe200 = {
+  requestId: string;
+  data: AuthControllerMe200Data;
+};
+
+export type AuthControllerMe400Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerMe400 = {
+  requestId: string;
+  error: AuthControllerMe400Error;
+};
+
+export type AuthControllerMe401Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerMe401 = {
+  requestId: string;
+  error: AuthControllerMe401Error;
+};
+
+export type AuthControllerMe403Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerMe403 = {
+  requestId: string;
+  error: AuthControllerMe403Error;
+};
+
+export type AuthControllerMe404Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerMe404 = {
+  requestId: string;
+  error: AuthControllerMe404Error;
+};
+
+export type AuthControllerMe500Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerMe500 = {
+  requestId: string;
+  error: AuthControllerMe500Error;
+};
+
+export type AuthControllerMe502Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerMe502 = {
+  requestId: string;
+  error: AuthControllerMe502Error;
+};
+
+export type AuthControllerUpdateMeBody = {
+  name: string;
+};
+
+export type AuthControllerUpdateMe200DataRole = typeof AuthControllerUpdateMe200DataRole[keyof typeof AuthControllerUpdateMe200DataRole];
+
+
+export const AuthControllerUpdateMe200DataRole = {
+  USER: 'USER',
+  ADMIN: 'ADMIN',
+} as const;
+
+export type AuthControllerUpdateMe200DataStatus = typeof AuthControllerUpdateMe200DataStatus[keyof typeof AuthControllerUpdateMe200DataStatus];
+
+
+export const AuthControllerUpdateMe200DataStatus = {
+  PENDING: 'PENDING',
+  ACTIVE: 'ACTIVE',
+  SUSPENDED: 'SUSPENDED',
+} as const;
+
+export type AuthControllerUpdateMe200Data = {
+  id: string;
+  email: string;
+  /** @nullable */
+  name: string | null;
+  /** @nullable */
+  image: string | null;
+  role: AuthControllerUpdateMe200DataRole;
+  status: AuthControllerUpdateMe200DataStatus;
+  createdAt: string;
+};
+
+export type AuthControllerUpdateMe200 = {
+  requestId: string;
+  data: AuthControllerUpdateMe200Data;
+};
+
+export type AuthControllerUpdateMe400Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerUpdateMe400 = {
+  requestId: string;
+  error: AuthControllerUpdateMe400Error;
+};
+
+export type AuthControllerUpdateMe401Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerUpdateMe401 = {
+  requestId: string;
+  error: AuthControllerUpdateMe401Error;
+};
+
+export type AuthControllerUpdateMe403Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerUpdateMe403 = {
+  requestId: string;
+  error: AuthControllerUpdateMe403Error;
+};
+
+export type AuthControllerUpdateMe404Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerUpdateMe404 = {
+  requestId: string;
+  error: AuthControllerUpdateMe404Error;
+};
+
+export type AuthControllerUpdateMe500Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerUpdateMe500 = {
+  requestId: string;
+  error: AuthControllerUpdateMe500Error;
+};
+
+export type AuthControllerUpdateMe502Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerUpdateMe502 = {
+  requestId: string;
+  error: AuthControllerUpdateMe502Error;
+};
+
+export type AuthControllerLogout200Data = {
+  ok: boolean;
+};
+
+export type AuthControllerLogout200 = {
+  requestId: string;
+  data: AuthControllerLogout200Data;
+};
+
+export type AuthControllerLogout400Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerLogout400 = {
+  requestId: string;
+  error: AuthControllerLogout400Error;
+};
+
+export type AuthControllerLogout401Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerLogout401 = {
+  requestId: string;
+  error: AuthControllerLogout401Error;
+};
+
+export type AuthControllerLogout403Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerLogout403 = {
+  requestId: string;
+  error: AuthControllerLogout403Error;
+};
+
+export type AuthControllerLogout404Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerLogout404 = {
+  requestId: string;
+  error: AuthControllerLogout404Error;
+};
+
+export type AuthControllerLogout500Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerLogout500 = {
+  requestId: string;
+  error: AuthControllerLogout500Error;
+};
+
+export type AuthControllerLogout502Error = {
+  code: string;
+  message: string;
+};
+
+export type AuthControllerLogout502 = {
+  requestId: string;
+  error: AuthControllerLogout502Error;
+};
+
+export type CommentsControllerFindComments200DataItemsItem = {
+  id: string;
+  postId: string;
+  content: string;
+  authorId: string;
+  authorName: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CommentsControllerFindComments200Data = {
+  items: CommentsControllerFindComments200DataItemsItem[];
+};
+
+export type CommentsControllerFindComments200 = {
+  requestId: string;
+  data: CommentsControllerFindComments200Data;
+};
+
+export type CommentsControllerFindComments400Error = {
+  code: string;
+  message: string;
+};
+
+export type CommentsControllerFindComments400 = {
+  requestId: string;
+  error: CommentsControllerFindComments400Error;
+};
+
+export type CommentsControllerFindComments401Error = {
+  code: string;
+  message: string;
+};
+
+export type CommentsControllerFindComments401 = {
+  requestId: string;
+  error: CommentsControllerFindComments401Error;
+};
+
+export type CommentsControllerFindComments403Error = {
+  code: string;
+  message: string;
+};
+
+export type CommentsControllerFindComments403 = {
+  requestId: string;
+  error: CommentsControllerFindComments403Error;
+};
+
+export type CommentsControllerFindComments404Error = {
+  code: string;
+  message: string;
+};
+
+export type CommentsControllerFindComments404 = {
+  requestId: string;
+  error: CommentsControllerFindComments404Error;
+};
+
+export type CommentsControllerFindComments500Error = {
+  code: string;
+  message: string;
+};
+
+export type CommentsControllerFindComments500 = {
+  requestId: string;
+  error: CommentsControllerFindComments500Error;
+};
+
+export type CommentsControllerFindComments502Error = {
+  code: string;
+  message: string;
+};
+
+export type CommentsControllerFindComments502 = {
+  requestId: string;
+  error: CommentsControllerFindComments502Error;
+};
+
+export type CommentsControllerCreateCommentBody = {
+  content: string;
+};
+
+export type CommentsControllerCreateComment201Data = {
+  id: string;
+  postId: string;
+  content: string;
+  authorId: string;
+  authorName: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CommentsControllerCreateComment201 = {
+  requestId: string;
+  data: CommentsControllerCreateComment201Data;
+};
+
+export type CommentsControllerCreateComment400Error = {
+  code: string;
+  message: string;
+};
+
+export type CommentsControllerCreateComment400 = {
+  requestId: string;
+  error: CommentsControllerCreateComment400Error;
+};
+
+export type CommentsControllerCreateComment401Error = {
+  code: string;
+  message: string;
+};
+
+export type CommentsControllerCreateComment401 = {
+  requestId: string;
+  error: CommentsControllerCreateComment401Error;
+};
+
+export type CommentsControllerCreateComment403Error = {
+  code: string;
+  message: string;
+};
+
+export type CommentsControllerCreateComment403 = {
+  requestId: string;
+  error: CommentsControllerCreateComment403Error;
+};
+
+export type CommentsControllerCreateComment404Error = {
+  code: string;
+  message: string;
+};
+
+export type CommentsControllerCreateComment404 = {
+  requestId: string;
+  error: CommentsControllerCreateComment404Error;
+};
+
+export type CommentsControllerCreateComment500Error = {
+  code: string;
+  message: string;
+};
+
+export type CommentsControllerCreateComment500 = {
+  requestId: string;
+  error: CommentsControllerCreateComment500Error;
+};
+
+export type CommentsControllerCreateComment502Error = {
+  code: string;
+  message: string;
+};
+
+export type CommentsControllerCreateComment502 = {
+  requestId: string;
+  error: CommentsControllerCreateComment502Error;
+};
+
+export type CommentsControllerUpdateCommentBody = {
+  content?: string;
+};
+
+export type CommentsControllerUpdateComment200Data = {
+  id: string;
+  postId: string;
+  content: string;
+  authorId: string;
+  authorName: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CommentsControllerUpdateComment200 = {
+  requestId: string;
+  data: CommentsControllerUpdateComment200Data;
+};
+
+export type CommentsControllerUpdateComment400Error = {
+  code: string;
+  message: string;
+};
+
+export type CommentsControllerUpdateComment400 = {
+  requestId: string;
+  error: CommentsControllerUpdateComment400Error;
+};
+
+export type CommentsControllerUpdateComment401Error = {
+  code: string;
+  message: string;
+};
+
+export type CommentsControllerUpdateComment401 = {
+  requestId: string;
+  error: CommentsControllerUpdateComment401Error;
+};
+
+export type CommentsControllerUpdateComment403Error = {
+  code: string;
+  message: string;
+};
+
+export type CommentsControllerUpdateComment403 = {
+  requestId: string;
+  error: CommentsControllerUpdateComment403Error;
+};
+
+export type CommentsControllerUpdateComment404Error = {
+  code: string;
+  message: string;
+};
+
+export type CommentsControllerUpdateComment404 = {
+  requestId: string;
+  error: CommentsControllerUpdateComment404Error;
+};
+
+export type CommentsControllerUpdateComment500Error = {
+  code: string;
+  message: string;
+};
+
+export type CommentsControllerUpdateComment500 = {
+  requestId: string;
+  error: CommentsControllerUpdateComment500Error;
+};
+
+export type CommentsControllerUpdateComment502Error = {
+  code: string;
+  message: string;
+};
+
+export type CommentsControllerUpdateComment502 = {
+  requestId: string;
+  error: CommentsControllerUpdateComment502Error;
+};
+
+export type CommentsControllerDeleteComment200Data = {
+  ok: boolean;
+  id: string;
+};
+
+export type CommentsControllerDeleteComment200 = {
+  requestId: string;
+  data: CommentsControllerDeleteComment200Data;
+};
+
+export type CommentsControllerDeleteComment400Error = {
+  code: string;
+  message: string;
+};
+
+export type CommentsControllerDeleteComment400 = {
+  requestId: string;
+  error: CommentsControllerDeleteComment400Error;
+};
+
+export type CommentsControllerDeleteComment401Error = {
+  code: string;
+  message: string;
+};
+
+export type CommentsControllerDeleteComment401 = {
+  requestId: string;
+  error: CommentsControllerDeleteComment401Error;
+};
+
+export type CommentsControllerDeleteComment403Error = {
+  code: string;
+  message: string;
+};
+
+export type CommentsControllerDeleteComment403 = {
+  requestId: string;
+  error: CommentsControllerDeleteComment403Error;
+};
+
+export type CommentsControllerDeleteComment404Error = {
+  code: string;
+  message: string;
+};
+
+export type CommentsControllerDeleteComment404 = {
+  requestId: string;
+  error: CommentsControllerDeleteComment404Error;
+};
+
+export type CommentsControllerDeleteComment500Error = {
+  code: string;
+  message: string;
+};
+
+export type CommentsControllerDeleteComment500 = {
+  requestId: string;
+  error: CommentsControllerDeleteComment500Error;
+};
+
+export type CommentsControllerDeleteComment502Error = {
+  code: string;
+  message: string;
+};
+
+export type CommentsControllerDeleteComment502 = {
+  requestId: string;
+  error: CommentsControllerDeleteComment502Error;
+};
+
+export type PostTagsControllerFindTags200DataItem = {
+  id: string;
+  name: string;
+};
+
+export type PostTagsControllerFindTags200 = {
+  requestId: string;
+  data: PostTagsControllerFindTags200DataItem[];
+};
+
+export type PostTagsControllerFindTags400Error = {
+  code: string;
+  message: string;
+};
+
+export type PostTagsControllerFindTags400 = {
+  requestId: string;
+  error: PostTagsControllerFindTags400Error;
+};
+
+export type PostTagsControllerFindTags401Error = {
+  code: string;
+  message: string;
+};
+
+export type PostTagsControllerFindTags401 = {
+  requestId: string;
+  error: PostTagsControllerFindTags401Error;
+};
+
+export type PostTagsControllerFindTags403Error = {
+  code: string;
+  message: string;
+};
+
+export type PostTagsControllerFindTags403 = {
+  requestId: string;
+  error: PostTagsControllerFindTags403Error;
+};
+
+export type PostTagsControllerFindTags404Error = {
+  code: string;
+  message: string;
+};
+
+export type PostTagsControllerFindTags404 = {
+  requestId: string;
+  error: PostTagsControllerFindTags404Error;
+};
+
+export type PostTagsControllerFindTags500Error = {
+  code: string;
+  message: string;
+};
+
+export type PostTagsControllerFindTags500 = {
+  requestId: string;
+  error: PostTagsControllerFindTags500Error;
+};
+
+export type PostTagsControllerFindTags502Error = {
+  code: string;
+  message: string;
+};
+
+export type PostTagsControllerFindTags502 = {
+  requestId: string;
+  error: PostTagsControllerFindTags502Error;
+};
+
 export type PostsControllerFindPostsParams = {
 view?: PostsControllerFindPostsView;
 sort?: PostsControllerFindPostsSort;
-/**
- * @minimum 1
- * @maximum 100
- */
 pageSize?: number;
-/**
- * @minimum 1
- */
 page?: number;
 tagId?: string;
 q?: string;
@@ -159,6 +896,426 @@ export const PostsControllerFindPostsSort = {
   'created-asc': 'created-asc',
   'title-asc': 'title-asc',
 } as const;
+
+export type PostsControllerFindPosts200DataItemsItemTagsItem = {
+  id: string;
+  name: string;
+};
+
+export type PostsControllerFindPosts200DataItemsItem = {
+  id: string;
+  title: string;
+  excerpt: string;
+  content: string;
+  authorId: string;
+  authorName: string;
+  createdAt: string;
+  updatedAt: string;
+  tags: PostsControllerFindPosts200DataItemsItemTagsItem[];
+};
+
+export type PostsControllerFindPosts200Data = {
+  items: PostsControllerFindPosts200DataItemsItem[];
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+};
+
+export type PostsControllerFindPosts200 = {
+  requestId: string;
+  data: PostsControllerFindPosts200Data;
+};
+
+export type PostsControllerFindPosts400Error = {
+  code: string;
+  message: string;
+};
+
+export type PostsControllerFindPosts400 = {
+  requestId: string;
+  error: PostsControllerFindPosts400Error;
+};
+
+export type PostsControllerFindPosts401Error = {
+  code: string;
+  message: string;
+};
+
+export type PostsControllerFindPosts401 = {
+  requestId: string;
+  error: PostsControllerFindPosts401Error;
+};
+
+export type PostsControllerFindPosts403Error = {
+  code: string;
+  message: string;
+};
+
+export type PostsControllerFindPosts403 = {
+  requestId: string;
+  error: PostsControllerFindPosts403Error;
+};
+
+export type PostsControllerFindPosts404Error = {
+  code: string;
+  message: string;
+};
+
+export type PostsControllerFindPosts404 = {
+  requestId: string;
+  error: PostsControllerFindPosts404Error;
+};
+
+export type PostsControllerFindPosts500Error = {
+  code: string;
+  message: string;
+};
+
+export type PostsControllerFindPosts500 = {
+  requestId: string;
+  error: PostsControllerFindPosts500Error;
+};
+
+export type PostsControllerFindPosts502Error = {
+  code: string;
+  message: string;
+};
+
+export type PostsControllerFindPosts502 = {
+  requestId: string;
+  error: PostsControllerFindPosts502Error;
+};
+
+export type PostsControllerCreatePostBody = {
+  title: string;
+  excerpt: string;
+  content: string;
+  tagIds?: string[];
+};
+
+export type PostsControllerCreatePost201DataTagsItem = {
+  id: string;
+  name: string;
+};
+
+export type PostsControllerCreatePost201Data = {
+  id: string;
+  title: string;
+  excerpt: string;
+  content: string;
+  authorId: string;
+  authorName: string;
+  createdAt: string;
+  updatedAt: string;
+  tags: PostsControllerCreatePost201DataTagsItem[];
+};
+
+export type PostsControllerCreatePost201 = {
+  requestId: string;
+  data: PostsControllerCreatePost201Data;
+};
+
+export type PostsControllerCreatePost400Error = {
+  code: string;
+  message: string;
+};
+
+export type PostsControllerCreatePost400 = {
+  requestId: string;
+  error: PostsControllerCreatePost400Error;
+};
+
+export type PostsControllerCreatePost401Error = {
+  code: string;
+  message: string;
+};
+
+export type PostsControllerCreatePost401 = {
+  requestId: string;
+  error: PostsControllerCreatePost401Error;
+};
+
+export type PostsControllerCreatePost403Error = {
+  code: string;
+  message: string;
+};
+
+export type PostsControllerCreatePost403 = {
+  requestId: string;
+  error: PostsControllerCreatePost403Error;
+};
+
+export type PostsControllerCreatePost404Error = {
+  code: string;
+  message: string;
+};
+
+export type PostsControllerCreatePost404 = {
+  requestId: string;
+  error: PostsControllerCreatePost404Error;
+};
+
+export type PostsControllerCreatePost500Error = {
+  code: string;
+  message: string;
+};
+
+export type PostsControllerCreatePost500 = {
+  requestId: string;
+  error: PostsControllerCreatePost500Error;
+};
+
+export type PostsControllerCreatePost502Error = {
+  code: string;
+  message: string;
+};
+
+export type PostsControllerCreatePost502 = {
+  requestId: string;
+  error: PostsControllerCreatePost502Error;
+};
+
+export type PostsControllerFindPost200DataTagsItem = {
+  id: string;
+  name: string;
+};
+
+export type PostsControllerFindPost200Data = {
+  id: string;
+  title: string;
+  excerpt: string;
+  content: string;
+  authorId: string;
+  authorName: string;
+  createdAt: string;
+  updatedAt: string;
+  tags: PostsControllerFindPost200DataTagsItem[];
+};
+
+export type PostsControllerFindPost200 = {
+  requestId: string;
+  data: PostsControllerFindPost200Data;
+};
+
+export type PostsControllerFindPost400Error = {
+  code: string;
+  message: string;
+};
+
+export type PostsControllerFindPost400 = {
+  requestId: string;
+  error: PostsControllerFindPost400Error;
+};
+
+export type PostsControllerFindPost401Error = {
+  code: string;
+  message: string;
+};
+
+export type PostsControllerFindPost401 = {
+  requestId: string;
+  error: PostsControllerFindPost401Error;
+};
+
+export type PostsControllerFindPost403Error = {
+  code: string;
+  message: string;
+};
+
+export type PostsControllerFindPost403 = {
+  requestId: string;
+  error: PostsControllerFindPost403Error;
+};
+
+export type PostsControllerFindPost404Error = {
+  code: string;
+  message: string;
+};
+
+export type PostsControllerFindPost404 = {
+  requestId: string;
+  error: PostsControllerFindPost404Error;
+};
+
+export type PostsControllerFindPost500Error = {
+  code: string;
+  message: string;
+};
+
+export type PostsControllerFindPost500 = {
+  requestId: string;
+  error: PostsControllerFindPost500Error;
+};
+
+export type PostsControllerFindPost502Error = {
+  code: string;
+  message: string;
+};
+
+export type PostsControllerFindPost502 = {
+  requestId: string;
+  error: PostsControllerFindPost502Error;
+};
+
+export type PostsControllerUpdatePostBody = {
+  title?: string;
+  excerpt?: string;
+  content?: string;
+  tagIds?: string[];
+};
+
+export type PostsControllerUpdatePost200DataTagsItem = {
+  id: string;
+  name: string;
+};
+
+export type PostsControllerUpdatePost200Data = {
+  id: string;
+  title: string;
+  excerpt: string;
+  content: string;
+  authorId: string;
+  authorName: string;
+  createdAt: string;
+  updatedAt: string;
+  tags: PostsControllerUpdatePost200DataTagsItem[];
+};
+
+export type PostsControllerUpdatePost200 = {
+  requestId: string;
+  data: PostsControllerUpdatePost200Data;
+};
+
+export type PostsControllerUpdatePost400Error = {
+  code: string;
+  message: string;
+};
+
+export type PostsControllerUpdatePost400 = {
+  requestId: string;
+  error: PostsControllerUpdatePost400Error;
+};
+
+export type PostsControllerUpdatePost401Error = {
+  code: string;
+  message: string;
+};
+
+export type PostsControllerUpdatePost401 = {
+  requestId: string;
+  error: PostsControllerUpdatePost401Error;
+};
+
+export type PostsControllerUpdatePost403Error = {
+  code: string;
+  message: string;
+};
+
+export type PostsControllerUpdatePost403 = {
+  requestId: string;
+  error: PostsControllerUpdatePost403Error;
+};
+
+export type PostsControllerUpdatePost404Error = {
+  code: string;
+  message: string;
+};
+
+export type PostsControllerUpdatePost404 = {
+  requestId: string;
+  error: PostsControllerUpdatePost404Error;
+};
+
+export type PostsControllerUpdatePost500Error = {
+  code: string;
+  message: string;
+};
+
+export type PostsControllerUpdatePost500 = {
+  requestId: string;
+  error: PostsControllerUpdatePost500Error;
+};
+
+export type PostsControllerUpdatePost502Error = {
+  code: string;
+  message: string;
+};
+
+export type PostsControllerUpdatePost502 = {
+  requestId: string;
+  error: PostsControllerUpdatePost502Error;
+};
+
+export type PostsControllerDeletePost200Data = {
+  ok: boolean;
+  id: string;
+};
+
+export type PostsControllerDeletePost200 = {
+  requestId: string;
+  data: PostsControllerDeletePost200Data;
+};
+
+export type PostsControllerDeletePost400Error = {
+  code: string;
+  message: string;
+};
+
+export type PostsControllerDeletePost400 = {
+  requestId: string;
+  error: PostsControllerDeletePost400Error;
+};
+
+export type PostsControllerDeletePost401Error = {
+  code: string;
+  message: string;
+};
+
+export type PostsControllerDeletePost401 = {
+  requestId: string;
+  error: PostsControllerDeletePost401Error;
+};
+
+export type PostsControllerDeletePost403Error = {
+  code: string;
+  message: string;
+};
+
+export type PostsControllerDeletePost403 = {
+  requestId: string;
+  error: PostsControllerDeletePost403Error;
+};
+
+export type PostsControllerDeletePost404Error = {
+  code: string;
+  message: string;
+};
+
+export type PostsControllerDeletePost404 = {
+  requestId: string;
+  error: PostsControllerDeletePost404Error;
+};
+
+export type PostsControllerDeletePost500Error = {
+  code: string;
+  message: string;
+};
+
+export type PostsControllerDeletePost500 = {
+  requestId: string;
+  error: PostsControllerDeletePost500Error;
+};
+
+export type PostsControllerDeletePost502Error = {
+  code: string;
+  message: string;
+};
+
+export type PostsControllerDeletePost502 = {
+  requestId: string;
+  error: PostsControllerDeletePost502Error;
+};
 
 export const getAuthControllerStartGitHubUrl = (params?: AuthControllerStartGitHubParams,) => {
   const normalizedParams = new URLSearchParams();
@@ -247,21 +1404,21 @@ export const getAuthControllerCompleteSignUpUrl = () => {
 /**
  * @summary OAuth 가입 완료
  */
-export const authControllerCompleteSignUp = async (completeSignUpDto: CompleteSignUpDto, options?: RequestInit): Promise<UserDto> => {
+export const authControllerCompleteSignUp = async (authControllerCompleteSignUpBody: AuthControllerCompleteSignUpBody, options?: RequestInit): Promise<AuthControllerCompleteSignUp200> => {
 
   const res = await fetch(getAuthControllerCompleteSignUpUrl(),
   {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(completeSignUpDto)
+    body: JSON.stringify(authControllerCompleteSignUpBody)
   }
 )
 
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: UserDto = body ? JSON.parse(body) : {}
+  const data: AuthControllerCompleteSignUp200 = body ? JSON.parse(body) : {}
   return data
 }
 
@@ -278,7 +1435,7 @@ export const getAuthControllerMeUrl = () => {
 /**
  * @summary 현재 로그인 사용자 조회
  */
-export const authControllerMe = async ( options?: RequestInit): Promise<UserDto> => {
+export const authControllerMe = async ( options?: RequestInit): Promise<AuthControllerMe200> => {
 
   const res = await fetch(getAuthControllerMeUrl(),
   {
@@ -292,7 +1449,7 @@ export const authControllerMe = async ( options?: RequestInit): Promise<UserDto>
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: UserDto = body ? JSON.parse(body) : {}
+  const data: AuthControllerMe200 = body ? JSON.parse(body) : {}
   return data
 }
 
@@ -309,21 +1466,21 @@ export const getAuthControllerUpdateMeUrl = () => {
 /**
  * @summary 현재 사용자 정보 수정
  */
-export const authControllerUpdateMe = async (updateCurrentUserDto: UpdateCurrentUserDto, options?: RequestInit): Promise<UserDto> => {
+export const authControllerUpdateMe = async (authControllerUpdateMeBody: AuthControllerUpdateMeBody, options?: RequestInit): Promise<AuthControllerUpdateMe200> => {
 
   const res = await fetch(getAuthControllerUpdateMeUrl(),
   {
     ...options,
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(updateCurrentUserDto)
+    body: JSON.stringify(authControllerUpdateMeBody)
   }
 )
 
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: UserDto = body ? JSON.parse(body) : {}
+  const data: AuthControllerUpdateMe200 = body ? JSON.parse(body) : {}
   return data
 }
 
@@ -340,7 +1497,7 @@ export const getAuthControllerLogoutUrl = () => {
 /**
  * @summary 로그아웃
  */
-export const authControllerLogout = async ( options?: RequestInit): Promise<void> => {
+export const authControllerLogout = async ( options?: RequestInit): Promise<AuthControllerLogout200> => {
 
   const res = await fetch(getAuthControllerLogoutUrl(),
   {
@@ -354,7 +1511,7 @@ export const authControllerLogout = async ( options?: RequestInit): Promise<void
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: void = body ? JSON.parse(body) : undefined
+  const data: AuthControllerLogout200 = body ? JSON.parse(body) : {}
   return data
 }
 
@@ -371,7 +1528,7 @@ export const getCommentsControllerFindCommentsUrl = (postId: string,) => {
 /**
  * @summary 댓글 목록 조회
  */
-export const commentsControllerFindComments = async (postId: string, options?: RequestInit): Promise<CommentListResponseDto> => {
+export const commentsControllerFindComments = async (postId: string, options?: RequestInit): Promise<CommentsControllerFindComments200> => {
 
   const res = await fetch(getCommentsControllerFindCommentsUrl(postId),
   {
@@ -385,7 +1542,7 @@ export const commentsControllerFindComments = async (postId: string, options?: R
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: CommentListResponseDto = body ? JSON.parse(body) : {}
+  const data: CommentsControllerFindComments200 = body ? JSON.parse(body) : {}
   return data
 }
 
@@ -403,21 +1560,21 @@ export const getCommentsControllerCreateCommentUrl = (postId: string,) => {
  * @summary 댓글 작성
  */
 export const commentsControllerCreateComment = async (postId: string,
-    createCommentDto: CreateCommentDto, options?: RequestInit): Promise<CommentDto> => {
+    commentsControllerCreateCommentBody: CommentsControllerCreateCommentBody, options?: RequestInit): Promise<CommentsControllerCreateComment201> => {
 
   const res = await fetch(getCommentsControllerCreateCommentUrl(postId),
   {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(createCommentDto)
+    body: JSON.stringify(commentsControllerCreateCommentBody)
   }
 )
 
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: CommentDto = body ? JSON.parse(body) : {}
+  const data: CommentsControllerCreateComment201 = body ? JSON.parse(body) : {}
   return data
 }
 
@@ -437,21 +1594,21 @@ export const getCommentsControllerUpdateCommentUrl = (postId: string,
  */
 export const commentsControllerUpdateComment = async (postId: string,
     commentId: string,
-    updateCommentDto: UpdateCommentDto, options?: RequestInit): Promise<CommentDto> => {
+    commentsControllerUpdateCommentBody: CommentsControllerUpdateCommentBody, options?: RequestInit): Promise<CommentsControllerUpdateComment200> => {
 
   const res = await fetch(getCommentsControllerUpdateCommentUrl(postId,commentId),
   {
     ...options,
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(updateCommentDto)
+    body: JSON.stringify(commentsControllerUpdateCommentBody)
   }
 )
 
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: CommentDto = body ? JSON.parse(body) : {}
+  const data: CommentsControllerUpdateComment200 = body ? JSON.parse(body) : {}
   return data
 }
 
@@ -470,7 +1627,7 @@ export const getCommentsControllerDeleteCommentUrl = (postId: string,
  * @summary 댓글 삭제
  */
 export const commentsControllerDeleteComment = async (postId: string,
-    commentId: string, options?: RequestInit): Promise<DeleteCommentResponseDto> => {
+    commentId: string, options?: RequestInit): Promise<CommentsControllerDeleteComment200> => {
 
   const res = await fetch(getCommentsControllerDeleteCommentUrl(postId,commentId),
   {
@@ -484,7 +1641,7 @@ export const commentsControllerDeleteComment = async (postId: string,
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: DeleteCommentResponseDto = body ? JSON.parse(body) : {}
+  const data: CommentsControllerDeleteComment200 = body ? JSON.parse(body) : {}
   return data
 }
 
@@ -502,7 +1659,7 @@ export const getPostTagsControllerFindTagsUrl = () => {
  * 태그는 별도 PostTag 데이터로 관리한다. 일반 사용자용 태그 생성 API는 제공하지 않는다.
  * @summary 게시글 태그 목록 조회
  */
-export const postTagsControllerFindTags = async ( options?: RequestInit): Promise<PostTagDto[]> => {
+export const postTagsControllerFindTags = async ( options?: RequestInit): Promise<PostTagsControllerFindTags200> => {
 
   const res = await fetch(getPostTagsControllerFindTagsUrl(),
   {
@@ -516,7 +1673,7 @@ export const postTagsControllerFindTags = async ( options?: RequestInit): Promis
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: PostTagDto[] = body ? JSON.parse(body) : {}
+  const data: PostTagsControllerFindTags200 = body ? JSON.parse(body) : {}
   return data
 }
 
@@ -541,7 +1698,7 @@ export const getPostsControllerFindPostsUrl = (params?: PostsControllerFindPosts
  * 검색어, 태그, 페이지, 정렬, 보기 옵션을 받아 게시글 목록을 반환한다.
  * @summary 게시글 목록 조회
  */
-export const postsControllerFindPosts = async (params?: PostsControllerFindPostsParams, options?: RequestInit): Promise<PostListResponseDto> => {
+export const postsControllerFindPosts = async (params?: PostsControllerFindPostsParams, options?: RequestInit): Promise<PostsControllerFindPosts200> => {
 
   const res = await fetch(getPostsControllerFindPostsUrl(params),
   {
@@ -555,7 +1712,7 @@ export const postsControllerFindPosts = async (params?: PostsControllerFindPosts
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: PostListResponseDto = body ? JSON.parse(body) : {}
+  const data: PostsControllerFindPosts200 = body ? JSON.parse(body) : {}
   return data
 }
 
@@ -572,21 +1729,21 @@ export const getPostsControllerCreatePostUrl = () => {
 /**
  * @summary 게시글 생성
  */
-export const postsControllerCreatePost = async (createPostDto: CreatePostDto, options?: RequestInit): Promise<PostDto> => {
+export const postsControllerCreatePost = async (postsControllerCreatePostBody: PostsControllerCreatePostBody, options?: RequestInit): Promise<PostsControllerCreatePost201> => {
 
   const res = await fetch(getPostsControllerCreatePostUrl(),
   {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(createPostDto)
+    body: JSON.stringify(postsControllerCreatePostBody)
   }
 )
 
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: PostDto = body ? JSON.parse(body) : {}
+  const data: PostsControllerCreatePost201 = body ? JSON.parse(body) : {}
   return data
 }
 
@@ -603,7 +1760,7 @@ export const getPostsControllerFindPostUrl = (id: string,) => {
 /**
  * @summary 게시글 단건 조회
  */
-export const postsControllerFindPost = async (id: string, options?: RequestInit): Promise<PostDto> => {
+export const postsControllerFindPost = async (id: string, options?: RequestInit): Promise<PostsControllerFindPost200> => {
 
   const res = await fetch(getPostsControllerFindPostUrl(id),
   {
@@ -617,7 +1774,7 @@ export const postsControllerFindPost = async (id: string, options?: RequestInit)
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: PostDto = body ? JSON.parse(body) : {}
+  const data: PostsControllerFindPost200 = body ? JSON.parse(body) : {}
   return data
 }
 
@@ -635,21 +1792,21 @@ export const getPostsControllerUpdatePostUrl = (id: string,) => {
  * @summary 게시글 수정
  */
 export const postsControllerUpdatePost = async (id: string,
-    updatePostDto: UpdatePostDto, options?: RequestInit): Promise<PostDto> => {
+    postsControllerUpdatePostBody: PostsControllerUpdatePostBody, options?: RequestInit): Promise<PostsControllerUpdatePost200> => {
 
   const res = await fetch(getPostsControllerUpdatePostUrl(id),
   {
     ...options,
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(updatePostDto)
+    body: JSON.stringify(postsControllerUpdatePostBody)
   }
 )
 
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: PostDto = body ? JSON.parse(body) : {}
+  const data: PostsControllerUpdatePost200 = body ? JSON.parse(body) : {}
   return data
 }
 
@@ -666,7 +1823,7 @@ export const getPostsControllerDeletePostUrl = (id: string,) => {
 /**
  * @summary 게시글 삭제
  */
-export const postsControllerDeletePost = async (id: string, options?: RequestInit): Promise<DeletePostResponseDto> => {
+export const postsControllerDeletePost = async (id: string, options?: RequestInit): Promise<PostsControllerDeletePost200> => {
 
   const res = await fetch(getPostsControllerDeletePostUrl(id),
   {
@@ -680,6 +1837,6 @@ export const postsControllerDeletePost = async (id: string, options?: RequestIni
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: DeletePostResponseDto = body ? JSON.parse(body) : {}
+  const data: PostsControllerDeletePost200 = body ? JSON.parse(body) : {}
   return data
 }

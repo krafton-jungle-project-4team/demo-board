@@ -2,11 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PostEditPage } from "@/pages/posts/post-edit-page";
 
 export const Route = createFileRoute("/posts_/$postId_/edit")({
-  component: RouteComponent
+    component: RouteComponent
 });
 
 function RouteComponent() {
-  const { postId } = Route.useParams();
+    const { postId } = Route.useParams();
 
-  return <PostEditPage postId={postId} />;
+    return <PostEditPage postId={postId} />;
 }

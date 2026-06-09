@@ -23,7 +23,7 @@
 
 - ESLint가 코드 규칙과 파일/폴더명을 검증한다.
 - ESLint가 React Hooks 규칙을 검증한다.
-- Prettier가 포맷을 검증하며 줄바꿈 기준은 120자다.
+- Prettier가 포맷을 검증하며 들여쓰기는 4칸, 줄바꿈 기준은 120자다.
 - TypeScript가 타입을 검증한다.
 - `apps/*`, `packages/*`의 TS/TSX 파일과 `src` 하위 폴더명은 kebab-case다.
 - `*.contract.ts`, `*.config.ts` 같은 중간 확장자는 허용한다.
@@ -53,10 +53,23 @@
 
 ## API 계약
 
-- Nest DTO로 OpenAPI spec을 만들고 Orval로 web fetch 함수와 타입을 생성한다.
+- API 요청/응답 계약 원본은 `packages/shared/src/contracts/*.contract.ts`의 Zod schema다.
+- API 서버는 shared Zod schema로 외부 입력을 검증한다.
+- OpenAPI spec은 내부 FE 연동 산출물이며, Orval로 web 요청 함수와 타입을 생성하는 데 쓴다.
+- API 서버의 OpenAPI request/response schema는 shared Zod schema에서 생성한다.
+- Web feature 코드는 API 객체 형식 원본으로 generated DTO 타입이 아니라 shared contract를 우선 사용한다.
+- OpenAPI decorator는 검증 기준으로 쓰지 않는다.
+- `@ApiProperty`, `@ApiPropertyOptional` 기반 Nest DTO 메타데이터를 쓰지 않는다.
+- min/max/pattern 같은 검증성 메타데이터는 OpenAPI schema 생성 시 제거한다.
 - TanStack Query hook은 feature 코드에서 직접 작성한다.
 - API 계약이 바뀌면 `npm run openapi:generate` 후 `openapi/api-server.json`과 generated fetch client/type을 함께 커밋한다.
 - 인증 같은 공통 HTTP 처리가 필요해질 때만 Orval custom mutator를 추가한다.
+- JSON 성공 응답은 `{ requestId, data }`, JSON 에러 응답은 `{ requestId, error: { code, message } }`를 쓴다.
+- 도메인 오류는 code/message만 관리하고, HTTP status 변환은 controller/web server boundary에서 처리한다.
+- 외부 시스템 클라이언트는 infrastructure에 두고, domain service가 그 결과와 실패를 감싼다.
+- API 서버 feature의 `domain`은 도메인 객체, entity, 오류, provider 인터페이스를 둔다.
+- TypeORM `DataSource`, repository 구현체와 묶음 작업 구현은 `database`에 둔다.
+- service는 query(read only)와 command(변경 목적)를 파일 단위로 분리한다.
 
 ## TypeScript 설정
 

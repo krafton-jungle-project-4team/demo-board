@@ -3,149 +3,148 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@nmm/ui/components";
-import type { CreatePostRequest } from "@nmm/shared";
+import type { CreatePostRequest, Post } from "@nmm/shared";
 import { useCurrentUserQuery } from "@/features/auth";
 import {
-  PostForm,
-  canManagePost,
-  postQueryKeys,
-  useDeletePostMutation,
-  usePostDetailQuery,
-  useUpdatePostMutation
+    PostForm,
+    canManagePost,
+    postQueryKeys,
+    useDeletePostMutation,
+    usePostDetailQuery,
+    useUpdatePostMutation
 } from "@/features/posts";
-import type { PostDto } from "@/shared/api/generated/api-server";
 
 type PostEditPageProps = {
-  postId: string;
+    postId: string;
 };
 
 export function PostEditPage({ postId }: PostEditPageProps) {
-  const currentUserQuery = useCurrentUserQuery();
-  const post = usePostDetailQuery(postId).data;
+    const currentUserQuery = useCurrentUserQuery();
+    const post = usePostDetailQuery(postId).data;
 
-  if (currentUserQuery.isPending) {
-    return <PostEditPermissionPending />;
-  }
+    if (currentUserQuery.isPending) {
+        return <PostEditPermissionPending />;
+    }
 
-  if (!canManagePost(currentUserQuery.data, post)) {
-    return <PostEditForbidden postId={post.id} />;
-  }
+    if (!canManagePost(currentUserQuery.data, post)) {
+        return <PostEditForbidden postId={post.id} />;
+    }
 
-  return <EditablePostEditPage post={post} />;
+    return <EditablePostEditPage post={post} />;
 }
 
 function PostEditPermissionPending() {
-  return (
-    <section className="mx-auto w-full max-w-3xl px-4 py-6 text-sm text-muted-foreground sm:px-6 lg:px-8">
-      권한 확인 중
-    </section>
-  );
+    return (
+        <section className="mx-auto w-full max-w-3xl px-4 py-6 text-sm text-muted-foreground sm:px-6 lg:px-8">
+            권한 확인 중
+        </section>
+    );
 }
 
 function PostEditForbidden({ postId }: Pick<PostEditPageProps, "postId">) {
-  return (
-    <section className="mx-auto grid w-full max-w-3xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
-      <Button asChild variant="ghost" className="justify-self-start">
-        <Link to="/posts/$postId" params={{ postId }}>
-          <ArrowLeft />
-          상세
-        </Link>
-      </Button>
-      <div className="grid gap-2">
-        <h1 className="text-2xl font-semibold tracking-normal">수정 권한이 없습니다.</h1>
-        <p className="text-sm text-muted-foreground">작성자만 게시글을 수정하거나 삭제할 수 있습니다.</p>
-      </div>
-    </section>
-  );
+    return (
+        <section className="mx-auto grid w-full max-w-3xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
+            <Button asChild variant="ghost" className="justify-self-start">
+                <Link to="/posts/$postId" params={{ postId }}>
+                    <ArrowLeft />
+                    상세
+                </Link>
+            </Button>
+            <div className="grid gap-2">
+                <h1 className="text-2xl font-semibold tracking-normal">수정 권한이 없습니다.</h1>
+                <p className="text-sm text-muted-foreground">작성자만 게시글을 수정하거나 삭제할 수 있습니다.</p>
+            </div>
+        </section>
+    );
 }
 
 type EditablePostEditPageProps = {
-  post: PostDto;
+    post: Post;
 };
 
 function EditablePostEditPage({ post }: EditablePostEditPageProps) {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const initialValues = useMemo<CreatePostRequest>(
-    () => ({
-      title: post.title,
-      excerpt: post.excerpt,
-      content: post.content,
-      tagIds: post.tags.map((tag) => tag.id)
-    }),
-    [post.content, post.excerpt, post.tags, post.title]
-  );
-  const [values, setValues] = useState<CreatePostRequest>(initialValues);
-  const updateMutation = useUpdatePostMutation({
-    onSuccess: (updatedPost) => {
-      void queryClient.invalidateQueries({ queryKey: postQueryKeys.listPrefix });
-      void queryClient.invalidateQueries({ queryKey: postQueryKeys.detail(updatedPost.id) });
-      void navigate({
-        to: "/posts/$postId",
-        params: {
-          postId: updatedPost.id
+    const navigate = useNavigate();
+    const queryClient = useQueryClient();
+    const initialValues = useMemo<CreatePostRequest>(
+        () => ({
+            title: post.title,
+            excerpt: post.excerpt,
+            content: post.content,
+            tagIds: post.tags.map((tag) => tag.id)
+        }),
+        [post.content, post.excerpt, post.tags, post.title]
+    );
+    const [values, setValues] = useState<CreatePostRequest>(initialValues);
+    const updateMutation = useUpdatePostMutation({
+        onSuccess: (updatedPost) => {
+            void queryClient.invalidateQueries({ queryKey: postQueryKeys.listPrefix });
+            void queryClient.invalidateQueries({ queryKey: postQueryKeys.detail(updatedPost.id) });
+            void navigate({
+                to: "/posts/$postId",
+                params: {
+                    postId: updatedPost.id
+                }
+            });
         }
-      });
-    }
-  });
-  const deleteMutation = useDeletePostMutation({
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: postQueryKeys.listPrefix });
-      void queryClient.removeQueries({ queryKey: postQueryKeys.detail(post.id) });
-      void navigate({ to: "/posts" });
-    }
-  });
+    });
+    const deleteMutation = useDeletePostMutation({
+        onSuccess: () => {
+            void queryClient.invalidateQueries({ queryKey: postQueryKeys.listPrefix });
+            void queryClient.removeQueries({ queryKey: postQueryKeys.detail(post.id) });
+            void navigate({ to: "/posts" });
+        }
+    });
 
-  useEffect(() => {
-    setValues(initialValues);
-  }, [initialValues]);
+    useEffect(() => {
+        setValues(initialValues);
+    }, [initialValues]);
 
-  return (
-    <section className="mx-auto grid w-full max-w-3xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
-      <div className="grid gap-3">
-        <div className="flex items-center justify-between gap-3">
-          <Button asChild variant="ghost">
-            <Link to="/posts/$postId" params={{ postId: post.id }}>
-              <ArrowLeft />
-              상세
-            </Link>
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={deleteMutation.isPending || updateMutation.isPending}
-            onClick={() => {
-              deleteMutation.mutate(post.id);
-            }}
-          >
-            <Trash2 />
-            삭제
-          </Button>
-        </div>
-        <div className="grid gap-1">
-          <h1 className="text-2xl font-semibold tracking-normal">게시글 수정</h1>
-          <p className="text-sm text-muted-foreground">제목, 요약, 본문을 수정합니다.</p>
-        </div>
-      </div>
-      <PostForm
-        values={values}
-        isPending={updateMutation.isPending}
-        onCancel={() => {
-          void navigate({
-            to: "/posts/$postId",
-            params: {
-              postId: post.id
-            }
-          });
-        }}
-        onSubmit={() => {
-          updateMutation.mutate({
-            id: post.id,
-            data: values
-          });
-        }}
-        onValuesChange={setValues}
-      />
-    </section>
-  );
+    return (
+        <section className="mx-auto grid w-full max-w-3xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
+            <div className="grid gap-3">
+                <div className="flex items-center justify-between gap-3">
+                    <Button asChild variant="ghost">
+                        <Link to="/posts/$postId" params={{ postId: post.id }}>
+                            <ArrowLeft />
+                            상세
+                        </Link>
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        disabled={deleteMutation.isPending || updateMutation.isPending}
+                        onClick={() => {
+                            deleteMutation.mutate(post.id);
+                        }}
+                    >
+                        <Trash2 />
+                        삭제
+                    </Button>
+                </div>
+                <div className="grid gap-1">
+                    <h1 className="text-2xl font-semibold tracking-normal">게시글 수정</h1>
+                    <p className="text-sm text-muted-foreground">제목, 요약, 본문을 수정합니다.</p>
+                </div>
+            </div>
+            <PostForm
+                values={values}
+                isPending={updateMutation.isPending}
+                onCancel={() => {
+                    void navigate({
+                        to: "/posts/$postId",
+                        params: {
+                            postId: post.id
+                        }
+                    });
+                }}
+                onSubmit={() => {
+                    updateMutation.mutate({
+                        id: post.id,
+                        data: values
+                    });
+                }}
+                onValuesChange={setValues}
+            />
+        </section>
+    );
 }

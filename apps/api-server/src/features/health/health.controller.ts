@@ -1,19 +1,25 @@
 import { Controller, Get } from "@nestjs/common";
-import { ApiOkResponse, ApiProperty, ApiTags } from "@nestjs/swagger";
+import { ApiOkResponse, ApiTags } from "@nestjs/swagger";
+import { z } from "zod";
+import { apiSuccessSchema, ApiStandardErrorResponses, zodToOpenApiSchema } from "../../common/http";
 
-class HealthResponseDto {
-  @ApiProperty({ type: Boolean, example: true })
-  ok!: boolean;
-}
+const healthApiResponseOpenApiSchema = apiSuccessSchema(
+    zodToOpenApiSchema(
+        z.object({
+            ok: z.boolean()
+        })
+    )
+);
 
 @ApiTags("health")
+@ApiStandardErrorResponses()
 @Controller()
 export class HealthController {
-  @Get("health")
-  @ApiOkResponse({ type: HealthResponseDto })
-  health() {
-    return {
-      ok: true
-    };
-  }
+    @Get("health")
+    @ApiOkResponse({ schema: healthApiResponseOpenApiSchema })
+    health() {
+        return {
+            ok: true
+        };
+    }
 }

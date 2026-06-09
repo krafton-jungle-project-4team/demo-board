@@ -5,6 +5,6 @@ import { BoardModule } from "./features/board";
 import { HealthModule } from "./features/health";
 
 @Module({
-  imports: [DatabaseModule, AuthModule, BoardModule, HealthModule]
+    imports: [DatabaseModule, AuthModule, BoardModule, HealthModule]
 })
 export class AppModule {}

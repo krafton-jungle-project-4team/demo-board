@@ -1,50 +1,50 @@
 name: namanmu
 
 services:
-  postgres:
-    image: postgres:18
-    container_name: namanmu-postgres
-    environment:
-      POSTGRES_DB: namanmu
-      POSTGRES_USER: namanmu
-      POSTGRES_PASSWORD: ${NMM_DB_PASSWORD:-1234}
-      PGDATA: /var/lib/postgresql/data/pgdata
-    ports:
-      - "${NMM_DB_PORT:-5432}:5432"
-    volumes:
-      - ${NMM_POSTGRES_DATA_DIR:-$HOME/dev-docker-volume/namanmu/postgres}:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U namanmu -d namanmu"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+    postgres:
+        image: postgres:18
+        container_name: namanmu-postgres
+        environment:
+            POSTGRES_DB: namanmu
+            POSTGRES_USER: namanmu
+            POSTGRES_PASSWORD: ${NMM_DB_PASSWORD:-1234}
+            PGDATA: /var/lib/postgresql/data/pgdata
+        ports:
+            - "${NMM_DB_PORT:-5432}:5432"
+        volumes:
+            - ${NMM_POSTGRES_DATA_DIR:-$HOME/dev-docker-volume/namanmu/postgres}:/var/lib/postgresql/data
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U namanmu -d namanmu"]
+            interval: 5s
+            timeout: 5s
+            retries: 10
 
-  api-server:
-    build:
-      context: .
-      dockerfile: apps/api-server/Dockerfile
-      target: development
-    image: namanmu-api-server:dev
-    container_name: namanmu-api-server
-    command: sh -c "npm run build -w @nmm/shared && cd apps/api-server && npx nest start --watch"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      PORT: 3000
-      NMM_API_ORIGIN: http://localhost:3000
-      NMM_WEB_ORIGIN: http://localhost:5173
-      NMM_DB_HOST: postgres
-      NMM_DB_PORT: 5432
-      NMM_DB_USERNAME: namanmu
-      NMM_DB_PASSWORD: ${NMM_DB_PASSWORD:-1234}
-      NMM_DB_DATABASE: namanmu
-      NMM_DB_SYNCHRONIZE: "true"
-    ports:
-      - "3000:3000"
-    volumes:
-      - .:/app
-      - node_modules:/app/node_modules
+    api-server:
+        build:
+            context: .
+            dockerfile: apps/api-server/Dockerfile
+            target: development
+        image: namanmu-api-server:dev
+        container_name: namanmu-api-server
+        command: sh -c "npm run build -w @nmm/shared && cd apps/api-server && npx nest start --watch"
+        depends_on:
+            postgres:
+                condition: service_healthy
+        environment:
+            PORT: 3000
+            NMM_API_ORIGIN: http://localhost:3000
+            NMM_WEB_ORIGIN: http://localhost:5173
+            NMM_DB_HOST: postgres
+            NMM_DB_PORT: 5432
+            NMM_DB_USERNAME: namanmu
+            NMM_DB_PASSWORD: ${NMM_DB_PASSWORD:-1234}
+            NMM_DB_DATABASE: namanmu
+            NMM_DB_SYNCHRONIZE: "true"
+        ports:
+            - "3000:3000"
+        volumes:
+            - .:/app
+            - node_modules:/app/node_modules
 
 volumes:
-  node_modules:
+    node_modules:
