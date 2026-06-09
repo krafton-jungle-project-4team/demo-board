@@ -1,32 +1,29 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label } from "@nmm/ui/components";
-import { authControllerCompleteSignUp } from "@/shared/api/generated/api-server";
+import { useCompleteSignUpMutation } from "@/features/auth";
 
 export function CompleteSignUpPage() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const completeSignUpMutation = useCompleteSignUpMutation({
+    onSuccess: () => {
+      void navigate({ to: "/posts" });
+    }
+  });
 
-  async function submitSignUp(event: FormEvent<HTMLFormElement>) {
+  function submitSignUp(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage(null);
-    setIsSubmitting(true);
-
-    try {
-      await authControllerCompleteSignUp(
-        { name },
-        {
-          credentials: "include"
+    completeSignUpMutation.mutate(
+      { name },
+      {
+        onError: () => {
+          setErrorMessage("가입 완료 처리에 실패했습니다.");
         }
-      );
-      await navigate({ to: "/posts" });
-    } catch {
-      setErrorMessage("가입 완료 처리에 실패했습니다.");
-    } finally {
-      setIsSubmitting(false);
-    }
+      }
+    );
   }
 
   return (
@@ -51,7 +48,7 @@ export function CompleteSignUpPage() {
               />
             </div>
             {errorMessage ? <p className="text-sm text-destructive">{errorMessage}</p> : null}
-            <Button type="submit" disabled={isSubmitting || name.trim().length === 0}>
+            <Button type="submit" disabled={completeSignUpMutation.isPending || name.trim().length === 0}>
               완료
             </Button>
           </form>

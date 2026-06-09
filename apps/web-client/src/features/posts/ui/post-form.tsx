@@ -1,15 +1,4 @@
-import {
-  Button,
-  DialogFooter,
-  Input,
-  Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  Textarea
-} from "@nmm/ui/components";
+import { Button, Input, Label, Textarea } from "@nmm/ui/components";
 import type { CreatePostRequest } from "@nmm/shared";
 
 type PostFormProps = {
@@ -71,34 +60,14 @@ export function PostForm({ values, isPending, onCancel, onSubmit, onValuesChange
           }
         />
       </div>
-      <div className="grid gap-2">
-        <Label>상태</Label>
-        <Select
-          value={values.status}
-          onValueChange={(status) =>
-            onValuesChange({
-              ...values,
-              status: status as CreatePostRequest["status"]
-            })
-          }
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="draft">초안</SelectItem>
-            <SelectItem value="published">공개</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <DialogFooter>
+      <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={onCancel}>
           취소
         </Button>
         <Button type="submit" disabled={isPending}>
           저장
         </Button>
-      </DialogFooter>
+      </div>
     </form>
   );
 }

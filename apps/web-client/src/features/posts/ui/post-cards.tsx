@@ -1,53 +1,70 @@
 import { Link } from "@tanstack/react-router";
-import { Eye, Pencil, Trash2 } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { Button, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@nmm/ui/components";
+import type { User } from "@nmm/shared";
 import type { PostDto } from "@/shared/api/generated/api-server";
-import { PostStatusBadge } from "./post-status-badge";
-import { UpdatePostDialog } from "./update-post-dialog";
+import { canManagePost } from "../model/post-permissions";
 
 type PostCardsProps = {
+  currentUser: User | null | undefined;
   posts: PostDto[];
-  onDelete: (id: string) => void;
 };
 
-export function PostCards({ posts, onDelete }: PostCardsProps) {
+export function PostCards({ currentUser, posts }: PostCardsProps) {
   return (
     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-      {posts.map((post) => (
-        <Card key={post.id}>
-          <CardHeader>
-            <div className="flex items-start justify-between gap-3">
-              <CardTitle>{post.title}</CardTitle>
-              <PostStatusBadge status={post.status} />
-            </div>
-            <CardDescription>{post.excerpt}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground line-clamp-3 text-sm">{post.content}</p>
-          </CardContent>
-          <CardFooter className="justify-between gap-2">
-            <Button asChild variant="outline" size="sm">
-              <Link to="/posts/$postId" params={{ postId: post.id }}>
-                <Eye />
-                상세
-              </Link>
-            </Button>
-            <div className="flex gap-1">
-              <UpdatePostDialog
-                post={post}
-                trigger={
-                  <Button type="button" size="icon" variant="ghost" aria-label="수정">
-                    <Pencil />
-                  </Button>
-                }
-              />
-              <Button type="button" size="icon" variant="ghost" aria-label="삭제" onClick={() => onDelete(post.id)}>
-                <Trash2 />
-              </Button>
-            </div>
-          </CardFooter>
-        </Card>
-      ))}
+      {posts.map((post) =>
+        canManagePost(currentUser, post) ? (
+          <ManageablePostCard key={post.id} post={post} />
+        ) : (
+          <ReadonlyPostCard key={post.id} post={post} />
+        )
+      )}
     </div>
+  );
+}
+
+type PostCardProps = {
+  post: PostDto;
+};
+
+function ReadonlyPostCard({ post }: PostCardProps) {
+  return (
+    <Card>
+      <PostCardContent post={post} />
+    </Card>
+  );
+}
+
+function ManageablePostCard({ post }: PostCardProps) {
+  return (
+    <Card>
+      <PostCardContent post={post} />
+      <CardFooter className="justify-end gap-2">
+        <Button asChild size="icon" variant="ghost" aria-label="수정">
+          <Link to="/posts/$postId/edit" params={{ postId: post.id }}>
+            <Pencil />
+          </Link>
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+}
+
+function PostCardContent({ post }: PostCardProps) {
+  return (
+    <>
+      <CardHeader>
+        <CardTitle>
+          <Link to="/posts/$postId" params={{ postId: post.id }} className="hover:underline">
+            {post.title}
+          </Link>
+        </CardTitle>
+        <CardDescription>{post.excerpt}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <p className="text-muted-foreground line-clamp-3 text-sm">{post.content}</p>
+      </CardContent>
+    </>
   );
 }

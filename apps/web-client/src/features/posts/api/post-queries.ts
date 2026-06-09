@@ -6,6 +6,7 @@ import {
   postsControllerFindPosts,
   postsControllerUpdatePost,
   type CreatePostDto,
+  type PostDto,
   type PostsControllerFindPostsParams,
   type UpdatePostDto
 } from "@/shared/api/generated/api-server";
@@ -32,14 +33,14 @@ export function usePostDetailQuery(id: string) {
   });
 }
 
-export function useCreatePostMutation(options?: { onSuccess?: () => void }) {
+export function useCreatePostMutation(options?: { onSuccess?: (post: PostDto) => void }) {
   return useMutation({
     mutationFn: (data: CreatePostDto) => postsControllerCreatePost(data),
     onSuccess: options?.onSuccess
   });
 }
 
-export function useUpdatePostMutation(options?: { onSuccess?: () => void }) {
+export function useUpdatePostMutation(options?: { onSuccess?: (post: PostDto) => void }) {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdatePostDto }) => postsControllerUpdatePost(id, data),
     onSuccess: options?.onSuccess

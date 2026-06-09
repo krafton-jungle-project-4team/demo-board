@@ -27,6 +27,10 @@ type PostRecord = Omit<Post, "tags"> & {
   tagIds: string[];
 };
 
+type BoardUser = User & {
+  name: string;
+};
+
 @Injectable()
 export class BoardService {
   private nextPostNumber = 4;
@@ -46,7 +50,6 @@ export class BoardService {
       authorName: "sijun",
       createdAt: "2026-06-09T00:00:00.000Z",
       updatedAt: "2026-06-09T00:00:00.000Z",
-      status: "published",
       tagIds: ["tag-react", "tag-boilerplate"]
     },
     {
@@ -58,7 +61,6 @@ export class BoardService {
       authorName: "sijun",
       createdAt: "2026-06-09T00:10:00.000Z",
       updatedAt: "2026-06-09T00:10:00.000Z",
-      status: "published",
       tagIds: ["tag-nest", "tag-boilerplate"]
     },
     {
@@ -70,7 +72,6 @@ export class BoardService {
       authorName: "sijun",
       createdAt: "2026-06-09T00:20:00.000Z",
       updatedAt: "2026-06-09T00:20:00.000Z",
-      status: "draft",
       tagIds: ["tag-boilerplate"]
     }
   ];
@@ -113,7 +114,7 @@ export class BoardService {
     return this.toPost(this.findPostRecord(id));
   }
 
-  createPost(input: unknown, user: User): Post {
+  createPost(input: unknown, user: BoardUser): Post {
     const request = CreatePostRequestSchema.parse(input);
     const now = new Date().toISOString();
     const post: PostRecord = {
@@ -125,7 +126,6 @@ export class BoardService {
       authorName: user.name,
       createdAt: now,
       updatedAt: now,
-      status: request.status,
       tagIds: this.resolveTagIds(request.tagIds)
     };
 
@@ -134,7 +134,7 @@ export class BoardService {
     return this.toPost(post);
   }
 
-  updatePost(id: string, input: unknown, user: User): Post {
+  updatePost(id: string, input: unknown, user: BoardUser): Post {
     const request = UpdatePostRequestSchema.parse(input);
     const post = this.findPostRecord(id);
 
@@ -152,10 +152,6 @@ export class BoardService {
       post.content = request.content;
     }
 
-    if (request.status !== undefined) {
-      post.status = request.status;
-    }
-
     if (request.tagIds !== undefined) {
       post.tagIds = this.resolveTagIds(request.tagIds);
     }
@@ -165,7 +161,7 @@ export class BoardService {
     return this.toPost(post);
   }
 
-  deletePost(id: string, user: User): DeletePostResponse {
+  deletePost(id: string, user: BoardUser): DeletePostResponse {
     const post = this.findPostRecord(id);
 
     this.assertOwner(post, user);
@@ -188,7 +184,7 @@ export class BoardService {
     });
   }
 
-  createComment(postId: string, input: unknown, user: User): Comment {
+  createComment(postId: string, input: unknown, user: BoardUser): Comment {
     this.findPostRecord(postId);
 
     const request = CreateCommentRequestSchema.parse(input);
@@ -208,7 +204,7 @@ export class BoardService {
     return comment;
   }
 
-  updateComment(postId: string, commentId: string, input: unknown, user: User): Comment {
+  updateComment(postId: string, commentId: string, input: unknown, user: BoardUser): Comment {
     this.findPostRecord(postId);
 
     const request = UpdateCommentRequestSchema.parse(input);
@@ -225,7 +221,7 @@ export class BoardService {
     return CommentSchema.parse(comment);
   }
 
-  deleteComment(postId: string, commentId: string, user: User): DeleteCommentResponse {
+  deleteComment(postId: string, commentId: string, user: BoardUser): DeleteCommentResponse {
     this.findPostRecord(postId);
 
     const comment = this.findCommentRecord(postId, commentId);
@@ -311,7 +307,6 @@ export class BoardService {
       authorName: post.authorName,
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
-      status: post.status,
       tags: this.getPostTags(post)
     });
   }

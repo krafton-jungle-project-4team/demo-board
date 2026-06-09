@@ -1,16 +1,8 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { LayoutGrid, List, Plus, Search } from "lucide-react";
 import { Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@nmm/ui/components";
-import {
-  CreatePostDialog,
-  PostCards,
-  PostTable,
-  postQueryKeys,
-  postSortValues,
-  useDeletePostMutation,
-  usePostListQuery,
-  usePostSearch
-} from "@/features/posts";
+import { useCurrentUserQuery } from "@/features/auth";
+import { PostCards, PostTable, postSortValues, usePostListQuery, usePostSearch } from "@/features/posts";
 
 const sortLabels = {
   "created-desc": "최신순",
@@ -20,14 +12,9 @@ const sortLabels = {
 
 export function PostsPage() {
   const { queryDraft, search, setQueryDraft, setSearch, submitQueryDraft, params } = usePostSearch();
-  const queryClient = useQueryClient();
+  const currentUser = useCurrentUserQuery().data;
   const postsQuery = usePostListQuery(params);
   const postsData = postsQuery.data;
-  const deleteMutation = useDeletePostMutation({
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: postQueryKeys.listPrefix });
-    }
-  });
 
   return (
     <section className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -38,14 +25,12 @@ export function PostsPage() {
             라우터, 서버 상태, URL 상태, codegen 흐름을 검증하는 CRUD 화면입니다.
           </p>
         </div>
-        <CreatePostDialog
-          trigger={
-            <Button>
-              <Plus />
-              작성
-            </Button>
-          }
-        />
+        <Button asChild>
+          <Link to="/posts/new">
+            <Plus />
+            작성
+          </Link>
+        </Button>
       </div>
 
       <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_160px_auto]">
@@ -127,9 +112,9 @@ export function PostsPage() {
       {postsData ? (
         <>
           {search.view === "table" ? (
-            <PostTable posts={postsData.items} onDelete={(id) => deleteMutation.mutate(id)} />
+            <PostTable currentUser={currentUser} posts={postsData.items} />
           ) : (
-            <PostCards posts={postsData.items} onDelete={(id) => deleteMutation.mutate(id)} />
+            <PostCards currentUser={currentUser} posts={postsData.items} />
           )}
 
           <div className="flex items-center justify-between gap-3">

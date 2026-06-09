@@ -6,9 +6,6 @@ export type PostSort = z.infer<typeof PostSortSchema>;
 export const PostViewSchema = z.enum(["table", "card"]);
 export type PostView = z.infer<typeof PostViewSchema>;
 
-export const PostStatusSchema = z.enum(["draft", "published"]);
-export type PostStatus = z.infer<typeof PostStatusSchema>;
-
 export const PostTagSchema = z.object({
   id: z.string(),
   name: z.string().min(1)
@@ -25,7 +22,6 @@ export const PostSchema = z.object({
   authorName: z.string().min(1),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
-  status: PostStatusSchema,
   tags: z.array(PostTagSchema)
 });
 
@@ -56,7 +52,6 @@ export const CreatePostRequestSchema = z.object({
   title: z.string().min(1),
   excerpt: z.string().min(1),
   content: z.string().min(1),
-  status: PostStatusSchema.default("draft"),
   tagIds: z.array(z.string()).default([])
 });
 

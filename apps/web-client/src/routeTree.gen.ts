@@ -10,19 +10,32 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PostsRouteImport } from './routes/posts'
+import { Route as MeRouteImport } from './routes/me'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PostsNewRouteImport } from './routes/posts_.new'
 import { Route as PostsPostIdRouteImport } from './routes/posts_.$postId'
 import { Route as AuthErrorRouteImport } from './routes/auth.error'
 import { Route as AuthCompleteSignupRouteImport } from './routes/auth.complete-signup'
+import { Route as PostsPostIdEditRouteImport } from './routes/posts_.$postId_.edit'
 
 const PostsRoute = PostsRouteImport.update({
   id: '/posts',
   path: '/posts',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MeRoute = MeRouteImport.update({
+  id: '/me',
+  path: '/me',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PostsNewRoute = PostsNewRouteImport.update({
+  id: '/posts_/new',
+  path: '/posts/new',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PostsPostIdRoute = PostsPostIdRouteImport.update({
@@ -40,59 +53,85 @@ const AuthCompleteSignupRoute = AuthCompleteSignupRouteImport.update({
   path: '/auth/complete-signup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PostsPostIdEditRoute = PostsPostIdEditRouteImport.update({
+  id: '/posts_/$postId_/edit',
+  path: '/posts/$postId/edit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/me': typeof MeRoute
   '/posts': typeof PostsRoute
   '/auth/complete-signup': typeof AuthCompleteSignupRoute
   '/auth/error': typeof AuthErrorRoute
   '/posts/$postId': typeof PostsPostIdRoute
+  '/posts/new': typeof PostsNewRoute
+  '/posts/$postId/edit': typeof PostsPostIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/me': typeof MeRoute
   '/posts': typeof PostsRoute
   '/auth/complete-signup': typeof AuthCompleteSignupRoute
   '/auth/error': typeof AuthErrorRoute
   '/posts/$postId': typeof PostsPostIdRoute
+  '/posts/new': typeof PostsNewRoute
+  '/posts/$postId/edit': typeof PostsPostIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/me': typeof MeRoute
   '/posts': typeof PostsRoute
   '/auth/complete-signup': typeof AuthCompleteSignupRoute
   '/auth/error': typeof AuthErrorRoute
   '/posts_/$postId': typeof PostsPostIdRoute
+  '/posts_/new': typeof PostsNewRoute
+  '/posts_/$postId_/edit': typeof PostsPostIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/me'
     | '/posts'
     | '/auth/complete-signup'
     | '/auth/error'
     | '/posts/$postId'
+    | '/posts/new'
+    | '/posts/$postId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/me'
     | '/posts'
     | '/auth/complete-signup'
     | '/auth/error'
     | '/posts/$postId'
+    | '/posts/new'
+    | '/posts/$postId/edit'
   id:
     | '__root__'
     | '/'
+    | '/me'
     | '/posts'
     | '/auth/complete-signup'
     | '/auth/error'
     | '/posts_/$postId'
+    | '/posts_/new'
+    | '/posts_/$postId_/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  MeRoute: typeof MeRoute
   PostsRoute: typeof PostsRoute
   AuthCompleteSignupRoute: typeof AuthCompleteSignupRoute
   AuthErrorRoute: typeof AuthErrorRoute
   PostsPostIdRoute: typeof PostsPostIdRoute
+  PostsNewRoute: typeof PostsNewRoute
+  PostsPostIdEditRoute: typeof PostsPostIdEditRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -104,11 +143,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PostsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/me': {
+      id: '/me'
+      path: '/me'
+      fullPath: '/me'
+      preLoaderRoute: typeof MeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/posts_/new': {
+      id: '/posts_/new'
+      path: '/posts/new'
+      fullPath: '/posts/new'
+      preLoaderRoute: typeof PostsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/posts_/$postId': {
@@ -132,15 +185,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCompleteSignupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/posts_/$postId_/edit': {
+      id: '/posts_/$postId_/edit'
+      path: '/posts/$postId/edit'
+      fullPath: '/posts/$postId/edit'
+      preLoaderRoute: typeof PostsPostIdEditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  MeRoute: MeRoute,
   PostsRoute: PostsRoute,
   AuthCompleteSignupRoute: AuthCompleteSignupRoute,
   AuthErrorRoute: AuthErrorRoute,
   PostsPostIdRoute: PostsPostIdRoute,
+  PostsNewRoute: PostsNewRoute,
+  PostsPostIdEditRoute: PostsPostIdEditRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

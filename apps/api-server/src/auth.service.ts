@@ -6,7 +6,7 @@ import {
   UnauthorizedException
 } from "@nestjs/common";
 import { randomBytes } from "node:crypto";
-import { CompleteSignUpRequestSchema, UserSchema, type User } from "@nmm/shared";
+import { CompleteSignUpRequestSchema, UpdateCurrentUserRequestSchema, UserSchema, type User } from "@nmm/shared";
 
 export const sessionCookieName = "nmm_session";
 
@@ -24,6 +24,10 @@ export type SessionCookieOptions = {
 };
 
 type UserRecord = User;
+type ActiveUser = User & {
+  name: string;
+  status: "ACTIVE";
+};
 
 type OAuthAccountRecord = {
   provider: "github";
@@ -127,8 +131,21 @@ export class AuthService {
     return this.toUser(user);
   }
 
-  requireUser(context: AuthRequestContext): User {
-    return this.toUser(this.requireUserRecord(context));
+  updateCurrentUser(input: unknown, context: AuthRequestContext): User {
+    const request = UpdateCurrentUserRequestSchema.parse(input);
+    const user = this.requireActiveUserRecord(context);
+
+    user.name = request.name;
+
+    return this.toUser(user);
+  }
+
+  getCurrentUser(context: AuthRequestContext): User {
+    return this.toUser(this.requireUserRecord({ ...context, allowPending: true }));
+  }
+
+  requireUser(context: AuthRequestContext): ActiveUser {
+    return this.toActiveUser(this.requireUserRecord(context));
   }
 
   readSessionToken(context: AuthRequestContext) {
@@ -174,6 +191,16 @@ export class AuthService {
     }
 
     if (user.status === "PENDING" && !context.allowPending) {
+      throw new ForbiddenException("가입 완료가 필요합니다.");
+    }
+
+    return user;
+  }
+
+  private requireActiveUserRecord(context: AuthRequestContext): UserRecord {
+    const user = this.requireUserRecord(context);
+
+    if (user.status !== "ACTIVE" || !user.name) {
       throw new ForbiddenException("가입 완료가 필요합니다.");
     }
 
@@ -297,7 +324,7 @@ export class AuthService {
       user = {
         id: `user-${this.nextUserNumber++}`,
         email: input.email,
-        name: input.profile.name ?? input.profile.login,
+        name: null,
         image: input.profile.avatarUrl,
         role: "USER",
         status: "PENDING",
@@ -348,6 +375,16 @@ export class AuthService {
 
   private toUser(user: UserRecord): User {
     return UserSchema.parse(user);
+  }
+
+  private toActiveUser(user: UserRecord): ActiveUser {
+    const parsedUser = this.toUser(user);
+
+    if (parsedUser.status !== "ACTIVE" || !parsedUser.name) {
+      throw new ForbiddenException("가입 완료가 필요합니다.");
+    }
+
+    return parsedUser as ActiveUser;
   }
 
   private normalizeRedirectPath(value: string | undefined, fallback: string) {

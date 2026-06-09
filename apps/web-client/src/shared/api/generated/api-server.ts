@@ -29,12 +29,17 @@ export const UserDtoStatus = {
 export interface UserDto {
   id: string;
   email: string;
-  name: string;
+  /** @nullable */
+  name: string | null;
   /** @nullable */
   image: string | null;
   role: UserDtoRole;
   status: UserDtoStatus;
   createdAt: string;
+}
+
+export interface UpdateCurrentUserDto {
+  name: string;
 }
 
 export interface CommentDto {
@@ -69,14 +74,6 @@ export interface PostTagDto {
   name: string;
 }
 
-export type PostDtoStatus = typeof PostDtoStatus[keyof typeof PostDtoStatus];
-
-
-export const PostDtoStatus = {
-  draft: 'draft',
-  published: 'published',
-} as const;
-
 export interface PostDto {
   id: string;
   title: string;
@@ -86,7 +83,6 @@ export interface PostDto {
   authorName: string;
   createdAt: string;
   updatedAt: string;
-  status: PostDtoStatus;
   tags: PostTagDto[];
 }
 
@@ -102,35 +98,17 @@ export interface PostListResponseDto {
   totalPages: number;
 }
 
-export type CreatePostDtoStatus = typeof CreatePostDtoStatus[keyof typeof CreatePostDtoStatus];
-
-
-export const CreatePostDtoStatus = {
-  draft: 'draft',
-  published: 'published',
-} as const;
-
 export interface CreatePostDto {
   title: string;
   excerpt: string;
   content: string;
-  status?: CreatePostDtoStatus;
   tagIds?: string[];
 }
-
-export type UpdatePostDtoStatus = typeof UpdatePostDtoStatus[keyof typeof UpdatePostDtoStatus];
-
-
-export const UpdatePostDtoStatus = {
-  draft: 'draft',
-  published: 'published',
-} as const;
 
 export interface UpdatePostDto {
   title?: string;
   excerpt?: string;
   content?: string;
-  status?: UpdatePostDtoStatus;
   tagIds?: string[];
 }
 
@@ -308,6 +286,37 @@ export const authControllerMe = async ( options?: RequestInit): Promise<UserDto>
     method: 'GET'
 
 
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: UserDto = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+export const getAuthControllerUpdateMeUrl = () => {
+
+
+
+
+  return `/api/auth/me`
+}
+
+/**
+ * @summary 현재 사용자 정보 수정
+ */
+export const authControllerUpdateMe = async (updateCurrentUserDto: UpdateCurrentUserDto, options?: RequestInit): Promise<UserDto> => {
+
+  const res = await fetch(getAuthControllerUpdateMeUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateCurrentUserDto)
   }
 )
 

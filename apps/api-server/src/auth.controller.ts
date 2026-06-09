@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, HttpCode, Post, Query, Res } from "@nestjs/common";
+import { Body, Controller, Get, Headers, HttpCode, Patch, Post, Query, Res } from "@nestjs/common";
 import {
   ApiBearerAuth,
   ApiBody,
@@ -11,7 +11,7 @@ import {
   ApiTags
 } from "@nestjs/swagger";
 import { AuthService, sessionCookieName, type SessionCookieOptions } from "./auth.service";
-import { CompleteSignUpDto, UserDto } from "./posts.dto";
+import { CompleteSignUpDto, UpdateCurrentUserDto, UserDto } from "./posts.dto";
 
 type AuthResponse = {
   cookie(name: string, value: string, options: SessionCookieOptions): void;
@@ -84,10 +84,26 @@ export class AuthController {
   @ApiOperation({ summary: "현재 로그인 사용자 조회" })
   @ApiOkResponse({ type: UserDto })
   me(@Headers("authorization") authorization?: string, @Headers("cookie") cookieHeader?: string) {
-    return this.authService.requireUser({
+    return this.authService.getCurrentUser({
       authorization,
-      cookieHeader,
-      allowPending: true
+      cookieHeader
+    });
+  }
+
+  @Patch("me")
+  @ApiCookieAuth("sessionCookie")
+  @ApiBearerAuth("session")
+  @ApiOperation({ summary: "현재 사용자 정보 수정" })
+  @ApiBody({ type: UpdateCurrentUserDto })
+  @ApiOkResponse({ type: UserDto })
+  updateMe(
+    @Body() body: UpdateCurrentUserDto,
+    @Headers("authorization") authorization?: string,
+    @Headers("cookie") cookieHeader?: string
+  ) {
+    return this.authService.updateCurrentUser(body, {
+      authorization,
+      cookieHeader
     });
   }
 

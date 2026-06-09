@@ -6,7 +6,9 @@
   "scripts": {
     "codegen": "orval --config orval.config.ts",
     "dev": "vite --host 0.0.0.0 --port 5173",
+    "prebuild": "npm run routes:generate",
     "build": "tsc -p tsconfig.app.json --noEmit && vite build",
+    "routes:generate": "tsr generate",
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "preview": "vite preview"
   },

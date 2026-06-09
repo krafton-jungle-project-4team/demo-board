@@ -1,13 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import type { PostSort, PostStatus, PostView, UserRole, UserStatus } from "@nmm/shared";
+import type { PostSort, PostView, UserRole, UserStatus } from "@nmm/shared";
 
 export const postSortValues = ["created-desc", "created-asc", "title-asc"] as const satisfies readonly PostSort[];
 export const postViewValues = ["table", "card"] as const satisfies readonly PostView[];
-export const postStatusValues = ["draft", "published"] as const satisfies readonly PostStatus[];
 export const userRoleValues = ["USER", "ADMIN"] as const satisfies readonly UserRole[];
 export const userStatusValues = ["PENDING", "ACTIVE", "SUSPENDED"] as const satisfies readonly UserStatus[];
 
 export class CompleteSignUpDto {
+  @ApiProperty({ type: String, example: "sijun" })
+  name!: string;
+}
+
+export class UpdateCurrentUserDto {
   @ApiProperty({ type: String, example: "sijun" })
   name!: string;
 }
@@ -19,8 +23,8 @@ export class UserDto {
   @ApiProperty({ type: String, example: "sijun@example.com" })
   email!: string;
 
-  @ApiProperty({ type: String, example: "sijun" })
-  name!: string;
+  @ApiProperty({ type: String, nullable: true, example: "sijun" })
+  name!: string | null;
 
   @ApiProperty({ type: String, nullable: true, example: "https://avatars.githubusercontent.com/u/1?v=4" })
   image!: string | null;
@@ -97,9 +101,6 @@ export class PostDto {
   @ApiProperty({ type: String, example: "2026-06-09T00:00:00.000Z" })
   updatedAt!: string;
 
-  @ApiProperty({ enum: postStatusValues, example: "published" })
-  status!: PostStatus;
-
   @ApiProperty({ type: () => [PostTagDto] })
   tags!: PostTagDto[];
 }
@@ -134,9 +135,6 @@ export class CreatePostDto {
   })
   content!: string;
 
-  @ApiPropertyOptional({ enum: postStatusValues, default: "draft" })
-  status?: PostStatus;
-
   @ApiPropertyOptional({ type: () => [String], default: [], example: ["tag-react"] })
   tagIds?: string[];
 }
@@ -150,9 +148,6 @@ export class UpdatePostDto {
 
   @ApiPropertyOptional({ type: String, example: "수정된 본문" })
   content?: string;
-
-  @ApiPropertyOptional({ enum: postStatusValues })
-  status?: PostStatus;
 
   @ApiPropertyOptional({ type: () => [String], example: ["tag-react"] })
   tagIds?: string[];
