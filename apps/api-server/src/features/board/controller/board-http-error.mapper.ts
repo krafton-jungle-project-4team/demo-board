@@ -1,6 +1,6 @@
 import { HttpStatus } from "@nestjs/common";
-import type { DomainError } from "../../../common/core/domain";
-import type { HttpDomainError } from "../../../common/infra/http";
+import type { DomainError } from "../../../core/domain";
+import type { HttpDomainError } from "../../../infra/http";
 import { isBoardErrorCode, type BoardErrorCode } from "../domain";
 
 export function toBoardHttpError(error: DomainError): HttpDomainError | undefined {

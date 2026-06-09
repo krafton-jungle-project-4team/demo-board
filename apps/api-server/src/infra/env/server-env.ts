@@ -1,5 +1,5 @@
 import type { DatabaseEnv } from "../database";
-import type { AuthEnv, GitHubOAuthEnv } from "../../../features/auth/domain";
+import type { AuthEnv, GitHubOAuthEnv } from "../../features/auth/domain";
 import { loadServerEnv } from "./env-file";
 
 export type AppEnv = {

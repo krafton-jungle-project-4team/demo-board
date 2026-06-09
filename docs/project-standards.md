@@ -78,8 +78,8 @@
 - TypeORM repository 구현체와 외부 adapter 연결은 `database`에 둔다.
 - 도메인 저장소 계약은 repository로 부르고, TypeORM repository class는 그 구현체로 둔다.
 - service는 query(read only)와 command(변경 목적)를 파일 단위로 분리한다.
-- API 서버 공통 코드는 `common/core`의 순수 코드와 `common/infra`의 전역 인프라/프레임워크 코드로 나눈다.
-- 도메인 에러 정의는 `common/core/domain`의 공통 타입과 헬퍼로 만든다.
+- API 서버 공통 순수 코드는 `core`, 전역 인프라/프레임워크 코드는 `infra`에 둔다.
+- 도메인 에러 정의는 `core/domain`의 공통 타입과 헬퍼로 만든다.
 
 ## TypeScript 설정
 

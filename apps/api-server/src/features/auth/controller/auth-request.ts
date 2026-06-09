@@ -1,4 +1,4 @@
-import type { ApiRequest } from "../../../common/infra/http";
+import type { ApiRequest } from "../../../infra/http";
 import type { UserRecord } from "../domain";
 import type { AuthRequestContext } from "../service/auth-query.service";
 

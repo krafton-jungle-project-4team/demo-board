@@ -1,5 +1,5 @@
 import { type DataSource } from "typeorm";
-import { serverEnv } from "../../../common/infra/env";
+import { serverEnv } from "../../../infra/env";
 
 export const BETTER_AUTH = Symbol("BETTER_AUTH");
 

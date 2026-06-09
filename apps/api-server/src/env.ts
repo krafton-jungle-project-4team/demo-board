@@ -1,1 +1,1 @@
-export { loadServerEnv, serverEnv, type AppEnv, type ServerEnv } from "./common/infra/env";
+export { loadServerEnv, serverEnv, type AppEnv, type ServerEnv } from "./infra/env";

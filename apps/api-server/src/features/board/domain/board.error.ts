@@ -1,9 +1,4 @@
-import {
-    createDomainError,
-    defineDomainErrors,
-    isDomainErrorCode,
-    type DomainErrorCode
-} from "../../../common/core/domain";
+import { createDomainError, defineDomainErrors, isDomainErrorCode, type DomainErrorCode } from "../../../core/domain";
 
 const boardErrorDefinitions = defineDomainErrors({
     postNotFound: {
