@@ -22,7 +22,7 @@ export function PostsPage() {
                 <div className="grid gap-1">
                     <h1 className="text-2xl font-semibold tracking-normal">게시판 보일러플레이트</h1>
                     <p className="text-muted-foreground text-sm">
-                        라우터, 서버 상태, URL 상태, codegen 흐름을 검증하는 CRUD 화면입니다.
+                        라우터, 서버 상태, URL 상태, shared contract 흐름을 검증하는 CRUD 화면입니다.
                     </p>
                 </div>
                 <Button asChild>

@@ -1,11 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { UserSchema, type CompleteSignUpRequest, type UpdateCurrentUserRequest, type User } from "@nmm/shared";
-import {
-    authControllerCompleteSignUp,
-    authControllerLogout,
-    authControllerUpdateMe,
-    getAuthControllerMeUrl
-} from "@/shared/api/generated/api-server";
+import type { CompleteSignUpRequest, UpdateCurrentUserRequest, User } from "@nmm/shared";
+import { ApiClientError } from "@/shared/api/http-client";
+import { completeSignUp, getCurrentUser, logout, updateCurrentUser } from "./auth-api";
 
 export const authQueryKeys = {
     currentUser: ["auth", "current-user"] as const
@@ -22,10 +18,7 @@ export function useCompleteSignUpMutation(options?: { onSuccess?: () => void }) 
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (data: CompleteSignUpRequest) =>
-            authControllerCompleteSignUp(data, {
-                credentials: "include"
-            }).then((response) => response.data),
+        mutationFn: (data: CompleteSignUpRequest) => completeSignUp(data),
         onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: authQueryKeys.currentUser });
             options?.onSuccess?.();
@@ -37,15 +30,10 @@ export function useUpdateCurrentUserMutation(options?: { onSuccess?: (user: User
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (data: UpdateCurrentUserRequest) =>
-            authControllerUpdateMe(data, {
-                credentials: "include"
-            }).then((response) => response.data),
+        mutationFn: (data: UpdateCurrentUserRequest) => updateCurrentUser(data),
         onSuccess: (user) => {
-            const parsedUser = UserSchema.parse(user);
-
-            queryClient.setQueryData(authQueryKeys.currentUser, parsedUser);
-            options?.onSuccess?.(parsedUser);
+            queryClient.setQueryData(authQueryKeys.currentUser, user);
+            options?.onSuccess?.(user);
         }
     });
 }
@@ -54,10 +42,7 @@ export function useLogoutMutation(options?: { onSuccess?: () => void }) {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: () =>
-            authControllerLogout({
-                credentials: "include"
-            }).then((response) => response.data),
+        mutationFn: () => logout(),
         onSuccess: () => {
             queryClient.setQueryData(authQueryKeys.currentUser, null);
             options?.onSuccess?.();
@@ -66,20 +51,13 @@ export function useLogoutMutation(options?: { onSuccess?: () => void }) {
 }
 
 async function fetchCurrentUser(signal?: AbortSignal): Promise<User | null> {
-    const response = await fetch(getAuthControllerMeUrl(), {
-        credentials: "include",
-        signal
-    });
+    try {
+        return await getCurrentUser(signal);
+    } catch (error) {
+        if (error instanceof ApiClientError && error.status === 401) {
+            return null;
+        }
 
-    if (response.status === 401) {
-        return null;
+        throw error;
     }
-
-    if (!response.ok) {
-        throw new Error("현재 사용자 정보를 불러오지 못했습니다.");
-    }
-
-    const responseBody = (await response.json()) as { data: unknown };
-
-    return UserSchema.parse(responseBody.data);
 }

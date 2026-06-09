@@ -221,9 +221,9 @@ export class BoardRepository implements BoardCommandProvider, BoardQueryProvider
             },
             {
                 id: "post-2",
-                title: "OpenAPI codegen 연결",
-                excerpt: "Nest 더미 API에서 spec을 만들고 Orval로 fetch 함수를 생성한다.",
-                content: "OpenAPI spec을 생성해 frontend가 API 타입과 호출 함수를 반복 작성하지 않게 한다.",
+                title: "Shared contract API 연결",
+                excerpt: "shared Zod schema로 API 요청과 응답 계약을 공유한다.",
+                content: "FE는 작은 fetch 함수를 직접 작성하고, BE와 같은 schema로 응답 데이터를 검증한다.",
                 authorId: "user-sijun",
                 authorName: "sijun",
                 createdAt: "2026-06-09T00:10:00.000Z",

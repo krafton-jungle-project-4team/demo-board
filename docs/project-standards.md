@@ -9,7 +9,6 @@
 - format: `npm run format:check`
 - 타입 검증: `npm run typecheck`
 - 빌드 검증: `npm run build`
-- API 계약 생성: `npm run openapi:generate`
 - commit 전 검증: Husky `pre-commit`에서 `lint-staged`와 `npm run verify`
 - `lint-staged`: 커밋에 포함된 파일만 Prettier/ESLint 자동 수정을 적용한다.
 
@@ -27,7 +26,7 @@
 - TypeScript가 타입을 검증한다.
 - `apps/*`, `packages/*`의 TS/TSX 파일과 `src` 하위 폴더명은 kebab-case다.
 - `*.contract.ts`, `*.config.ts` 같은 중간 확장자는 허용한다.
-- TanStack Router 라우트 파일과 generated API client는 프레임워크/생성기 규칙을 따른다.
+- TanStack Router 라우트 파일은 프레임워크/생성기 규칙을 따른다.
 - 앱 내부 absolute import는 `@/*`를 쓴다.
 - workspace 간 import는 패키지 이름으로 한다.
 
@@ -55,15 +54,11 @@
 
 - API 요청/응답 계약 원본은 `packages/shared/src/contracts/*.contract.ts`의 Zod schema다.
 - API 서버는 shared Zod schema로 외부 입력을 검증한다.
-- OpenAPI spec은 내부 FE 연동 산출물이며, Orval로 web 요청 함수와 타입을 생성하는 데 쓴다.
-- API 서버의 OpenAPI request/response schema는 shared Zod schema에서 생성한다.
-- Web feature 코드는 API 객체 형식 원본으로 generated DTO 타입이 아니라 shared contract를 우선 사용한다.
-- OpenAPI decorator는 검증 기준으로 쓰지 않는다.
-- `@ApiProperty`, `@ApiPropertyOptional` 기반 Nest DTO 메타데이터를 쓰지 않는다.
-- min/max/pattern 같은 검증성 메타데이터는 OpenAPI schema 생성 시 제거한다.
+- Web은 shared Zod schema로 표준 응답 envelope를 파싱하는 수동 typed fetch 함수를 쓴다.
+- OpenAPI/Orval/generated client는 기본 API 공유 방식으로 쓰지 않는다.
+- Web feature 코드는 API 객체 형식 원본으로 shared contract를 우선 사용한다.
 - TanStack Query hook은 feature 코드에서 직접 작성한다.
-- API 계약이 바뀌면 `npm run openapi:generate` 후 `openapi/api-server.json`과 generated fetch client/type을 함께 커밋한다.
-- 인증 같은 공통 HTTP 처리가 필요해질 때만 Orval custom mutator를 추가한다.
+- API 계약이 바뀌면 shared contract, API 서버 검증, Web fetch 함수를 같은 작업 단위로 갱신한다.
 - JSON 성공 응답은 `{ requestId, data }`, JSON 에러 응답은 `{ requestId, error: { code, message } }`를 쓴다.
 - 도메인 오류는 code/message만 관리하고, HTTP status 변환은 controller/web server boundary에서 처리한다.
 - 외부 시스템 클라이언트는 infrastructure에 두고, domain service가 그 결과와 실패를 감싼다.

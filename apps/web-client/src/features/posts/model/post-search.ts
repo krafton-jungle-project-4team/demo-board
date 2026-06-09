@@ -1,6 +1,6 @@
 import { createParser, createStandardSchemaV1, parseAsStringEnum } from "nuqs";
 import type { inferParserType } from "nuqs";
-import type { PostsControllerFindPostsParams } from "@/shared/api/generated/api-server";
+import type { PostListParams } from "../api/post-api";
 
 export const postSortValues = ["created-desc", "created-asc", "title-asc"] as const;
 export const postViewValues = ["table", "card"] as const;
@@ -62,7 +62,7 @@ export const postSearchSchema = createStandardSchemaV1(postSearchParsers, {
 
 export type PostSearchState = inferParserType<typeof postSearchParsers>;
 
-export function toFindPostsParams(search: PostSearchState): PostsControllerFindPostsParams {
+export function toFindPostsParams(search: PostSearchState): PostListParams {
     return {
         q: search.q || undefined,
         page: search.page,

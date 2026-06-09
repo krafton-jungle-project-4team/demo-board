@@ -29,3 +29,9 @@ export const UpdateCurrentUserRequestSchema = z.object({
 });
 
 export type UpdateCurrentUserRequest = z.infer<typeof UpdateCurrentUserRequestSchema>;
+
+export const LogoutResponseSchema = z.object({
+    ok: z.boolean()
+});
+
+export type LogoutResponse = z.infer<typeof LogoutResponseSchema>;

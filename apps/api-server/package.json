@@ -4,14 +4,12 @@
     "private": true,
     "scripts": {
         "build": "nest build",
-        "openapi:emit": "tsx src/openapi.ts",
         "typecheck": "tsc -p tsconfig.json --noEmit"
     },
     "dependencies": {
         "@nestjs/common": "latest",
         "@nestjs/core": "latest",
         "@nestjs/platform-express": "latest",
-        "@nestjs/swagger": "^11.4.4",
         "@nestjs/typeorm": "^11.0.1",
         "@nmm/shared": "file:../../packages/shared",
         "pg": "^8.21.0",
