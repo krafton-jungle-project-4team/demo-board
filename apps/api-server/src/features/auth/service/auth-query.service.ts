@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { BETTER_AUTH, type BetterAuth } from "../database";
-import { AUTH_REPOSITORY, authErrors, type ActiveUser, type AuthRepository, type UserRecord } from "../domain";
+import { authErrors, type ActiveUser, type UserRecord } from "../domain";
 
 export type AuthRequestContext = {
     authorization?: string;
@@ -10,10 +10,7 @@ export type AuthRequestContext = {
 
 @Injectable()
 export class AuthQueryService {
-    constructor(
-        @Inject(BETTER_AUTH) private readonly auth: BetterAuth,
-        @Inject(AUTH_REPOSITORY) private readonly authRepository: AuthRepository
-    ) {}
+    constructor(@Inject(BETTER_AUTH) private readonly auth: BetterAuth) {}
 
     async requireUserRecord(context: AuthRequestContext): Promise<UserRecord> {
         const session = await this.auth.api.getSession({
@@ -22,8 +19,7 @@ export class AuthQueryService {
                 disableCookieCache: true
             }
         });
-        const userId = session?.user.id;
-        const user = userId ? await this.authRepository.findUser(userId) : undefined;
+        const user = session ? this.toUserRecord(session.user) : undefined;
 
         if (!user) {
             throw authErrors.sessionRequired();
@@ -62,5 +58,25 @@ export class AuthQueryService {
         }
 
         return headers;
+    }
+
+    private toUserRecord(user: BetterAuth["$Infer"]["Session"]["user"]): UserRecord {
+        return {
+            id: user.id,
+            email: user.email,
+            name: user.name.trim() || null,
+            image: user.image ?? null,
+            role: user.role === "ADMIN" ? "ADMIN" : "USER",
+            status: this.toUserStatus(user.status),
+            createdAt: user.createdAt.toISOString()
+        };
+    }
+
+    private toUserStatus(value: unknown) {
+        if (value === "ACTIVE" || value === "SUSPENDED") {
+            return value;
+        }
+
+        return "PENDING";
     }
 }
