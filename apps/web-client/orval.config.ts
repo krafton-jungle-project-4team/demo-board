@@ -6,7 +6,7 @@ export default defineConfig({
       target: "../../openapi/api-server.json",
       filters: {
         mode: "include",
-        tags: ["posts"]
+        tags: ["auth", "comments", "post-tags", "posts"]
       }
     },
     output: {

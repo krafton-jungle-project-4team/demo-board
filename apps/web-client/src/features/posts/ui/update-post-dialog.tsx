@@ -16,7 +16,8 @@ export function UpdatePostDialog({ post, trigger }: UpdatePostDialogProps) {
     title: post.title,
     excerpt: post.excerpt,
     content: post.content,
-    status: post.status
+    status: post.status,
+    tagIds: post.tags.map((tag) => tag.id)
   };
   const [open, setOpen] = useState(false);
   const [values, setValues] = useState<CreatePostRequest>(postValues);

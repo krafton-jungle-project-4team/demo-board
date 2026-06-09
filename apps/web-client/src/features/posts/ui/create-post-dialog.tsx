@@ -13,7 +13,8 @@ const emptyPost: CreatePostRequest = {
   title: "",
   excerpt: "",
   content: "",
-  status: "draft"
+  status: "draft",
+  tagIds: []
 };
 
 export function CreatePostDialog({ trigger }: CreatePostDialogProps) {

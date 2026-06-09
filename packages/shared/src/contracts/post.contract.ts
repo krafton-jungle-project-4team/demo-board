@@ -9,20 +9,66 @@ export type PostView = z.infer<typeof PostViewSchema>;
 export const PostStatusSchema = z.enum(["draft", "published"]);
 export type PostStatus = z.infer<typeof PostStatusSchema>;
 
+export const UserRoleSchema = z.enum(["USER", "ADMIN"]);
+export type UserRole = z.infer<typeof UserRoleSchema>;
+
+export const UserSchema = z.object({
+  id: z.string(),
+  email: z.string().email(),
+  name: z.string().min(1),
+  role: UserRoleSchema,
+  createdAt: z.string().datetime()
+});
+
+export type User = z.infer<typeof UserSchema>;
+
+export const SignUpRequestSchema = z.object({
+  email: z.string().email(),
+  name: z.string().min(1),
+  password: z.string().min(8)
+});
+
+export type SignUpRequest = z.infer<typeof SignUpRequestSchema>;
+
+export const LoginRequestSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1)
+});
+
+export type LoginRequest = z.infer<typeof LoginRequestSchema>;
+
+export const AuthSessionResponseSchema = z.object({
+  user: UserSchema,
+  sessionToken: z.string().min(1)
+});
+
+export type AuthSessionResponse = z.infer<typeof AuthSessionResponseSchema>;
+
+export const PostTagSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1)
+});
+
+export type PostTag = z.infer<typeof PostTagSchema>;
+
 export const PostSchema = z.object({
   id: z.string(),
   title: z.string().min(1),
   excerpt: z.string().min(1),
   content: z.string().min(1),
+  authorId: z.string(),
   authorName: z.string().min(1),
   createdAt: z.string().datetime(),
-  status: PostStatusSchema
+  updatedAt: z.string().datetime(),
+  status: PostStatusSchema,
+  tags: z.array(PostTagSchema)
 });
 
 export type Post = z.infer<typeof PostSchema>;
 
 export const ListPostsQuerySchema = z.object({
   q: z.string().default(""),
+  tagId: z.string().optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(10),
   sort: PostSortSchema.default("created-desc"),
@@ -45,7 +91,8 @@ export const CreatePostRequestSchema = z.object({
   title: z.string().min(1),
   excerpt: z.string().min(1),
   content: z.string().min(1),
-  status: PostStatusSchema.default("draft")
+  status: PostStatusSchema.default("draft"),
+  tagIds: z.array(z.string()).default([])
 });
 
 export type CreatePostRequest = z.infer<typeof CreatePostRequestSchema>;
@@ -59,3 +106,37 @@ export const DeletePostResponseSchema = z.object({
 });
 
 export type DeletePostResponse = z.infer<typeof DeletePostResponseSchema>;
+
+export const CommentSchema = z.object({
+  id: z.string(),
+  postId: z.string(),
+  content: z.string().min(1),
+  authorId: z.string(),
+  authorName: z.string().min(1),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime()
+});
+
+export type Comment = z.infer<typeof CommentSchema>;
+
+export const CommentListResponseSchema = z.object({
+  items: z.array(CommentSchema)
+});
+
+export type CommentListResponse = z.infer<typeof CommentListResponseSchema>;
+
+export const CreateCommentRequestSchema = z.object({
+  content: z.string().min(1)
+});
+
+export type CreateCommentRequest = z.infer<typeof CreateCommentRequestSchema>;
+
+export const UpdateCommentRequestSchema = CreateCommentRequestSchema.partial();
+export type UpdateCommentRequest = z.infer<typeof UpdateCommentRequestSchema>;
+
+export const DeleteCommentResponseSchema = z.object({
+  ok: z.boolean(),
+  id: z.string()
+});
+
+export type DeleteCommentResponse = z.infer<typeof DeleteCommentResponseSchema>;

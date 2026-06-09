@@ -13,8 +13,16 @@ async function emitOpenApiSpec() {
 
   const config = new DocumentBuilder()
     .setTitle("NMM API")
-    .setDescription("나만의 무기 만들기 보일러플레이트용 더미 API")
+    .setDescription("나만의 무기 만들기 보일러플레이트용 게시판 API")
     .setVersion("0.1.0")
+    .addBearerAuth(
+      {
+        type: "http",
+        scheme: "bearer",
+        bearerFormat: "session"
+      },
+      "session"
+    )
     .build();
   const document = SwaggerModule.createDocument(app, config);
   const outputPath = path.resolve(process.cwd(), "../../openapi/api-server.json");

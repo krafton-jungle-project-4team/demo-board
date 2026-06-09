@@ -1,16 +1,64 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import type { PostSort, PostStatus, PostView } from "@nmm/shared";
+import type { PostSort, PostStatus, PostView, UserRole } from "@nmm/shared";
 
 export const postSortValues = ["created-desc", "created-asc", "title-asc"] as const satisfies readonly PostSort[];
 export const postViewValues = ["table", "card"] as const satisfies readonly PostView[];
 export const postStatusValues = ["draft", "published"] as const satisfies readonly PostStatus[];
+export const userRoleValues = ["USER", "ADMIN"] as const satisfies readonly UserRole[];
+
+export class SignUpDto {
+  @ApiProperty({ type: String, example: "sijun@example.com" })
+  email!: string;
+
+  @ApiProperty({ type: String, example: "sijun" })
+  name!: string;
+
+  @ApiProperty({ type: String, minLength: 8, format: "password", example: "password123" })
+  password!: string;
+}
+
+export class LoginDto {
+  @ApiProperty({ type: String, example: "sijun@example.com" })
+  email!: string;
+
+  @ApiProperty({ type: String, format: "password", example: "password123" })
+  password!: string;
+}
+
+export class UserDto {
+  @ApiProperty({ type: String, example: "user-1" })
+  id!: string;
+
+  @ApiProperty({ type: String, example: "sijun@example.com" })
+  email!: string;
+
+  @ApiProperty({ type: String, example: "sijun" })
+  name!: string;
+
+  @ApiProperty({ enum: userRoleValues, example: "USER" })
+  role!: UserRole;
+
+  @ApiProperty({ type: String, example: "2026-06-09T00:00:00.000Z" })
+  createdAt!: string;
+}
+
+export class AuthSessionResponseDto {
+  @ApiProperty({ type: () => UserDto })
+  user!: UserDto;
+
+  @ApiProperty({ type: String, example: "session-token" })
+  sessionToken!: string;
+}
 
 export class ListPostsQueryDto {
   @ApiPropertyOptional({
-    description: "게시글 제목/본문 검색어. 더미 API는 값을 받지만 결과를 바꾸지는 않는다.",
+    description: "게시글 제목/요약/본문/작성자/태그 검색어",
     example: "boilerplate"
   })
   q?: string;
+
+  @ApiPropertyOptional({ type: String, description: "태그 ID로 필터링", example: "tag-react" })
+  tagId?: string;
 
   @ApiPropertyOptional({ minimum: 1, default: 1 })
   page?: number;
@@ -23,6 +71,14 @@ export class ListPostsQueryDto {
 
   @ApiPropertyOptional({ enum: postViewValues, default: "table" })
   view?: PostView;
+}
+
+export class PostTagDto {
+  @ApiProperty({ type: String, example: "tag-react" })
+  id!: string;
+
+  @ApiProperty({ type: String, example: "react" })
+  name!: string;
 }
 
 export class PostDto {
@@ -44,14 +100,23 @@ export class PostDto {
   })
   content!: string;
 
+  @ApiProperty({ type: String, example: "user-1" })
+  authorId!: string;
+
   @ApiProperty({ type: String, example: "sijun" })
   authorName!: string;
 
-  @ApiProperty({ type: String, example: "2026-06-08T10:00:00.000Z" })
+  @ApiProperty({ type: String, example: "2026-06-09T00:00:00.000Z" })
   createdAt!: string;
+
+  @ApiProperty({ type: String, example: "2026-06-09T00:00:00.000Z" })
+  updatedAt!: string;
 
   @ApiProperty({ enum: postStatusValues, example: "published" })
   status!: PostStatus;
+
+  @ApiProperty({ type: () => [PostTagDto] })
+  tags!: PostTagDto[];
 }
 
 export class PostListResponseDto {
@@ -86,6 +151,9 @@ export class CreatePostDto {
 
   @ApiPropertyOptional({ enum: postStatusValues, default: "draft" })
   status?: PostStatus;
+
+  @ApiPropertyOptional({ type: () => [String], default: [], example: ["tag-react"] })
+  tagIds?: string[];
 }
 
 export class UpdatePostDto {
@@ -100,6 +168,9 @@ export class UpdatePostDto {
 
   @ApiPropertyOptional({ enum: postStatusValues })
   status?: PostStatus;
+
+  @ApiPropertyOptional({ type: () => [String], example: ["tag-react"] })
+  tagIds?: string[];
 }
 
 export class DeletePostResponseDto {
@@ -107,5 +178,51 @@ export class DeletePostResponseDto {
   ok!: boolean;
 
   @ApiProperty({ type: String, example: "post-1" })
+  id!: string;
+}
+
+export class CommentDto {
+  @ApiProperty({ type: String, example: "comment-1" })
+  id!: string;
+
+  @ApiProperty({ type: String, example: "post-1" })
+  postId!: string;
+
+  @ApiProperty({ type: String, example: "좋은 기준입니다." })
+  content!: string;
+
+  @ApiProperty({ type: String, example: "user-1" })
+  authorId!: string;
+
+  @ApiProperty({ type: String, example: "sijun" })
+  authorName!: string;
+
+  @ApiProperty({ type: String, example: "2026-06-09T00:00:00.000Z" })
+  createdAt!: string;
+
+  @ApiProperty({ type: String, example: "2026-06-09T00:00:00.000Z" })
+  updatedAt!: string;
+}
+
+export class CommentListResponseDto {
+  @ApiProperty({ type: () => [CommentDto] })
+  items!: CommentDto[];
+}
+
+export class CreateCommentDto {
+  @ApiProperty({ type: String, example: "좋은 기준입니다." })
+  content!: string;
+}
+
+export class UpdateCommentDto {
+  @ApiPropertyOptional({ type: String, example: "수정된 댓글입니다." })
+  content?: string;
+}
+
+export class DeleteCommentResponseDto {
+  @ApiProperty({ type: Boolean, example: true })
+  ok!: boolean;
+
+  @ApiProperty({ type: String, example: "comment-1" })
   id!: string;
 }
