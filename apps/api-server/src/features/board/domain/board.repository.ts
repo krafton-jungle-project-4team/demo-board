@@ -1,19 +1,26 @@
-import type { Comment, PostTag } from "@nmm/shared";
-import type { NewCommentRecord, NewPostRecord, PostRecord } from "./board.model";
+import type {
+    Comment,
+    CreateCommentRequest,
+    CreatePostRequest,
+    Post,
+    PostTag,
+    UpdateCommentRequest,
+    UpdatePostRequest
+} from "@nmm/shared";
+import type { BoardUser } from "./board.model";
 
 export const BOARD_REPOSITORY = Symbol("BOARD_REPOSITORY");
 
 export type BoardRepository = {
     listTags(): Promise<PostTag[]>;
-    findTagsByIds(ids: number[]): Promise<PostTag[]>;
-    listPosts(): Promise<PostRecord[]>;
-    findPost(id: number): Promise<PostRecord | undefined>;
+    listPosts(): Promise<Post[]>;
+    findPost(id: number): Promise<Post | undefined>;
     listComments(postId: number): Promise<Comment[]>;
     findComment(postId: number, commentId: number): Promise<Comment | undefined>;
-    createPost(post: NewPostRecord): Promise<PostRecord>;
-    savePost(post: PostRecord): Promise<void>;
-    deletePostWithComments(post: PostRecord): Promise<void>;
-    createComment(comment: NewCommentRecord): Promise<Comment>;
-    saveComment(comment: Comment): Promise<void>;
+    createPost(request: CreatePostRequest, user: BoardUser): Promise<Post>;
+    savePost(post: Post, request: UpdatePostRequest): Promise<Post>;
+    deletePostWithComments(post: Post): Promise<void>;
+    createComment(postId: number, request: CreateCommentRequest, user: BoardUser): Promise<Comment>;
+    saveComment(comment: Comment, request: UpdateCommentRequest): Promise<Comment>;
     deleteComment(comment: Comment): Promise<void>;
 };

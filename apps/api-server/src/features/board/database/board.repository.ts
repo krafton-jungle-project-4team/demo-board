@@ -1,16 +1,25 @@
 import { Injectable, type OnModuleInit } from "@nestjs/common";
 import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
 import { DataSource, In, Repository } from "typeorm";
-import type { Comment, PostTag } from "@nmm/shared";
 import {
+    CommentSchema,
+    PostSchema,
+    type Comment,
+    type CreateCommentRequest,
+    type CreatePostRequest,
+    type Post,
+    type PostTag,
+    type UpdateCommentRequest,
+    type UpdatePostRequest
+} from "@nmm/shared";
+import {
+    boardErrors,
     CommentEntity,
     PostEntity,
     PostTagEntity,
     PostTagLinkEntity,
     type BoardRepository,
-    type NewCommentRecord,
-    type NewPostRecord,
-    type PostRecord
+    type BoardUser
 } from "../domain";
 
 @Injectable()
@@ -45,32 +54,38 @@ export class BoardTypeOrmRepository implements BoardRepository, OnModuleInit {
         return (await this.tags.find()).map((tag) => this.toExistingPostTag(tag));
     }
 
-    async findTagsByIds(ids: number[]): Promise<PostTag[]> {
-        if (ids.length === 0) {
-            return [];
-        }
-
-        return (await this.tags.findBy({ id: In(ids) })).map((tag) => this.toExistingPostTag(tag));
-    }
-
-    async listPosts(): Promise<PostRecord[]> {
+    async listPosts(): Promise<Post[]> {
         const posts = await this.posts.find();
 
-        return Promise.all(posts.map((post) => this.toPostRecord(post)));
+        return Promise.all(posts.map((post) => this.toPost(post)));
     }
 
-    async findPost(id: number): Promise<PostRecord | undefined> {
+    async findPost(id: number): Promise<Post | undefined> {
         const post = await this.posts.findOneBy({ id });
 
-        return post ? this.toPostRecord(post) : undefined;
+        return post ? this.toPost(post) : undefined;
     }
 
-    async createPost(post: NewPostRecord) {
-        return this.insertPostWithTags(post);
+    async createPost(request: CreatePostRequest, user: BoardUser) {
+        const tags = await this.resolveTags(request.tagIds);
+
+        return this.insertPostWithTags(request, user, tags);
     }
 
-    async savePost(post: PostRecord) {
-        await this.savePostWithTags(post);
+    async savePost(post: Post, request: UpdatePostRequest) {
+        const tags = request.tagIds === undefined ? post.tags : await this.resolveTags(request.tagIds);
+
+        return this.savePostWithTags(
+            {
+                ...post,
+                title: request.title ?? post.title,
+                excerpt: request.excerpt ?? post.excerpt,
+                content: request.content ?? post.content,
+                updatedAt: new Date().toISOString(),
+                tags
+            },
+            tags
+        );
     }
 
     async listComments(postId: number): Promise<Comment[]> {
@@ -86,19 +101,27 @@ export class BoardTypeOrmRepository implements BoardRepository, OnModuleInit {
         );
     }
 
-    async createComment(comment: NewCommentRecord) {
-        return this.toExistingComment(await this.comments.save(this.toNewCommentEntity(comment)));
+    async createComment(postId: number, request: CreateCommentRequest, user: BoardUser) {
+        return this.toExistingComment(await this.comments.save(this.toNewCommentEntity(postId, request, user)));
     }
 
-    async saveComment(comment: Comment) {
-        await this.comments.save(this.toCommentEntity(comment));
+    async saveComment(comment: Comment, request: UpdateCommentRequest) {
+        return this.toExistingComment(
+            await this.comments.save(
+                this.toCommentEntity({
+                    ...comment,
+                    content: request.content ?? comment.content,
+                    updatedAt: new Date().toISOString()
+                })
+            )
+        );
     }
 
     async deleteComment(comment: Comment) {
         await this.comments.delete({ id: comment.id });
     }
 
-    async deletePostWithComments(post: PostRecord) {
+    async deletePostWithComments(post: Post) {
         await this.dataSource.transaction(async (manager) => {
             await manager.getRepository(CommentEntity).delete({ postId: post.id });
             await manager.getRepository(PostTagLinkEntity).delete({ postId: post.id });
@@ -106,17 +129,35 @@ export class BoardTypeOrmRepository implements BoardRepository, OnModuleInit {
         });
     }
 
-    private async toPostRecord(post: PostEntity): Promise<PostRecord> {
-        const links = await this.postTagLinks.findBy({ postId: post.id });
+    private async findTagsByIds(ids: number[]): Promise<PostTag[]> {
+        if (ids.length === 0) {
+            return [];
+        }
 
-        return this.toPostRecordWithTags(
-            post,
-            links.map((link) => Number(link.tagId))
-        );
+        return (await this.tags.findBy({ id: In(ids) })).map((tag) => this.toExistingPostTag(tag));
     }
 
-    private toPostRecordWithTags(post: PostEntity, tagIds: number[]): PostRecord {
-        return {
+    private async resolveTags(tagIds: number[]) {
+        const uniqueTagIds = [...new Set(tagIds)];
+        const tags = await this.findTagsByIds(uniqueTagIds);
+        const tagById = new Map(tags.map((tag) => [tag.id, tag]));
+
+        if (uniqueTagIds.some((tagId) => !tagById.has(tagId))) {
+            throw boardErrors.unknownTags();
+        }
+
+        return uniqueTagIds.map((tagId) => tagById.get(tagId) as PostTag);
+    }
+
+    private async toPost(post: PostEntity): Promise<Post> {
+        const links = await this.postTagLinks.findBy({ postId: post.id });
+        const tags = await this.findTagsByIds(links.map((link) => Number(link.tagId)));
+
+        return this.toPostWithTags(post, tags);
+    }
+
+    private toPostWithTags(post: PostEntity, tags: PostTag[]): Post {
+        return PostSchema.parse({
             id: Number(post.id),
             title: post.title,
             excerpt: post.excerpt,
@@ -125,11 +166,11 @@ export class BoardTypeOrmRepository implements BoardRepository, OnModuleInit {
             authorName: post.authorName,
             createdAt: post.createdAt.toISOString(),
             updatedAt: post.updatedAt.toISOString(),
-            tagIds: tagIds.map((tagId) => Number(tagId))
-        };
+            tags
+        });
     }
 
-    private toPostEntity(post: PostRecord): PostEntity {
+    private toPostEntity(post: Post): PostEntity {
         return {
             id: post.id,
             title: post.title,
@@ -142,15 +183,19 @@ export class BoardTypeOrmRepository implements BoardRepository, OnModuleInit {
         };
     }
 
-    private toNewPostEntity(post: NewPostRecord): Omit<PostEntity, "id"> {
+    private toNewPostEntity(
+        request: CreatePostRequest,
+        user: Pick<BoardUser, "id" | "name">,
+        createdAt: string
+    ): Omit<PostEntity, "id"> {
         return {
-            title: post.title,
-            excerpt: post.excerpt,
-            content: post.content,
-            authorId: post.authorId,
-            authorName: post.authorName,
-            createdAt: new Date(post.createdAt),
-            updatedAt: new Date(post.updatedAt)
+            title: request.title,
+            excerpt: request.excerpt,
+            content: request.content,
+            authorId: user.id,
+            authorName: user.name,
+            createdAt: new Date(createdAt),
+            updatedAt: new Date(createdAt)
         };
     }
 
@@ -166,7 +211,7 @@ export class BoardTypeOrmRepository implements BoardRepository, OnModuleInit {
             return undefined;
         }
 
-        return {
+        return CommentSchema.parse({
             id: Number(comment.id),
             postId: Number(comment.postId),
             content: comment.content,
@@ -174,11 +219,11 @@ export class BoardTypeOrmRepository implements BoardRepository, OnModuleInit {
             authorName: comment.authorName,
             createdAt: comment.createdAt.toISOString(),
             updatedAt: comment.updatedAt.toISOString()
-        } satisfies Comment;
+        });
     }
 
     private toExistingComment(comment: CommentEntity) {
-        return {
+        return CommentSchema.parse({
             id: Number(comment.id),
             postId: Number(comment.postId),
             content: comment.content,
@@ -186,7 +231,7 @@ export class BoardTypeOrmRepository implements BoardRepository, OnModuleInit {
             authorName: comment.authorName,
             createdAt: comment.createdAt.toISOString(),
             updatedAt: comment.updatedAt.toISOString()
-        } satisfies Comment;
+        });
     }
 
     private toCommentEntity(comment: Comment): CommentEntity {
@@ -201,43 +246,56 @@ export class BoardTypeOrmRepository implements BoardRepository, OnModuleInit {
         };
     }
 
-    private toNewCommentEntity(comment: NewCommentRecord): Omit<CommentEntity, "id"> {
+    private toNewCommentEntity(
+        postId: number,
+        request: CreateCommentRequest,
+        user: Pick<BoardUser, "id" | "name">
+    ): Omit<CommentEntity, "id"> {
+        const now = new Date();
+
         return {
-            postId: comment.postId,
-            content: comment.content,
-            authorId: comment.authorId,
-            authorName: comment.authorName,
-            createdAt: new Date(comment.createdAt),
-            updatedAt: new Date(comment.updatedAt)
+            postId,
+            content: request.content,
+            authorId: user.id,
+            authorName: user.name,
+            createdAt: now,
+            updatedAt: now
         };
     }
 
-    private async insertPostWithTags(post: NewPostRecord) {
+    private async insertPostWithTags(
+        request: CreatePostRequest,
+        user: Pick<BoardUser, "id" | "name">,
+        tags: PostTag[],
+        createdAt = new Date().toISOString()
+    ) {
         return this.dataSource.transaction(async (manager) => {
             const postTagLinks = manager.getRepository(PostTagLinkEntity);
-            const savedPost = await manager.getRepository(PostEntity).save(this.toNewPostEntity(post));
+            const savedPost = await manager
+                .getRepository(PostEntity)
+                .save(this.toNewPostEntity(request, user, createdAt));
             const savedPostId = Number(savedPost.id);
 
-            if (post.tagIds.length > 0) {
-                await postTagLinks.save(post.tagIds.map((tagId) => ({ postId: savedPostId, tagId })));
+            if (tags.length > 0) {
+                await postTagLinks.save(tags.map((tag) => ({ postId: savedPostId, tagId: tag.id })));
             }
 
-            return this.toPostRecordWithTags(savedPost, post.tagIds);
+            return this.toPostWithTags(savedPost, tags);
         });
     }
 
-    private async savePostWithTags(post: PostRecord) {
-        await this.dataSource.transaction(async (manager) => {
+    private async savePostWithTags(post: Post, tags: PostTag[]) {
+        return this.dataSource.transaction(async (manager) => {
             const postTagLinks = manager.getRepository(PostTagLinkEntity);
 
-            await manager.getRepository(PostEntity).save(this.toPostEntity(post));
+            const savedPost = await manager.getRepository(PostEntity).save(this.toPostEntity(post));
             await postTagLinks.delete({ postId: post.id });
 
-            if (post.tagIds.length === 0) {
-                return;
+            if (tags.length > 0) {
+                await postTagLinks.save(tags.map((tag) => ({ postId: post.id, tagId: tag.id })));
             }
 
-            await postTagLinks.save(post.tagIds.map((tagId) => ({ postId: post.id, tagId })));
+            return this.toPostWithTags(savedPost, tags);
         });
     }
 
@@ -254,57 +312,62 @@ export class BoardTypeOrmRepository implements BoardRepository, OnModuleInit {
     }
 
     private async seedPosts(tagIds: { boilerplate: number; nest: number; react: number }) {
-        const posts: NewPostRecord[] = [
+        const user = { id: "user-sijun", name: "sijun" };
+        const posts = [
             {
-                title: "프론트 공통 스택 결정",
-                excerpt: "라우터, 서버 상태, URL 상태를 분리해 보일러플레이트의 기준을 잡는다.",
-                content:
-                    "TanStack Router, TanStack Query, nuqs, shadcn/ui를 연결해 게시판 CRUD 화면의 개발 출발점을 만든다.",
-                authorId: "user-sijun",
-                authorName: "sijun",
                 createdAt: "2026-06-09T00:00:00.000Z",
-                updatedAt: "2026-06-09T00:00:00.000Z",
-                tagIds: [tagIds.react, tagIds.boilerplate]
+                request: {
+                    title: "프론트 공통 스택 결정",
+                    excerpt: "라우터, 서버 상태, URL 상태를 분리해 보일러플레이트의 기준을 잡는다.",
+                    content:
+                        "TanStack Router, TanStack Query, nuqs, shadcn/ui를 연결해 게시판 CRUD 화면의 개발 출발점을 만든다.",
+                    tagIds: [tagIds.react, tagIds.boilerplate]
+                }
             },
             {
-                title: "Shared contract API 연결",
-                excerpt: "shared Zod schema로 API 요청과 응답 계약을 공유한다.",
-                content: "FE는 작은 fetch 함수를 직접 작성하고, BE와 같은 schema로 응답 데이터를 검증한다.",
-                authorId: "user-sijun",
-                authorName: "sijun",
                 createdAt: "2026-06-09T00:10:00.000Z",
-                updatedAt: "2026-06-09T00:10:00.000Z",
-                tagIds: [tagIds.nest, tagIds.boilerplate]
+                request: {
+                    title: "Shared contract API 연결",
+                    excerpt: "shared Zod schema로 API 요청과 응답 계약을 공유한다.",
+                    content: "FE는 작은 fetch 함수를 직접 작성하고, BE와 같은 schema로 응답 데이터를 검증한다.",
+                    tagIds: [tagIds.nest, tagIds.boilerplate]
+                }
             },
             {
-                title: "URL 상태 규칙",
-                excerpt: "검색어, 페이지, 정렬, 보기 방식은 공유 가능한 URL 상태로 둔다.",
-                content: "draft, token, PII, 대용량 데이터, 휘발성 UI 상태는 URL에 넣지 않는다.",
-                authorId: "user-sijun",
-                authorName: "sijun",
                 createdAt: "2026-06-09T00:20:00.000Z",
-                updatedAt: "2026-06-09T00:20:00.000Z",
-                tagIds: [tagIds.boilerplate]
+                request: {
+                    title: "URL 상태 규칙",
+                    excerpt: "검색어, 페이지, 정렬, 보기 방식은 공유 가능한 URL 상태로 둔다.",
+                    content: "draft, token, PII, 대용량 데이터, 휘발성 UI 상태는 URL에 넣지 않는다.",
+                    tagIds: [tagIds.boilerplate]
+                }
             }
         ];
 
-        const savedPosts: PostRecord[] = [];
+        const savedPosts: Post[] = [];
 
         for (const post of posts) {
-            savedPosts.push(await this.createPost(post));
+            savedPosts.push(
+                await this.insertPostWithTags(
+                    post.request,
+                    user,
+                    await this.resolveTags(post.request.tagIds),
+                    post.createdAt
+                )
+            );
         }
 
         return savedPosts;
     }
 
     private async seedComments(postId: number) {
-        await this.createComment({
+        await this.comments.save({
             postId,
             content: "보일러플레이트 기준을 확인하기 위한 댓글 예시입니다.",
             authorId: "user-sijun",
             authorName: "sijun",
-            createdAt: "2026-06-09T00:30:00.000Z",
-            updatedAt: "2026-06-09T00:30:00.000Z"
+            createdAt: new Date("2026-06-09T00:30:00.000Z"),
+            updatedAt: new Date("2026-06-09T00:30:00.000Z")
         });
     }
 

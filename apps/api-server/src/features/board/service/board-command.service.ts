@@ -1,6 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
 import {
-    CommentSchema,
     DeleteCommentResponseSchema,
     DeletePostResponseSchema,
     type Comment,
@@ -13,7 +12,7 @@ import {
     type UpdatePostRequest,
     type User
 } from "@nmm/shared";
-import { BOARD_REPOSITORY, boardErrors, type BoardRepository, type BoardUser, type NewPostRecord } from "../domain";
+import { BOARD_REPOSITORY, boardErrors, type BoardRepository, type BoardUser } from "../domain";
 import { BoardQueryService } from "./board-query.service";
 
 @Injectable()
@@ -24,52 +23,19 @@ export class BoardCommandService {
     ) {}
 
     async createPost(request: CreatePostRequest, user: BoardUser): Promise<Post> {
-        const now = new Date().toISOString();
-        const post: NewPostRecord = {
-            title: request.title,
-            excerpt: request.excerpt,
-            content: request.content,
-            authorId: user.id,
-            authorName: user.name,
-            createdAt: now,
-            updatedAt: now,
-            tagIds: await this.boardQueryService.resolveTagIds(request.tagIds)
-        };
-
-        const savedPost = await this.boardRepository.createPost(post);
-
-        return this.boardQueryService.toPost(savedPost);
+        return this.boardRepository.createPost(request, user);
     }
 
     async updatePost(id: number, request: UpdatePostRequest, user: BoardUser): Promise<Post> {
-        const post = await this.boardQueryService.findPostRecord(id);
+        const post = await this.boardQueryService.findExistingPost(id);
 
         this.assertOwner(post, user);
 
-        if (request.title !== undefined) {
-            post.title = request.title;
-        }
-
-        if (request.excerpt !== undefined) {
-            post.excerpt = request.excerpt;
-        }
-
-        if (request.content !== undefined) {
-            post.content = request.content;
-        }
-
-        if (request.tagIds !== undefined) {
-            post.tagIds = await this.boardQueryService.resolveTagIds(request.tagIds);
-        }
-
-        post.updatedAt = new Date().toISOString();
-        await this.boardRepository.savePost(post);
-
-        return this.boardQueryService.toPost(post);
+        return this.boardRepository.savePost(post, request);
     }
 
     async deletePost(id: number, user: BoardUser): Promise<DeletePostResponse> {
-        const post = await this.boardQueryService.findPostRecord(id);
+        const post = await this.boardQueryService.findExistingPost(id);
 
         this.assertOwner(post, user);
         await this.boardRepository.deletePostWithComments(post);
@@ -78,19 +44,9 @@ export class BoardCommandService {
     }
 
     async createComment(postId: number, request: CreateCommentRequest, user: BoardUser): Promise<Comment> {
-        await this.boardQueryService.findPostRecord(postId);
+        await this.boardQueryService.findExistingPost(postId);
 
-        const now = new Date().toISOString();
-        const comment = await this.boardRepository.createComment({
-            postId,
-            content: request.content,
-            authorId: user.id,
-            authorName: user.name,
-            createdAt: now,
-            updatedAt: now
-        });
-
-        return CommentSchema.parse(comment);
+        return this.boardRepository.createComment(postId, request, user);
     }
 
     async updateComment(
@@ -99,26 +55,19 @@ export class BoardCommandService {
         request: UpdateCommentRequest,
         user: BoardUser
     ): Promise<Comment> {
-        await this.boardQueryService.findPostRecord(postId);
+        await this.boardQueryService.findExistingPost(postId);
 
-        const comment = await this.boardQueryService.findCommentRecord(postId, commentId);
+        const comment = await this.boardQueryService.findExistingComment(postId, commentId);
 
         this.assertOwner(comment, user);
 
-        if (request.content !== undefined) {
-            comment.content = request.content;
-        }
-
-        comment.updatedAt = new Date().toISOString();
-        await this.boardRepository.saveComment(comment);
-
-        return CommentSchema.parse(comment);
+        return this.boardRepository.saveComment(comment, request);
     }
 
     async deleteComment(postId: number, commentId: number, user: BoardUser): Promise<DeleteCommentResponse> {
-        await this.boardQueryService.findPostRecord(postId);
+        await this.boardQueryService.findExistingPost(postId);
 
-        const comment = await this.boardQueryService.findCommentRecord(postId, commentId);
+        const comment = await this.boardQueryService.findExistingComment(postId, commentId);
 
         this.assertOwner(comment, user);
         await this.boardRepository.deleteComment(comment);
