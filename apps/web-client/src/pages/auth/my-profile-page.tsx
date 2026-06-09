@@ -1,7 +1,12 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label } from "@nmm/ui/components";
-import { useCurrentUserQuery, useLogoutMutation, useUpdateCurrentUserMutation } from "@/features/auth";
+import {
+    signInWithGitHub,
+    useCurrentUserQuery,
+    useLogoutMutation,
+    useUpdateCurrentUserMutation
+} from "@/features/auth";
 
 export function MyProfilePage() {
     const navigate = useNavigate();
@@ -54,8 +59,13 @@ export function MyProfilePage() {
                         <CardDescription>로그인이 필요합니다.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Button asChild>
-                            <a href="/api/auth/github/start?redirectTo=/me">GitHub 로그인</a>
+                        <Button
+                            type="button"
+                            onClick={() => {
+                                void signInWithGitHub("/me");
+                            }}
+                        >
+                            GitHub 로그인
                         </Button>
                     </CardContent>
                 </Card>

@@ -60,12 +60,15 @@
 - TanStack Query hook은 feature 코드에서 직접 작성한다.
 - API 계약이 바뀌면 shared contract, API 서버 검증, Web fetch 함수를 같은 작업 단위로 갱신한다.
 - JSON 성공 응답은 `{ requestId, data }`, JSON 에러 응답은 `{ requestId, error: { code, message } }`를 쓴다.
+- `/api/auth/*`는 Better Auth가 처리하며 표준 응답 envelope를 강제하지 않는다.
+- 앱 전용 인증 API는 `/api/account/*`에 두고 shared contract와 표준 envelope를 쓴다.
 - 도메인 오류는 code/message만 관리하고, HTTP status 변환은 controller/web server boundary에서 처리한다.
-- 외부 시스템 클라이언트는 infrastructure에 두고, domain service가 그 결과와 실패를 감싼다.
 - API 서버 env 파일은 `apps/api-server/.env`로 고정하고, 없으면 서버 시작이 실패한다.
 - env 값은 `serverEnv` 전역 객체로 생성한 뒤 코드에서 직접 사용한다.
-- API 서버 feature의 `domain`은 도메인 객체, entity, 오류, provider 인터페이스를 둔다.
-- TypeORM `DataSource`, repository 구현체와 묶음 작업 구현은 `database`에 둔다.
+- API 서버 인증은 Better Auth social provider와 TypeORM adapter를 기준으로 한다.
+- API 서버 feature는 `controller`, `service`, `database`를 우선 사용한다.
+- API 서버 feature의 `domain`은 앱 도메인 타입과 오류를 둔다.
+- TypeORM entity, repository, adapter 연결은 `database`에 둔다.
 - service는 query(read only)와 command(변경 목적)를 파일 단위로 분리한다.
 
 ## TypeScript 설정

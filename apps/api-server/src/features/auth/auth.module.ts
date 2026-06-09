@@ -1,41 +1,30 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
+import { DataSource } from "typeorm";
 import { AuthController } from "./controller/auth.controller";
-import { AuthRepository } from "./database/auth.repository";
 import {
-    AUTH_COMMAND_PROVIDER,
-    AUTH_OAUTH_PROVIDER,
-    AUTH_QUERY_PROVIDER,
-    OAuthAccountEntity,
-    OAuthStateEntity,
+    AccountEntity,
+    BETTER_AUTH,
+    createBetterAuth,
     SessionEntity,
-    UserEntity
-} from "./domain";
-import { GitHubOAuthClient } from "./infrastructure";
+    UserEntity,
+    VerificationEntity
+} from "./database";
 import { AuthCommandService } from "./service/auth-command.service";
 import { AuthQueryService } from "./service/auth-query.service";
 
 @Module({
-    imports: [TypeOrmModule.forFeature([OAuthAccountEntity, OAuthStateEntity, SessionEntity, UserEntity])],
+    imports: [TypeOrmModule.forFeature([AccountEntity, SessionEntity, UserEntity, VerificationEntity])],
     controllers: [AuthController],
     providers: [
-        AuthRepository,
         {
-            provide: AUTH_QUERY_PROVIDER,
-            useExisting: AuthRepository
-        },
-        {
-            provide: AUTH_COMMAND_PROVIDER,
-            useExisting: AuthRepository
-        },
-        GitHubOAuthClient,
-        {
-            provide: AUTH_OAUTH_PROVIDER,
-            useExisting: GitHubOAuthClient
+            provide: BETTER_AUTH,
+            useFactory: createBetterAuth,
+            inject: [DataSource]
         },
         AuthCommandService,
         AuthQueryService
     ],
-    exports: [AuthQueryService]
+    exports: [BETTER_AUTH, AuthQueryService]
 })
 export class AuthModule {}

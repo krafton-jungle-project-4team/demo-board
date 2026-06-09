@@ -39,8 +39,8 @@ function createServerEnv(): ServerEnv {
             manualInitialization: readBooleanEnv("NMM_DB_MANUAL_INITIALIZATION", false)
         },
         auth: {
+            secret: readRequiredStringEnv("NMM_AUTH_SECRET"),
             webOrigin: readStringEnv("NMM_WEB_ORIGIN", "http://localhost:5173"),
-            loginRedirectPath: readStringEnv("NMM_AUTH_LOGIN_REDIRECT_PATH", "/posts"),
             signupRedirectPath: readStringEnv("NMM_AUTH_SIGNUP_REDIRECT_PATH", "/auth/complete-signup"),
             errorRedirectPath: readStringEnv("NMM_AUTH_ERROR_REDIRECT_PATH", "/auth/error"),
             sessionCookieSecure: readBooleanEnv("NMM_AUTH_COOKIE_SECURE", false)

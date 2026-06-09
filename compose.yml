@@ -43,7 +43,7 @@ services:
             NMM_DB_SYNCHRONIZE: "true"
             NMM_DB_LOGGING: "false"
             NMM_DB_MANUAL_INITIALIZATION: "false"
-            NMM_AUTH_LOGIN_REDIRECT_PATH: /posts
+            NMM_AUTH_SECRET: ${NMM_AUTH_SECRET:-development-better-auth-secret-change-me}
             NMM_AUTH_SIGNUP_REDIRECT_PATH: /auth/complete-signup
             NMM_AUTH_ERROR_REDIRECT_PATH: /auth/error
             NMM_AUTH_COOKIE_SECURE: "false"

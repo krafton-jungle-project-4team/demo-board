@@ -1,6 +1,6 @@
 export type AuthEnv = {
+    secret: string;
     webOrigin: string;
-    loginRedirectPath: string;
     signupRedirectPath: string;
     errorRedirectPath: string;
     sessionCookieSecure: boolean;

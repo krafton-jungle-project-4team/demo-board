@@ -1,8 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { UserSchema, type User } from "@nmm/shared";
-import { AUTH_QUERY_PROVIDER, authErrors, type ActiveUser, type AuthQueryProvider, type UserRecord } from "../domain";
-
-export const sessionCookieName = "nmm_session";
+import { BETTER_AUTH, type BetterAuth } from "../database";
+import { authErrors, type ActiveUser, type UserRecord } from "../domain";
 
 export type AuthRequestContext = {
     authorization?: string;
@@ -12,7 +11,7 @@ export type AuthRequestContext = {
 
 @Injectable()
 export class AuthQueryService {
-    constructor(@Inject(AUTH_QUERY_PROVIDER) private readonly authQueryProvider: AuthQueryProvider) {}
+    constructor(@Inject(BETTER_AUTH) private readonly auth: BetterAuth) {}
 
     async getCurrentUser(context: AuthRequestContext): Promise<User> {
         return this.toUser(await this.requireUserRecord({ ...context, allowPending: true }));
@@ -23,8 +22,13 @@ export class AuthQueryService {
     }
 
     async requireUserRecord(context: AuthRequestContext): Promise<UserRecord> {
-        const sessionToken = this.readSessionToken(context);
-        const user = sessionToken ? await this.authQueryProvider.findUserBySessionToken(sessionToken) : undefined;
+        const session = await this.auth.api.getSession({
+            headers: this.toHeaders(context),
+            query: {
+                disableCookieCache: true
+            }
+        });
+        const user = session ? this.toUserRecord(session.user) : undefined;
 
         if (!user) {
             throw authErrors.sessionRequired();
@@ -51,10 +55,6 @@ export class AuthQueryService {
         return user;
     }
 
-    readSessionToken(context: AuthRequestContext) {
-        return this.readCookieToken(context.cookieHeader) ?? this.readBearerToken(context.authorization);
-    }
-
     toUser(user: UserRecord): User {
         return UserSchema.parse(user);
     }
@@ -69,23 +69,37 @@ export class AuthQueryService {
         return parsedUser as ActiveUser;
     }
 
-    private readCookieToken(cookieHeader: string | undefined) {
-        if (!cookieHeader) {
-            return undefined;
+    private toHeaders(context: AuthRequestContext) {
+        const headers = new Headers();
+
+        if (context.authorization) {
+            headers.set("authorization", context.authorization);
         }
 
-        const cookies = cookieHeader.split(";").map((item) => item.trim());
-        const sessionCookie = cookies.find((cookie) => cookie.startsWith(`${sessionCookieName}=`));
-        const token = sessionCookie?.slice(`${sessionCookieName}=`.length);
+        if (context.cookieHeader) {
+            headers.set("cookie", context.cookieHeader);
+        }
 
-        return token ? decodeURIComponent(token) : undefined;
+        return headers;
     }
 
-    private readBearerToken(authorization: string | undefined) {
-        if (!authorization?.startsWith("Bearer ")) {
-            return undefined;
+    private toUserRecord(user: BetterAuth["$Infer"]["Session"]["user"]): UserRecord {
+        return {
+            id: user.id,
+            email: user.email,
+            name: user.name.trim() || null,
+            image: user.image ?? null,
+            role: user.role === "ADMIN" ? "ADMIN" : "USER",
+            status: this.toUserStatus(user.status),
+            createdAt: user.createdAt.toISOString()
+        };
+    }
+
+    private toUserStatus(value: unknown) {
+        if (value === "ACTIVE" || value === "SUSPENDED") {
+            return value;
         }
 
-        return authorization.slice("Bearer ".length).trim() || undefined;
+        return "PENDING";
     }
 }

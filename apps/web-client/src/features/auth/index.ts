@@ -1,3 +1,4 @@
+export { signInWithGitHub } from "./api/auth-client";
 export {
     authQueryKeys,
     useCompleteSignUpMutation,

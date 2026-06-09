@@ -1,4 +1,5 @@
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components";
+import { signInWithGitHub } from "@/features/auth";
 
 export function AuthErrorPage() {
     return (
@@ -9,8 +10,13 @@ export function AuthErrorPage() {
                     <CardDescription>GitHub 로그인 처리를 완료하지 못했습니다.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Button asChild>
-                        <a href="/api/auth/github/start?redirectTo=/posts">다시 로그인</a>
+                    <Button
+                        type="button"
+                        onClick={() => {
+                            void signInWithGitHub("/posts");
+                        }}
+                    >
+                        다시 로그인
                     </Button>
                 </CardContent>
             </Card>

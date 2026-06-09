@@ -6,7 +6,7 @@ import { Suspense } from "react";
 import { AppErrorBoundary } from "@/app/providers/app-error-boundary";
 import { QueryProvider } from "@/app/providers/query-provider";
 import { RouteErrorFallback } from "@/app/ui/route-error-fallback";
-import { useCurrentUserQuery } from "@/features/auth";
+import { signInWithGitHub, useCurrentUserQuery } from "@/features/auth";
 
 export const Route = createRootRoute({
     component: RootLayout
@@ -78,12 +78,15 @@ function Header() {
                             가입 완료 필요
                         </Link>
                     ) : (
-                        <a
-                            href="/api/auth/github/start?redirectTo=/posts"
+                        <button
+                            type="button"
                             className="rounded-lg px-3 py-2 text-sm text-muted-foreground hover:text-foreground"
+                            onClick={() => {
+                                void signInWithGitHub("/posts");
+                            }}
                         >
                             GitHub 로그인
-                        </a>
+                        </button>
                     )}
                 </nav>
             </div>

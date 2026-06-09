@@ -7,11 +7,13 @@
         "typecheck": "tsc -p tsconfig.json --noEmit"
     },
     "dependencies": {
+        "@hedystia/better-auth-typeorm": "^1.0.1",
         "@nestjs/common": "latest",
         "@nestjs/core": "latest",
         "@nestjs/platform-express": "latest",
         "@nestjs/typeorm": "^11.0.1",
         "@nmm/shared": "file:../../packages/shared",
+        "better-auth": "^1.6.15",
         "pg": "^8.21.0",
         "reflect-metadata": "latest",
         "rxjs": "latest",
