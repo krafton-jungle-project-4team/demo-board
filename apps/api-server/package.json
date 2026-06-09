@@ -1,28 +1,28 @@
 {
-  "name": "@nmm/api-server",
-  "version": "0.0.0",
-  "private": true,
-  "scripts": {
-    "build": "nest build",
-    "openapi:emit": "tsx src/openapi.ts",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
-  },
-  "dependencies": {
-    "@nestjs/common": "latest",
-    "@nestjs/core": "latest",
-    "@nestjs/platform-express": "latest",
-    "@nestjs/swagger": "^11.4.4",
-    "@nestjs/typeorm": "^11.0.1",
-    "@nmm/shared": "file:../../packages/shared",
-    "pg": "^8.21.0",
-    "reflect-metadata": "latest",
-    "rxjs": "latest",
-    "typeorm": "^1.0.0"
-  },
-  "devDependencies": {
-    "@nestjs/cli": "latest",
-    "@types/node": "latest",
-    "tsx": "^4.22.4",
-    "typescript": "latest"
-  }
+    "name": "@nmm/api-server",
+    "version": "0.0.0",
+    "private": true,
+    "scripts": {
+        "build": "nest build",
+        "openapi:emit": "tsx src/openapi.ts",
+        "typecheck": "tsc -p tsconfig.json --noEmit"
+    },
+    "dependencies": {
+        "@nestjs/common": "latest",
+        "@nestjs/core": "latest",
+        "@nestjs/platform-express": "latest",
+        "@nestjs/swagger": "^11.4.4",
+        "@nestjs/typeorm": "^11.0.1",
+        "@nmm/shared": "file:../../packages/shared",
+        "pg": "^8.21.0",
+        "reflect-metadata": "latest",
+        "rxjs": "latest",
+        "typeorm": "^1.0.0"
+    },
+    "devDependencies": {
+        "@nestjs/cli": "latest",
+        "@types/node": "latest",
+        "tsx": "^4.22.4",
+        "typescript": "latest"
+    }
 }
