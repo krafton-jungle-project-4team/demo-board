@@ -64,7 +64,9 @@
 - 앱 전용 인증 API는 `/api/account/*`에 두고 shared contract와 표준 envelope를 쓴다.
 - 도메인 오류는 code/message만 관리하고, HTTP status 변환은 controller/web server boundary에서 처리한다.
 - API 서버 env 파일은 `apps/api-server/.env`로 고정하고, 없으면 서버 시작이 실패한다.
-- env 값은 `serverEnv` 전역 객체로 생성한 뒤 코드에서 직접 사용한다.
+- env 값은 기본값 없이 `apps/api-server/.env`에서 읽어 `serverEnv` 전역 객체로 생성한다.
+- Docker Compose는 `npm run dev:api`의 `--env-file apps/api-server/.env`로 env 값을 주입한다.
+- 필요한 env 키는 `apps/api-server/.env.example`에 둔다.
 - API 서버 인증은 Better Auth social provider와 TypeORM adapter를 기준으로 한다.
 - API 서버 feature는 `controller`, `service`, `database`를 우선 사용한다.
 - API 서버 feature의 `domain`은 앱 도메인 타입과 오류를 둔다.

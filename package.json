@@ -8,7 +8,7 @@
     "scripts": {
         "dev": "npm run build -w @nmm/shared && concurrently -n web,api \"npm run dev -w @nmm/web-client\" \"npm run dev:api\"",
         "dev:web": "npm run build -w @nmm/shared && npm run dev -w @nmm/web-client",
-        "dev:api": "docker compose up --build api-server",
+        "dev:api": "docker compose --env-file apps/api-server/.env up --build api-server",
         "build": "npm run build -w @nmm/shared && npm run build -w @nmm/web-client && npm run build -w @nmm/api-server",
         "build:web": "npm run build -w @nmm/shared && npm run build -w @nmm/web-client",
         "build:api": "npm run build -w @nmm/shared && npm run build -w @nmm/api-server",

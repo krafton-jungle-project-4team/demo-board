@@ -20,40 +20,40 @@ loadServerEnv();
 export const serverEnv: ServerEnv = createServerEnv();
 
 function createServerEnv(): ServerEnv {
-    const nodeEnv = readStringEnv("NODE_ENV", "development");
+    const nodeEnv = readStringEnv("NODE_ENV");
 
     return {
         app: {
-            port: readNumberEnv("PORT", 3000),
-            webOrigin: readStringEnv("NMM_WEB_ORIGIN", "http://localhost:5173"),
+            port: readNumberEnv("PORT"),
+            webOrigin: readStringEnv("NMM_WEB_ORIGIN"),
             nodeEnv
         },
         database: {
-            host: readStringEnv("NMM_DB_HOST", "localhost"),
-            port: readNumberEnv("NMM_DB_PORT", 5432),
-            username: readStringEnv("NMM_DB_USERNAME", "namanmu"),
-            password: readStringEnv("NMM_DB_PASSWORD", "1234"),
-            database: readStringEnv("NMM_DB_DATABASE", "namanmu"),
-            synchronize: readBooleanEnv("NMM_DB_SYNCHRONIZE", nodeEnv !== "production"),
-            logging: readBooleanEnv("NMM_DB_LOGGING", false),
-            manualInitialization: readBooleanEnv("NMM_DB_MANUAL_INITIALIZATION", false)
+            host: readStringEnv("NMM_DB_HOST"),
+            port: readNumberEnv("NMM_DB_PORT"),
+            username: readStringEnv("NMM_DB_USERNAME"),
+            password: readStringEnv("NMM_DB_PASSWORD"),
+            database: readStringEnv("NMM_DB_DATABASE"),
+            synchronize: readBooleanEnv("NMM_DB_SYNCHRONIZE"),
+            logging: readBooleanEnv("NMM_DB_LOGGING"),
+            manualInitialization: readBooleanEnv("NMM_DB_MANUAL_INITIALIZATION")
         },
         auth: {
-            secret: readRequiredStringEnv("NMM_AUTH_SECRET"),
-            webOrigin: readStringEnv("NMM_WEB_ORIGIN", "http://localhost:5173"),
-            signupRedirectPath: readStringEnv("NMM_AUTH_SIGNUP_REDIRECT_PATH", "/auth/complete-signup"),
-            errorRedirectPath: readStringEnv("NMM_AUTH_ERROR_REDIRECT_PATH", "/auth/error"),
-            sessionCookieSecure: readBooleanEnv("NMM_AUTH_COOKIE_SECURE", false)
+            secret: readStringEnv("NMM_AUTH_SECRET"),
+            webOrigin: readStringEnv("NMM_WEB_ORIGIN"),
+            signupRedirectPath: readStringEnv("NMM_AUTH_SIGNUP_REDIRECT_PATH"),
+            errorRedirectPath: readStringEnv("NMM_AUTH_ERROR_REDIRECT_PATH"),
+            sessionCookieSecure: readBooleanEnv("NMM_AUTH_COOKIE_SECURE")
         },
         githubOAuth: {
-            apiOrigin: readStringEnv("NMM_API_ORIGIN", "http://localhost:3000"),
-            clientId: readRequiredStringEnv("NMM_OAUTH_GITHUB_CLIENT_ID"),
-            clientSecret: readRequiredStringEnv("NMM_OAUTH_GITHUB_CLIENT_SECRET")
+            apiOrigin: readStringEnv("NMM_API_ORIGIN"),
+            clientId: readStringEnv("NMM_OAUTH_GITHUB_CLIENT_ID"),
+            clientSecret: readStringEnv("NMM_OAUTH_GITHUB_CLIENT_SECRET")
         }
     };
 }
 
-function readRequiredStringEnv(key: string) {
+function readStringEnv(key: string) {
     const value = process.env[key];
 
     if (!value) {
@@ -63,28 +63,26 @@ function readRequiredStringEnv(key: string) {
     return value;
 }
 
-function readStringEnv(key: string, defaultValue: string) {
-    return process.env[key] ?? defaultValue;
-}
+function readBooleanEnv(key: string) {
+    const value = readStringEnv(key);
 
-function readBooleanEnv(key: string, defaultValue: boolean) {
-    const value = process.env[key];
-
-    if (value === undefined) {
-        return defaultValue;
+    if (value === "true") {
+        return true;
     }
 
-    return value === "true";
-}
-
-function readNumberEnv(key: string, defaultValue: number) {
-    const value = process.env[key];
-
-    if (value === undefined) {
-        return defaultValue;
+    if (value === "false") {
+        return false;
     }
 
-    const parsedValue = Number(value);
+    throw new Error(`Boolean environment variable is invalid: ${key}`);
+}
 
-    return Number.isFinite(parsedValue) ? parsedValue : defaultValue;
+function readNumberEnv(key: string) {
+    const parsedValue = Number(readStringEnv(key));
+
+    if (!Number.isFinite(parsedValue)) {
+        throw new Error(`Number environment variable is invalid: ${key}`);
+    }
+
+    return parsedValue;
 }

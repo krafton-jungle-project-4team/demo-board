@@ -5,16 +5,16 @@ services:
         image: postgres:18
         container_name: namanmu-postgres
         environment:
-            POSTGRES_DB: namanmu
-            POSTGRES_USER: namanmu
-            POSTGRES_PASSWORD: ${NMM_DB_PASSWORD:-1234}
+            POSTGRES_DB: ${NMM_DB_DATABASE:?NMM_DB_DATABASE is required}
+            POSTGRES_USER: ${NMM_DB_USERNAME:?NMM_DB_USERNAME is required}
+            POSTGRES_PASSWORD: ${NMM_DB_PASSWORD:?NMM_DB_PASSWORD is required}
             PGDATA: /var/lib/postgresql/data/pgdata
         ports:
-            - "${NMM_DB_PORT:-5432}:5432"
+            - "${NMM_POSTGRES_PORT:?NMM_POSTGRES_PORT is required}:5432"
         volumes:
-            - ${NMM_POSTGRES_DATA_DIR:-$HOME/dev-docker-volume/namanmu/postgres}:/var/lib/postgresql/data
+            - postgres_data:/var/lib/postgresql/data
         healthcheck:
-            test: ["CMD-SHELL", "pg_isready -U namanmu -d namanmu"]
+            test: ["CMD-SHELL", 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
             interval: 5s
             timeout: 5s
             retries: 10
@@ -30,28 +30,33 @@ services:
         depends_on:
             postgres:
                 condition: service_healthy
+        env_file:
+            - apps/api-server/.env
         environment:
-            NODE_ENV: development
-            PORT: 3000
-            NMM_API_ORIGIN: http://localhost:3000
-            NMM_WEB_ORIGIN: http://localhost:5173
-            NMM_DB_HOST: postgres
-            NMM_DB_PORT: 5432
-            NMM_DB_USERNAME: namanmu
-            NMM_DB_PASSWORD: ${NMM_DB_PASSWORD:-1234}
-            NMM_DB_DATABASE: namanmu
-            NMM_DB_SYNCHRONIZE: "true"
-            NMM_DB_LOGGING: "false"
-            NMM_DB_MANUAL_INITIALIZATION: "false"
-            NMM_AUTH_SECRET: ${NMM_AUTH_SECRET:-development-better-auth-secret-change-me}
-            NMM_AUTH_SIGNUP_REDIRECT_PATH: /auth/complete-signup
-            NMM_AUTH_ERROR_REDIRECT_PATH: /auth/error
-            NMM_AUTH_COOKIE_SECURE: "false"
+            NODE_ENV: ${NODE_ENV:?NODE_ENV is required}
+            PORT: ${PORT:?PORT is required}
+            NMM_API_ORIGIN: ${NMM_API_ORIGIN:?NMM_API_ORIGIN is required}
+            NMM_WEB_ORIGIN: ${NMM_WEB_ORIGIN:?NMM_WEB_ORIGIN is required}
+            NMM_DB_HOST: ${NMM_DB_HOST:?NMM_DB_HOST is required}
+            NMM_DB_PORT: ${NMM_DB_PORT:?NMM_DB_PORT is required}
+            NMM_DB_USERNAME: ${NMM_DB_USERNAME:?NMM_DB_USERNAME is required}
+            NMM_DB_PASSWORD: ${NMM_DB_PASSWORD:?NMM_DB_PASSWORD is required}
+            NMM_DB_DATABASE: ${NMM_DB_DATABASE:?NMM_DB_DATABASE is required}
+            NMM_DB_SYNCHRONIZE: ${NMM_DB_SYNCHRONIZE:?NMM_DB_SYNCHRONIZE is required}
+            NMM_DB_LOGGING: ${NMM_DB_LOGGING:?NMM_DB_LOGGING is required}
+            NMM_DB_MANUAL_INITIALIZATION: ${NMM_DB_MANUAL_INITIALIZATION:?NMM_DB_MANUAL_INITIALIZATION is required}
+            NMM_AUTH_SECRET: ${NMM_AUTH_SECRET:?NMM_AUTH_SECRET is required}
+            NMM_AUTH_SIGNUP_REDIRECT_PATH: ${NMM_AUTH_SIGNUP_REDIRECT_PATH:?NMM_AUTH_SIGNUP_REDIRECT_PATH is required}
+            NMM_AUTH_ERROR_REDIRECT_PATH: ${NMM_AUTH_ERROR_REDIRECT_PATH:?NMM_AUTH_ERROR_REDIRECT_PATH is required}
+            NMM_AUTH_COOKIE_SECURE: ${NMM_AUTH_COOKIE_SECURE:?NMM_AUTH_COOKIE_SECURE is required}
+            NMM_OAUTH_GITHUB_CLIENT_ID: ${NMM_OAUTH_GITHUB_CLIENT_ID:?NMM_OAUTH_GITHUB_CLIENT_ID is required}
+            NMM_OAUTH_GITHUB_CLIENT_SECRET: ${NMM_OAUTH_GITHUB_CLIENT_SECRET:?NMM_OAUTH_GITHUB_CLIENT_SECRET is required}
         ports:
-            - "3000:3000"
+            - "${PORT:?PORT is required}:${PORT:?PORT is required}"
         volumes:
             - .:/app
             - node_modules:/app/node_modules
 
 volumes:
     node_modules:
+    postgres_data:

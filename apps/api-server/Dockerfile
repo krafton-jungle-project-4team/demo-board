@@ -27,9 +27,6 @@ RUN npm prune --omit=dev
 
 FROM node:24-alpine AS production
 
-ENV NODE_ENV=production
-ENV PORT=3000
-
 WORKDIR /app
 
 COPY --from=build /app/package.json /app/package-lock.json ./

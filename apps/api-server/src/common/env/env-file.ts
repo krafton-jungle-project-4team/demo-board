@@ -24,7 +24,7 @@ export function loadServerEnv() {
         const key = trimmedLine.slice(0, separatorIndex).trim();
         const value = stripEnvValue(trimmedLine.slice(separatorIndex + 1).trim());
 
-        process.env[key] ??= value;
+        process.env[key] = value;
     }
 }
 
