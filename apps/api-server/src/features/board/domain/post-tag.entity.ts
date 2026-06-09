@@ -1,9 +1,9 @@
-import { Column, Entity, PrimaryColumn } from "typeorm";
+import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity("post_tags")
 export class PostTagEntity {
-    @PrimaryColumn({ type: "text" })
-    id!: string;
+    @PrimaryGeneratedColumn("increment", { type: "bigint" })
+    id!: number;
 
     @Column({ type: "text", unique: true })
     name!: string;

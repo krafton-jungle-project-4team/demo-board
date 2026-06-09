@@ -1,7 +1,7 @@
 import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
-import { serverEnv } from "./common/env";
-import { ApiExceptionFilter, ApiResponseInterceptor } from "./common/http";
+import { serverEnv } from "./common/infra/env";
+import { ApiExceptionFilter, ApiResponseInterceptor } from "./common/infra/http";
 import { AppModule } from "./app.module";
 import { mapDomainErrorToHttp } from "./app-http-error.mapper";
 import { BETTER_AUTH, type BetterAuth } from "./features/auth";

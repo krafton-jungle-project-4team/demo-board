@@ -98,7 +98,11 @@ function PostSummaryCells({ post }: PostTableRowProps) {
         <>
             <TableCell>
                 <div className="grid gap-1">
-                    <Link to="/posts/$postId" params={{ postId: post.id }} className="font-medium hover:underline">
+                    <Link
+                        to="/posts/$postId"
+                        params={{ postId: String(post.id) }}
+                        className="font-medium hover:underline"
+                    >
                         {post.title}
                     </Link>
                     <p className="text-muted-foreground line-clamp-1 text-sm">{post.excerpt}</p>
@@ -110,13 +114,13 @@ function PostSummaryCells({ post }: PostTableRowProps) {
 }
 
 type PostEditIconButtonProps = {
-    postId: string;
+    postId: number;
 };
 
 function PostEditIconButton({ postId }: PostEditIconButtonProps) {
     return (
         <Button asChild size="icon" variant="ghost" aria-label="수정">
-            <Link to="/posts/$postId/edit" params={{ postId }}>
+            <Link to="/posts/$postId/edit" params={{ postId: String(postId) }}>
                 <Pencil />
             </Link>
         </Button>

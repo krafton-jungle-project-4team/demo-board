@@ -1,39 +1,31 @@
 import { Inject, Injectable } from "@nestjs/common";
 import {
     CommentSchema,
-    CreateCommentRequestSchema,
-    CreatePostRequestSchema,
     DeleteCommentResponseSchema,
     DeletePostResponseSchema,
-    UpdateCommentRequestSchema,
-    UpdatePostRequestSchema,
     type Comment,
+    type CreateCommentRequest,
+    type CreatePostRequest,
     type DeleteCommentResponse,
     type DeletePostResponse,
     type Post,
+    type UpdateCommentRequest,
+    type UpdatePostRequest,
     type User
 } from "@nmm/shared";
-import {
-    BOARD_COMMAND_PROVIDER,
-    boardErrors,
-    type BoardCommandProvider,
-    type BoardUser,
-    type PostRecord
-} from "../domain";
+import { BOARD_REPOSITORY, boardErrors, type BoardRepository, type BoardUser, type NewPostRecord } from "../domain";
 import { BoardQueryService } from "./board-query.service";
 
 @Injectable()
 export class BoardCommandService {
     constructor(
-        @Inject(BOARD_COMMAND_PROVIDER) private readonly boardCommandProvider: BoardCommandProvider,
+        @Inject(BOARD_REPOSITORY) private readonly boardRepository: BoardRepository,
         private readonly boardQueryService: BoardQueryService
     ) {}
 
-    async createPost(input: unknown, user: BoardUser): Promise<Post> {
-        const request = CreatePostRequestSchema.parse(input);
+    async createPost(request: CreatePostRequest, user: BoardUser): Promise<Post> {
         const now = new Date().toISOString();
-        const post: PostRecord = {
-            id: this.boardCommandProvider.createPostId(),
+        const post: NewPostRecord = {
             title: request.title,
             excerpt: request.excerpt,
             content: request.content,
@@ -44,13 +36,12 @@ export class BoardCommandService {
             tagIds: await this.boardQueryService.resolveTagIds(request.tagIds)
         };
 
-        await this.boardCommandProvider.createPost(post);
+        const savedPost = await this.boardRepository.createPost(post);
 
-        return this.boardQueryService.toPost(post);
+        return this.boardQueryService.toPost(savedPost);
     }
 
-    async updatePost(id: string, input: unknown, user: BoardUser): Promise<Post> {
-        const request = UpdatePostRequestSchema.parse(input);
+    async updatePost(id: number, request: UpdatePostRequest, user: BoardUser): Promise<Post> {
         const post = await this.boardQueryService.findPostRecord(id);
 
         this.assertOwner(post, user);
@@ -72,27 +63,25 @@ export class BoardCommandService {
         }
 
         post.updatedAt = new Date().toISOString();
-        await this.boardCommandProvider.savePost(post);
+        await this.boardRepository.savePost(post);
 
         return this.boardQueryService.toPost(post);
     }
 
-    async deletePost(id: string, user: BoardUser): Promise<DeletePostResponse> {
+    async deletePost(id: number, user: BoardUser): Promise<DeletePostResponse> {
         const post = await this.boardQueryService.findPostRecord(id);
 
         this.assertOwner(post, user);
-        await this.boardCommandProvider.deletePostWithComments(post);
+        await this.boardRepository.deletePostWithComments(post);
 
         return DeletePostResponseSchema.parse({ ok: true, id });
     }
 
-    async createComment(postId: string, input: unknown, user: BoardUser): Promise<Comment> {
+    async createComment(postId: number, request: CreateCommentRequest, user: BoardUser): Promise<Comment> {
         await this.boardQueryService.findPostRecord(postId);
 
-        const request = CreateCommentRequestSchema.parse(input);
         const now = new Date().toISOString();
-        const comment = CommentSchema.parse({
-            id: this.boardCommandProvider.createCommentId(),
+        const comment = await this.boardRepository.createComment({
             postId,
             content: request.content,
             authorId: user.id,
@@ -101,15 +90,17 @@ export class BoardCommandService {
             updatedAt: now
         });
 
-        await this.boardCommandProvider.createComment(comment);
-
-        return comment;
+        return CommentSchema.parse(comment);
     }
 
-    async updateComment(postId: string, commentId: string, input: unknown, user: BoardUser): Promise<Comment> {
+    async updateComment(
+        postId: number,
+        commentId: number,
+        request: UpdateCommentRequest,
+        user: BoardUser
+    ): Promise<Comment> {
         await this.boardQueryService.findPostRecord(postId);
 
-        const request = UpdateCommentRequestSchema.parse(input);
         const comment = await this.boardQueryService.findCommentRecord(postId, commentId);
 
         this.assertOwner(comment, user);
@@ -119,18 +110,18 @@ export class BoardCommandService {
         }
 
         comment.updatedAt = new Date().toISOString();
-        await this.boardCommandProvider.saveComment(comment);
+        await this.boardRepository.saveComment(comment);
 
         return CommentSchema.parse(comment);
     }
 
-    async deleteComment(postId: string, commentId: string, user: BoardUser): Promise<DeleteCommentResponse> {
+    async deleteComment(postId: number, commentId: number, user: BoardUser): Promise<DeleteCommentResponse> {
         await this.boardQueryService.findPostRecord(postId);
 
         const comment = await this.boardQueryService.findCommentRecord(postId, commentId);
 
         this.assertOwner(comment, user);
-        await this.boardCommandProvider.deleteComment(comment);
+        await this.boardRepository.deleteComment(comment);
 
         return DeleteCommentResponseSchema.parse({ ok: true, id: commentId });
     }

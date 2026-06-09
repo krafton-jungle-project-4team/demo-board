@@ -1,5 +1,4 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { UserSchema, type User } from "@nmm/shared";
 import { BETTER_AUTH, type BetterAuth } from "../database";
 import { authErrors, type ActiveUser, type UserRecord } from "../domain";
 
@@ -12,14 +11,6 @@ export type AuthRequestContext = {
 @Injectable()
 export class AuthQueryService {
     constructor(@Inject(BETTER_AUTH) private readonly auth: BetterAuth) {}
-
-    async getCurrentUser(context: AuthRequestContext): Promise<User> {
-        return this.toUser(await this.requireUserRecord({ ...context, allowPending: true }));
-    }
-
-    async requireUser(context: AuthRequestContext): Promise<ActiveUser> {
-        return this.toActiveUser(await this.requireUserRecord(context));
-    }
 
     async requireUserRecord(context: AuthRequestContext): Promise<UserRecord> {
         const session = await this.auth.api.getSession({
@@ -45,28 +36,14 @@ export class AuthQueryService {
         return user;
     }
 
-    async requireActiveUserRecord(context: AuthRequestContext): Promise<UserRecord> {
+    async requireActiveUserRecord(context: AuthRequestContext): Promise<ActiveUser> {
         const user = await this.requireUserRecord(context);
 
         if (user.status !== "ACTIVE" || !user.name) {
             throw authErrors.signupRequired();
         }
 
-        return user;
-    }
-
-    toUser(user: UserRecord): User {
-        return UserSchema.parse(user);
-    }
-
-    private toActiveUser(user: UserRecord): ActiveUser {
-        const parsedUser = this.toUser(user);
-
-        if (parsedUser.status !== "ACTIVE" || !parsedUser.name) {
-            throw authErrors.signupRequired();
-        }
-
-        return parsedUser as ActiveUser;
+        return user as ActiveUser;
     }
 
     private toHeaders(context: AuthRequestContext) {

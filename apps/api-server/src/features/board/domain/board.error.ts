@@ -1,6 +1,11 @@
-import { createDomainError, type DomainErrorDefinition } from "../../../common/domain";
+import {
+    createDomainError,
+    defineDomainErrors,
+    isDomainErrorCode,
+    type DomainErrorCode
+} from "../../../common/core/domain";
 
-const boardErrorDefinitions = {
+const boardErrorDefinitions = defineDomainErrors({
     postNotFound: {
         code: "BOARD_POST_NOT_FOUND",
         message: "게시글을 찾을 수 없습니다."
@@ -17,9 +22,9 @@ const boardErrorDefinitions = {
         code: "BOARD_NOT_RESOURCE_OWNER",
         message: "작성자만 변경할 수 있습니다."
     }
-} as const satisfies Record<string, DomainErrorDefinition<string>>;
+});
 
-export type BoardErrorCode = (typeof boardErrorDefinitions)[keyof typeof boardErrorDefinitions]["code"];
+export type BoardErrorCode = DomainErrorCode<typeof boardErrorDefinitions>;
 
 export const boardErrors = {
     postNotFound: () => createDomainError(boardErrorDefinitions.postNotFound),
@@ -29,5 +34,5 @@ export const boardErrors = {
 };
 
 export function isBoardErrorCode(code: string): code is BoardErrorCode {
-    return Object.values(boardErrorDefinitions).some((definition) => definition.code === code);
+    return isDomainErrorCode(boardErrorDefinitions, code);
 }

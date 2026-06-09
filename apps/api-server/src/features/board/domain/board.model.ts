@@ -1,8 +1,12 @@
-import type { Post, User } from "@nmm/shared";
+import type { Comment, Post, User } from "@nmm/shared";
 
 export type PostRecord = Omit<Post, "tags"> & {
-    tagIds: string[];
+    tagIds: number[];
 };
+
+export type NewPostRecord = Omit<PostRecord, "id">;
+
+export type NewCommentRecord = Omit<Comment, "id">;
 
 export type BoardUser = User & {
     name: string;

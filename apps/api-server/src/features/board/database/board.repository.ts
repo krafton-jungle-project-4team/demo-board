@@ -1,6 +1,5 @@
 import { Injectable, type OnModuleInit } from "@nestjs/common";
 import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
-import { randomUUID } from "node:crypto";
 import { DataSource, In, Repository } from "typeorm";
 import type { Comment, PostTag } from "@nmm/shared";
 import {
@@ -8,13 +7,14 @@ import {
     PostEntity,
     PostTagEntity,
     PostTagLinkEntity,
-    type BoardCommandProvider,
-    type BoardQueryProvider,
+    type BoardRepository,
+    type NewCommentRecord,
+    type NewPostRecord,
     type PostRecord
 } from "../domain";
 
 @Injectable()
-export class BoardRepository implements BoardCommandProvider, BoardQueryProvider, OnModuleInit {
+export class BoardTypeOrmRepository implements BoardRepository, OnModuleInit {
     constructor(
         @InjectDataSource() private readonly dataSource: DataSource,
         @InjectRepository(PostEntity) private readonly posts: Repository<PostEntity>,
@@ -24,28 +24,28 @@ export class BoardRepository implements BoardCommandProvider, BoardQueryProvider
     ) {}
 
     async onModuleInit() {
-        if (!this.dataSource.isInitialized || (await this.posts.existsBy({ id: "post-1" }))) {
+        if (!this.dataSource.isInitialized || (await this.posts.count()) > 0) {
             return;
         }
 
-        await this.seedTags();
-        await this.seedPosts();
-        await this.seedComments();
-    }
+        const tags = await this.seedTags();
+        const posts = await this.seedPosts({
+            boilerplate: this.readTagId(tags, "boilerplate"),
+            nest: this.readTagId(tags, "nest"),
+            react: this.readTagId(tags, "react")
+        });
+        const firstPost = posts[0];
 
-    createPostId() {
-        return `post-${randomUUID()}`;
-    }
-
-    createCommentId() {
-        return `comment-${randomUUID()}`;
+        if (firstPost) {
+            await this.seedComments(firstPost.id);
+        }
     }
 
     async listTags(): Promise<PostTag[]> {
         return (await this.tags.find()).map((tag) => this.toExistingPostTag(tag));
     }
 
-    async findTagsByIds(ids: string[]): Promise<PostTag[]> {
+    async findTagsByIds(ids: number[]): Promise<PostTag[]> {
         if (ids.length === 0) {
             return [];
         }
@@ -59,25 +59,25 @@ export class BoardRepository implements BoardCommandProvider, BoardQueryProvider
         return Promise.all(posts.map((post) => this.toPostRecord(post)));
     }
 
-    async findPost(id: string): Promise<PostRecord | undefined> {
+    async findPost(id: number): Promise<PostRecord | undefined> {
         const post = await this.posts.findOneBy({ id });
 
         return post ? this.toPostRecord(post) : undefined;
     }
 
-    async createPost(post: PostRecord) {
-        await this.savePostWithTags(post);
+    async createPost(post: NewPostRecord) {
+        return this.insertPostWithTags(post);
     }
 
     async savePost(post: PostRecord) {
         await this.savePostWithTags(post);
     }
 
-    async listComments(postId: string): Promise<Comment[]> {
+    async listComments(postId: number): Promise<Comment[]> {
         return (await this.comments.findBy({ postId })).map((comment) => this.toExistingComment(comment));
     }
 
-    async findComment(postId: string, commentId: string): Promise<Comment | undefined> {
+    async findComment(postId: number, commentId: number): Promise<Comment | undefined> {
         return this.toComment(
             await this.comments.findOneBy({
                 id: commentId,
@@ -86,8 +86,8 @@ export class BoardRepository implements BoardCommandProvider, BoardQueryProvider
         );
     }
 
-    async createComment(comment: Comment) {
-        await this.comments.save(this.toCommentEntity(comment));
+    async createComment(comment: NewCommentRecord) {
+        return this.toExistingComment(await this.comments.save(this.toNewCommentEntity(comment)));
     }
 
     async saveComment(comment: Comment) {
@@ -109,8 +109,15 @@ export class BoardRepository implements BoardCommandProvider, BoardQueryProvider
     private async toPostRecord(post: PostEntity): Promise<PostRecord> {
         const links = await this.postTagLinks.findBy({ postId: post.id });
 
+        return this.toPostRecordWithTags(
+            post,
+            links.map((link) => Number(link.tagId))
+        );
+    }
+
+    private toPostRecordWithTags(post: PostEntity, tagIds: number[]): PostRecord {
         return {
-            id: post.id,
+            id: Number(post.id),
             title: post.title,
             excerpt: post.excerpt,
             content: post.content,
@@ -118,7 +125,7 @@ export class BoardRepository implements BoardCommandProvider, BoardQueryProvider
             authorName: post.authorName,
             createdAt: post.createdAt.toISOString(),
             updatedAt: post.updatedAt.toISOString(),
-            tagIds: links.map((link) => link.tagId)
+            tagIds: tagIds.map((tagId) => Number(tagId))
         };
     }
 
@@ -135,9 +142,21 @@ export class BoardRepository implements BoardCommandProvider, BoardQueryProvider
         };
     }
 
+    private toNewPostEntity(post: NewPostRecord): Omit<PostEntity, "id"> {
+        return {
+            title: post.title,
+            excerpt: post.excerpt,
+            content: post.content,
+            authorId: post.authorId,
+            authorName: post.authorName,
+            createdAt: new Date(post.createdAt),
+            updatedAt: new Date(post.updatedAt)
+        };
+    }
+
     private toExistingPostTag(tag: PostTagEntity) {
         return {
-            id: tag.id,
+            id: Number(tag.id),
             name: tag.name
         } satisfies PostTag;
     }
@@ -148,8 +167,8 @@ export class BoardRepository implements BoardCommandProvider, BoardQueryProvider
         }
 
         return {
-            id: comment.id,
-            postId: comment.postId,
+            id: Number(comment.id),
+            postId: Number(comment.postId),
             content: comment.content,
             authorId: comment.authorId,
             authorName: comment.authorName,
@@ -160,8 +179,8 @@ export class BoardRepository implements BoardCommandProvider, BoardQueryProvider
 
     private toExistingComment(comment: CommentEntity) {
         return {
-            id: comment.id,
-            postId: comment.postId,
+            id: Number(comment.id),
+            postId: Number(comment.postId),
             content: comment.content,
             authorId: comment.authorId,
             authorName: comment.authorName,
@@ -182,6 +201,31 @@ export class BoardRepository implements BoardCommandProvider, BoardQueryProvider
         };
     }
 
+    private toNewCommentEntity(comment: NewCommentRecord): Omit<CommentEntity, "id"> {
+        return {
+            postId: comment.postId,
+            content: comment.content,
+            authorId: comment.authorId,
+            authorName: comment.authorName,
+            createdAt: new Date(comment.createdAt),
+            updatedAt: new Date(comment.updatedAt)
+        };
+    }
+
+    private async insertPostWithTags(post: NewPostRecord) {
+        return this.dataSource.transaction(async (manager) => {
+            const postTagLinks = manager.getRepository(PostTagLinkEntity);
+            const savedPost = await manager.getRepository(PostEntity).save(this.toNewPostEntity(post));
+            const savedPostId = Number(savedPost.id);
+
+            if (post.tagIds.length > 0) {
+                await postTagLinks.save(post.tagIds.map((tagId) => ({ postId: savedPostId, tagId })));
+            }
+
+            return this.toPostRecordWithTags(savedPost, post.tagIds);
+        });
+    }
+
     private async savePostWithTags(post: PostRecord) {
         await this.dataSource.transaction(async (manager) => {
             const postTagLinks = manager.getRepository(PostTagLinkEntity);
@@ -198,17 +242,20 @@ export class BoardRepository implements BoardCommandProvider, BoardQueryProvider
     }
 
     private async seedTags() {
-        await this.tags.save([
-            { id: "tag-react", name: "react" },
-            { id: "tag-nest", name: "nest" },
-            { id: "tag-boilerplate", name: "boilerplate" }
-        ]);
+        const existingTags = await this.listTags();
+
+        if (existingTags.length > 0) {
+            return existingTags;
+        }
+
+        return (await this.tags.save([{ name: "react" }, { name: "nest" }, { name: "boilerplate" }])).map((tag) =>
+            this.toExistingPostTag(tag)
+        );
     }
 
-    private async seedPosts() {
-        const posts: PostRecord[] = [
+    private async seedPosts(tagIds: { boilerplate: number; nest: number; react: number }) {
+        const posts: NewPostRecord[] = [
             {
-                id: "post-1",
                 title: "프론트 공통 스택 결정",
                 excerpt: "라우터, 서버 상태, URL 상태를 분리해 보일러플레이트의 기준을 잡는다.",
                 content:
@@ -217,10 +264,9 @@ export class BoardRepository implements BoardCommandProvider, BoardQueryProvider
                 authorName: "sijun",
                 createdAt: "2026-06-09T00:00:00.000Z",
                 updatedAt: "2026-06-09T00:00:00.000Z",
-                tagIds: ["tag-react", "tag-boilerplate"]
+                tagIds: [tagIds.react, tagIds.boilerplate]
             },
             {
-                id: "post-2",
                 title: "Shared contract API 연결",
                 excerpt: "shared Zod schema로 API 요청과 응답 계약을 공유한다.",
                 content: "FE는 작은 fetch 함수를 직접 작성하고, BE와 같은 schema로 응답 데이터를 검증한다.",
@@ -228,10 +274,9 @@ export class BoardRepository implements BoardCommandProvider, BoardQueryProvider
                 authorName: "sijun",
                 createdAt: "2026-06-09T00:10:00.000Z",
                 updatedAt: "2026-06-09T00:10:00.000Z",
-                tagIds: ["tag-nest", "tag-boilerplate"]
+                tagIds: [tagIds.nest, tagIds.boilerplate]
             },
             {
-                id: "post-3",
                 title: "URL 상태 규칙",
                 excerpt: "검색어, 페이지, 정렬, 보기 방식은 공유 가능한 URL 상태로 둔다.",
                 content: "draft, token, PII, 대용량 데이터, 휘발성 UI 상태는 URL에 넣지 않는다.",
@@ -239,24 +284,37 @@ export class BoardRepository implements BoardCommandProvider, BoardQueryProvider
                 authorName: "sijun",
                 createdAt: "2026-06-09T00:20:00.000Z",
                 updatedAt: "2026-06-09T00:20:00.000Z",
-                tagIds: ["tag-boilerplate"]
+                tagIds: [tagIds.boilerplate]
             }
         ];
 
+        const savedPosts: PostRecord[] = [];
+
         for (const post of posts) {
-            await this.createPost(post);
+            savedPosts.push(await this.createPost(post));
         }
+
+        return savedPosts;
     }
 
-    private async seedComments() {
+    private async seedComments(postId: number) {
         await this.createComment({
-            id: "comment-1",
-            postId: "post-1",
+            postId,
             content: "보일러플레이트 기준을 확인하기 위한 댓글 예시입니다.",
             authorId: "user-sijun",
             authorName: "sijun",
             createdAt: "2026-06-09T00:30:00.000Z",
             updatedAt: "2026-06-09T00:30:00.000Z"
         });
+    }
+
+    private readTagId(tags: PostTag[], name: string) {
+        const tag = tags.find((tag) => tag.name === name);
+
+        if (!tag) {
+            throw new Error(`Seed tag not found: ${name}`);
+        }
+
+        return tag.id;
     }
 }

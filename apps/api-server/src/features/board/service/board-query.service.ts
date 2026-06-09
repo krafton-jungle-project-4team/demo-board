@@ -1,7 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import {
     CommentListResponseSchema,
-    ListPostsQuerySchema,
     PostListResponseSchema,
     PostSchema,
     PostTagSchema,
@@ -12,51 +11,50 @@ import {
     type PostListResponse,
     type PostTag
 } from "@nmm/shared";
-import { BOARD_QUERY_PROVIDER, boardErrors, type BoardQueryProvider, type PostRecord } from "../domain";
+import { BOARD_REPOSITORY, boardErrors, type BoardRepository, type PostRecord } from "../domain";
 
 @Injectable()
 export class BoardQueryService {
-    constructor(@Inject(BOARD_QUERY_PROVIDER) private readonly boardQueryProvider: BoardQueryProvider) {}
+    constructor(@Inject(BOARD_REPOSITORY) private readonly boardRepository: BoardRepository) {}
 
     async findTags(): Promise<PostTag[]> {
-        return (await this.boardQueryProvider.listTags()).map((tag) => PostTagSchema.parse(tag));
+        return (await this.boardRepository.listTags()).map((tag) => PostTagSchema.parse(tag));
     }
 
-    async findPosts(query: unknown): Promise<PostListResponse> {
-        const parsedQuery = ListPostsQuerySchema.parse(query);
-        const filteredPosts = await this.filterPosts(await this.boardQueryProvider.listPosts(), parsedQuery);
-        const sortedPosts = this.sortPosts(filteredPosts, parsedQuery.sort);
+    async findPosts(query: ListPostsQuery): Promise<PostListResponse> {
+        const filteredPosts = await this.filterPosts(await this.boardRepository.listPosts(), query);
+        const sortedPosts = this.sortPosts(filteredPosts, query.sort);
         const totalItems = sortedPosts.length;
-        const totalPages = Math.max(1, Math.ceil(totalItems / parsedQuery.pageSize));
-        const page = Math.min(parsedQuery.page, totalPages);
-        const startIndex = (page - 1) * parsedQuery.pageSize;
+        const totalPages = Math.max(1, Math.ceil(totalItems / query.pageSize));
+        const page = Math.min(query.page, totalPages);
+        const startIndex = (page - 1) * query.pageSize;
         const items = await Promise.all(
-            sortedPosts.slice(startIndex, startIndex + parsedQuery.pageSize).map((post) => this.toPost(post))
+            sortedPosts.slice(startIndex, startIndex + query.pageSize).map((post) => this.toPost(post))
         );
 
         return PostListResponseSchema.parse({
             items,
             page,
-            pageSize: parsedQuery.pageSize,
+            pageSize: query.pageSize,
             totalItems,
             totalPages
         });
     }
 
-    async findPost(id: string): Promise<Post> {
+    async findPost(id: number): Promise<Post> {
         return this.toPost(await this.findPostRecord(id));
     }
 
-    async findComments(postId: string): Promise<CommentListResponse> {
+    async findComments(postId: number): Promise<CommentListResponse> {
         await this.findPostRecord(postId);
 
         return CommentListResponseSchema.parse({
-            items: await this.boardQueryProvider.listComments(postId)
+            items: await this.boardRepository.listComments(postId)
         });
     }
 
-    async findPostRecord(id: string) {
-        const post = await this.boardQueryProvider.findPost(id);
+    async findPostRecord(id: number) {
+        const post = await this.boardRepository.findPost(id);
 
         if (!post) {
             throw boardErrors.postNotFound();
@@ -65,8 +63,8 @@ export class BoardQueryService {
         return post;
     }
 
-    async findCommentRecord(postId: string, commentId: string): Promise<Comment> {
-        const comment = await this.boardQueryProvider.findComment(postId, commentId);
+    async findCommentRecord(postId: number, commentId: number): Promise<Comment> {
+        const comment = await this.boardRepository.findComment(postId, commentId);
 
         if (!comment) {
             throw boardErrors.commentNotFound();
@@ -75,9 +73,9 @@ export class BoardQueryService {
         return comment;
     }
 
-    async resolveTagIds(tagIds: string[]) {
+    async resolveTagIds(tagIds: number[]) {
         const uniqueTagIds = [...new Set(tagIds)];
-        const tags = await this.boardQueryProvider.findTagsByIds(uniqueTagIds);
+        const tags = await this.boardRepository.findTagsByIds(uniqueTagIds);
         const knownTagIds = new Set(tags.map((tag) => tag.id));
         const unknownTagIds = uniqueTagIds.filter((tagId) => !knownTagIds.has(tagId));
 
@@ -98,7 +96,7 @@ export class BoardQueryService {
             authorName: post.authorName,
             createdAt: post.createdAt,
             updatedAt: post.updatedAt,
-            tags: await this.boardQueryProvider.findTagsByIds(post.tagIds)
+            tags: await this.boardRepository.findTagsByIds(post.tagIds)
         });
     }
 
@@ -108,7 +106,7 @@ export class BoardQueryService {
         const postsWithTags = await Promise.all(
             posts.map(async (post) => ({
                 post,
-                tags: await this.boardQueryProvider.findTagsByIds(post.tagIds)
+                tags: await this.boardRepository.findTagsByIds(post.tagIds)
             }))
         );
 

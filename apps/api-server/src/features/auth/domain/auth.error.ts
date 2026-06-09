@@ -1,6 +1,11 @@
-import { createDomainError, type DomainErrorDefinition } from "../../../common/domain";
+import {
+    createDomainError,
+    defineDomainErrors,
+    isDomainErrorCode,
+    type DomainErrorCode
+} from "../../../common/core/domain";
 
-const authErrorDefinitions = {
+const authErrorDefinitions = defineDomainErrors({
     sessionRequired: {
         code: "AUTH_SESSION_REQUIRED",
         message: "로그인이 필요합니다."
@@ -13,9 +18,9 @@ const authErrorDefinitions = {
         code: "AUTH_SIGNUP_REQUIRED",
         message: "가입 완료가 필요합니다."
     }
-} as const satisfies Record<string, DomainErrorDefinition<string>>;
+});
 
-export type AuthErrorCode = (typeof authErrorDefinitions)[keyof typeof authErrorDefinitions]["code"];
+export type AuthErrorCode = DomainErrorCode<typeof authErrorDefinitions>;
 
 export const authErrors = {
     sessionRequired: () => createDomainError(authErrorDefinitions.sessionRequired),
@@ -24,5 +29,5 @@ export const authErrors = {
 };
 
 export function isAuthErrorCode(code: string): code is AuthErrorCode {
-    return Object.values(authErrorDefinitions).some((definition) => definition.code === code);
+    return isDomainErrorCode(authErrorDefinitions, code);
 }

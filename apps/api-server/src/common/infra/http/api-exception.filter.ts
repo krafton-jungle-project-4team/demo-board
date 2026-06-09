@@ -1,5 +1,5 @@
 import { ArgumentsHost, Catch, HttpException, HttpStatus, type ExceptionFilter } from "@nestjs/common";
-import { DomainError } from "../domain";
+import { DomainError } from "../../core/domain";
 import { getRequestId, type ApiErrorResponse, type ApiRequest, type ApiResponse } from "./api-response";
 
 export type HttpDomainError = {

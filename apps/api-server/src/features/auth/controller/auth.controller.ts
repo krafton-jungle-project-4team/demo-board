@@ -1,45 +1,31 @@
-import { Body, Controller, Get, Headers, HttpCode, Patch, Post } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Patch, Post, UseGuards } from "@nestjs/common";
+import { CompleteSignUpRequestSchema, UpdateCurrentUserRequestSchema, type User } from "@nmm/shared";
+import type { ActiveUser, UserRecord } from "../domain";
 import { AuthCommandService } from "../service/auth-command.service";
-import { AuthQueryService } from "../service/auth-query.service";
+import { ActiveUserGuard } from "./active-user.guard";
+import { CurrentUser } from "./current-user.decorator";
+import { SessionUserGuard } from "./session-user.guard";
 
 @Controller("account")
 export class AuthController {
-    constructor(
-        private readonly authCommandService: AuthCommandService,
-        private readonly authQueryService: AuthQueryService
-    ) {}
+    constructor(private readonly authCommandService: AuthCommandService) {}
 
     @Post("signup/complete")
     @HttpCode(200)
-    async completeSignUp(
-        @Body() body: unknown,
-        @Headers("authorization") authorization?: string,
-        @Headers("cookie") cookieHeader?: string
-    ) {
-        return this.authCommandService.completeSignUp(body, {
-            authorization,
-            cookieHeader,
-            allowPending: true
-        });
+    @UseGuards(SessionUserGuard)
+    async completeSignUp(@Body() body: unknown, @CurrentUser() user: UserRecord) {
+        return this.authCommandService.completeSignUp(CompleteSignUpRequestSchema.parse(body), user);
     }
 
     @Get("me")
-    async me(@Headers("authorization") authorization?: string, @Headers("cookie") cookieHeader?: string) {
-        return this.authQueryService.getCurrentUser({
-            authorization,
-            cookieHeader
-        });
+    @UseGuards(SessionUserGuard)
+    async me(@CurrentUser() user: UserRecord): Promise<User> {
+        return user;
     }
 
     @Patch("me")
-    async updateMe(
-        @Body() body: unknown,
-        @Headers("authorization") authorization?: string,
-        @Headers("cookie") cookieHeader?: string
-    ) {
-        return this.authCommandService.updateCurrentUser(body, {
-            authorization,
-            cookieHeader
-        });
+    @UseGuards(ActiveUserGuard)
+    async updateMe(@Body() body: unknown, @CurrentUser() user: ActiveUser) {
+        return this.authCommandService.updateCurrentUser(UpdateCurrentUserRequestSchema.parse(body), user);
     }
 }

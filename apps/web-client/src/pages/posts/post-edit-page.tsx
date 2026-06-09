@@ -41,11 +41,15 @@ function PostEditPermissionPending() {
     );
 }
 
-function PostEditForbidden({ postId }: Pick<PostEditPageProps, "postId">) {
+type PostEditForbiddenProps = {
+    postId: number | string;
+};
+
+function PostEditForbidden({ postId }: PostEditForbiddenProps) {
     return (
         <section className="mx-auto grid w-full max-w-3xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
             <Button asChild variant="ghost" className="justify-self-start">
-                <Link to="/posts/$postId" params={{ postId }}>
+                <Link to="/posts/$postId" params={{ postId: String(postId) }}>
                     <ArrowLeft />
                     상세
                 </Link>
@@ -82,7 +86,7 @@ function EditablePostEditPage({ post }: EditablePostEditPageProps) {
             void navigate({
                 to: "/posts/$postId",
                 params: {
-                    postId: updatedPost.id
+                    postId: String(updatedPost.id)
                 }
             });
         }
@@ -104,7 +108,7 @@ function EditablePostEditPage({ post }: EditablePostEditPageProps) {
             <div className="grid gap-3">
                 <div className="flex items-center justify-between gap-3">
                     <Button asChild variant="ghost">
-                        <Link to="/posts/$postId" params={{ postId: post.id }}>
+                        <Link to="/posts/$postId" params={{ postId: String(post.id) }}>
                             <ArrowLeft />
                             상세
                         </Link>
@@ -133,7 +137,7 @@ function EditablePostEditPage({ post }: EditablePostEditPageProps) {
                     void navigate({
                         to: "/posts/$postId",
                         params: {
-                            postId: post.id
+                            postId: String(post.id)
                         }
                     });
                 }}

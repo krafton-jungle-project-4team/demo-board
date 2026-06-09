@@ -1,12 +1,12 @@
-import { Column, Entity, PrimaryColumn } from "typeorm";
+import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity("comments")
 export class CommentEntity {
-    @PrimaryColumn({ type: "text" })
-    id!: string;
+    @PrimaryGeneratedColumn("increment", { type: "bigint" })
+    id!: number;
 
-    @Column({ name: "post_id", type: "text" })
-    postId!: string;
+    @Column({ name: "post_id", type: "bigint" })
+    postId!: number;
 
     @Column({ type: "text" })
     content!: string;

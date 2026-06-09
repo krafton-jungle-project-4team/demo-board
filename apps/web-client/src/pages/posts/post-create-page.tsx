@@ -23,7 +23,7 @@ export function PostCreatePage() {
             void navigate({
                 to: "/posts/$postId",
                 params: {
-                    postId: post.id
+                    postId: String(post.id)
                 }
             });
         }

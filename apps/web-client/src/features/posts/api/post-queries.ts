@@ -1,11 +1,19 @@
 import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import type { CreatePostRequest, Post, PostListResponse, UpdatePostRequest } from "@nmm/shared";
-import { createPost, deletePost, findPost, findPosts, updatePost, type PostListParams } from "./post-api";
+import {
+    createPost,
+    deletePost,
+    findPost,
+    findPosts,
+    updatePost,
+    type PostListParams,
+    type RouteResourceId
+} from "./post-api";
 
 export const postQueryKeys = {
     listPrefix: ["posts", "list"] as const,
     list: (params: PostListParams) => [...postQueryKeys.listPrefix, params] as const,
-    detail: (id: string) => ["posts", "detail", id] as const
+    detail: (id: RouteResourceId) => ["posts", "detail", String(id)] as const
 };
 
 export function usePostListQuery(params: PostListParams) {
@@ -17,7 +25,7 @@ export function usePostListQuery(params: PostListParams) {
     });
 }
 
-export function usePostDetailQuery(id: string) {
+export function usePostDetailQuery(id: RouteResourceId) {
     return useSuspenseQuery({
         queryKey: postQueryKeys.detail(id),
         queryFn: ({ signal }) => findPost(id, signal)
@@ -33,14 +41,14 @@ export function useCreatePostMutation(options?: { onSuccess?: (post: Post) => vo
 
 export function useUpdatePostMutation(options?: { onSuccess?: (post: Post) => void }) {
     return useMutation({
-        mutationFn: ({ id, data }: { id: string; data: UpdatePostRequest }) => updatePost(id, data),
+        mutationFn: ({ id, data }: { id: RouteResourceId; data: UpdatePostRequest }) => updatePost(id, data),
         onSuccess: options?.onSuccess
     });
 }
 
 export function useDeletePostMutation(options?: { onSuccess?: () => void }) {
     return useMutation({
-        mutationFn: (id: string) => deletePost(id),
+        mutationFn: (id: RouteResourceId) => deletePost(id),
         onSuccess: options?.onSuccess
     });
 }

@@ -54,6 +54,7 @@
 
 - API 요청/응답 계약 원본은 `packages/shared/src/contracts/*.contract.ts`의 Zod schema다.
 - API 서버는 shared Zod schema로 외부 입력을 검증한다.
+- API 서버 controller는 외부 입력을 shared Zod schema로 파싱한 뒤 service에 넘긴다.
 - Web은 shared Zod schema로 표준 응답 envelope를 파싱하는 수동 typed fetch 함수를 쓴다.
 - OpenAPI/Orval/generated client는 기본 API 공유 방식으로 쓰지 않는다.
 - Web feature 코드는 API 객체 형식 원본으로 shared contract를 우선 사용한다.
@@ -68,10 +69,17 @@
 - Docker Compose는 `npm run dev:api`의 `--env-file apps/api-server/.env`로 env 값을 주입한다.
 - 필요한 env 키는 `apps/api-server/.env.example`에 둔다.
 - API 서버 인증은 Better Auth social provider와 TypeORM adapter를 기준으로 한다.
+- 인증이 필요한 controller method는 guard가 세션을 검증하고 `@CurrentUser()`로 사용자 정보를 받는다.
+- controller는 인증 헤더/cookie를 직접 읽지 않는다.
+- 게시글/댓글/태그처럼 생성되는 리소스 ID는 DB `bigint` auto-increment를 사용하고 앱 코드에서 직접 만들지 않는다.
+- API 요청/응답의 ID는 숫자로 다루고, URL 파라미터 경계에서만 문자열을 숫자로 파싱한다.
 - API 서버 feature는 `controller`, `service`, `database`를 우선 사용한다.
-- API 서버 feature의 `domain`은 앱 도메인 타입과 오류를 둔다.
-- TypeORM entity, repository, adapter 연결은 `database`에 둔다.
+- API 서버 feature의 `domain`은 앱 도메인 타입, 오류, repository 계약, TypeORM entity를 둔다.
+- TypeORM repository 구현체와 외부 adapter 연결은 `database`에 둔다.
+- 도메인 저장소 계약은 repository로 부르고, TypeORM repository class는 그 구현체로 둔다.
 - service는 query(read only)와 command(변경 목적)를 파일 단위로 분리한다.
+- API 서버 공통 코드는 `common/core`의 순수 코드와 `common/infra`의 전역 인프라/프레임워크 코드로 나눈다.
+- 도메인 에러 정의는 `common/core/domain`의 공통 타입과 헬퍼로 만든다.
 
 ## TypeScript 설정
 

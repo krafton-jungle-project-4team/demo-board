@@ -35,7 +35,7 @@ function ManageablePostDetail({ post }: PostDetailProps) {
             post={post}
             action={
                 <Button asChild variant="outline">
-                    <Link to="/posts/$postId/edit" params={{ postId: post.id }}>
+                    <Link to="/posts/$postId/edit" params={{ postId: String(post.id) }}>
                         <Pencil />
                         수정
                     </Link>

@@ -41,7 +41,7 @@ function ManageablePostCard({ post }: PostCardProps) {
             <PostCardContent post={post} />
             <CardFooter className="justify-end gap-2">
                 <Button asChild size="icon" variant="ghost" aria-label="수정">
-                    <Link to="/posts/$postId/edit" params={{ postId: post.id }}>
+                    <Link to="/posts/$postId/edit" params={{ postId: String(post.id) }}>
                         <Pencil />
                     </Link>
                 </Button>
@@ -55,7 +55,7 @@ function PostCardContent({ post }: PostCardProps) {
         <>
             <CardHeader>
                 <CardTitle>
-                    <Link to="/posts/$postId" params={{ postId: post.id }} className="hover:underline">
+                    <Link to="/posts/$postId" params={{ postId: String(post.id) }} className="hover:underline">
                         {post.title}
                     </Link>
                 </CardTitle>
