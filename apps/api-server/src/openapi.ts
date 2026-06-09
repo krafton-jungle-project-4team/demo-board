@@ -3,8 +3,8 @@ import path from "node:path";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { AppModule } from "./app.module";
-import { sessionCookieName } from "./auth.service";
 import { loadServerEnv } from "./env";
+import { sessionCookieName } from "./features/auth";
 
 async function emitOpenApiSpec() {
   loadServerEnv();

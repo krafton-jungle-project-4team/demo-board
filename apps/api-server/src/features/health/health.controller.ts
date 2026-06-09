@@ -6,9 +6,9 @@ class HealthResponseDto {
   ok!: boolean;
 }
 
-@ApiTags("app")
+@ApiTags("health")
 @Controller()
-export class AppController {
+export class HealthController {
   @Get("health")
   @ApiOkResponse({ type: HealthResponseDto })
   health() {

@@ -10,8 +10,8 @@ import {
   ApiQuery,
   ApiTags
 } from "@nestjs/swagger";
-import { AuthService } from "./auth.service";
-import { BoardService } from "./board.service";
+import { AuthService } from "../../auth";
+import { BoardService } from "../service/board.service";
 import {
   CreatePostDto,
   DeletePostResponseDto,
@@ -19,7 +19,7 @@ import {
   PostDto,
   PostListResponseDto,
   UpdatePostDto
-} from "./posts.dto";
+} from "./board.dto";
 
 @ApiTags("posts")
 @Controller("posts")

@@ -9,15 +9,15 @@ import {
   ApiParam,
   ApiTags
 } from "@nestjs/swagger";
-import { AuthService } from "./auth.service";
-import { BoardService } from "./board.service";
+import { AuthService } from "../../auth";
+import { BoardService } from "../service/board.service";
 import {
   CommentDto,
   CommentListResponseDto,
   CreateCommentDto,
   DeleteCommentResponseDto,
   UpdateCommentDto
-} from "./posts.dto";
+} from "./board.dto";
 
 @ApiTags("comments")
 @Controller("posts/:postId/comments")

@@ -10,8 +10,8 @@ import {
   ApiQuery,
   ApiTags
 } from "@nestjs/swagger";
-import { AuthService, sessionCookieName, type SessionCookieOptions } from "./auth.service";
-import { CompleteSignUpDto, UpdateCurrentUserDto, UserDto } from "./posts.dto";
+import { AuthService, sessionCookieName, type SessionCookieOptions } from "../service/auth.service";
+import { CompleteSignUpDto, UpdateCurrentUserDto, UserDto } from "./auth.dto";
 
 type AuthResponse = {
   cookie(name: string, value: string, options: SessionCookieOptions): void;

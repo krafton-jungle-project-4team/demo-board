@@ -1,27 +1,6 @@
 {
   "openapi": "3.0.0",
   "paths": {
-    "/api/health": {
-      "get": {
-        "operationId": "AppController_health",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HealthResponseDto"
-                }
-              }
-            }
-          }
-        },
-        "tags": [
-          "app"
-        ]
-      }
-    },
     "/api/auth/github/start": {
       "get": {
         "operationId": "AuthController_startGitHub",
@@ -669,6 +648,27 @@
           "posts"
         ]
       }
+    },
+    "/api/health": {
+      "get": {
+        "operationId": "HealthController_health",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "health"
+        ]
+      }
     }
   },
   "info": {
@@ -693,18 +693,6 @@
       }
     },
     "schemas": {
-      "HealthResponseDto": {
-        "type": "object",
-        "properties": {
-          "ok": {
-            "type": "boolean",
-            "example": true
-          }
-        },
-        "required": [
-          "ok"
-        ]
-      },
       "CompleteSignUpDto": {
         "type": "object",
         "properties": {
@@ -1058,6 +1046,18 @@
         "required": [
           "ok",
           "id"
+        ]
+      },
+      "HealthResponseDto": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "ok"
         ]
       }
     }

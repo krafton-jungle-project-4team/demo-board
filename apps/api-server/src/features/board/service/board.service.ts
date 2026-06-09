@@ -22,10 +22,7 @@ import {
   type PostTag,
   type User
 } from "@nmm/shared";
-
-type PostRecord = Omit<Post, "tags"> & {
-  tagIds: string[];
-};
+import { BoardRepository, type PostRecord } from "../database/board.repository";
 
 type BoardUser = User & {
   name: string;
@@ -33,67 +30,15 @@ type BoardUser = User & {
 
 @Injectable()
 export class BoardService {
-  private nextPostNumber = 4;
-  private nextCommentNumber = 2;
-  private readonly tags: PostTag[] = [
-    { id: "tag-react", name: "react" },
-    { id: "tag-nest", name: "nest" },
-    { id: "tag-boilerplate", name: "boilerplate" }
-  ];
-  private readonly posts: PostRecord[] = [
-    {
-      id: "post-1",
-      title: "프론트 공통 스택 결정",
-      excerpt: "라우터, 서버 상태, URL 상태를 분리해 보일러플레이트의 기준을 잡는다.",
-      content: "TanStack Router, TanStack Query, nuqs, shadcn/ui를 연결해 게시판 CRUD 화면의 개발 출발점을 만든다.",
-      authorId: "user-sijun",
-      authorName: "sijun",
-      createdAt: "2026-06-09T00:00:00.000Z",
-      updatedAt: "2026-06-09T00:00:00.000Z",
-      tagIds: ["tag-react", "tag-boilerplate"]
-    },
-    {
-      id: "post-2",
-      title: "OpenAPI codegen 연결",
-      excerpt: "Nest 더미 API에서 spec을 만들고 Orval로 fetch 함수를 생성한다.",
-      content: "OpenAPI spec을 생성해 frontend가 API 타입과 호출 함수를 반복 작성하지 않게 한다.",
-      authorId: "user-sijun",
-      authorName: "sijun",
-      createdAt: "2026-06-09T00:10:00.000Z",
-      updatedAt: "2026-06-09T00:10:00.000Z",
-      tagIds: ["tag-nest", "tag-boilerplate"]
-    },
-    {
-      id: "post-3",
-      title: "URL 상태 규칙",
-      excerpt: "검색어, 페이지, 정렬, 보기 방식은 공유 가능한 URL 상태로 둔다.",
-      content: "draft, token, PII, 대용량 데이터, 휘발성 UI 상태는 URL에 넣지 않는다.",
-      authorId: "user-sijun",
-      authorName: "sijun",
-      createdAt: "2026-06-09T00:20:00.000Z",
-      updatedAt: "2026-06-09T00:20:00.000Z",
-      tagIds: ["tag-boilerplate"]
-    }
-  ];
-  private readonly comments: Comment[] = [
-    {
-      id: "comment-1",
-      postId: "post-1",
-      content: "보일러플레이트 기준을 확인하기 위한 댓글 예시입니다.",
-      authorId: "user-sijun",
-      authorName: "sijun",
-      createdAt: "2026-06-09T00:30:00.000Z",
-      updatedAt: "2026-06-09T00:30:00.000Z"
-    }
-  ];
+  constructor(private readonly boardRepository: BoardRepository) {}
 
   findTags(): PostTag[] {
-    return this.tags.map((tag) => PostTagSchema.parse(tag));
+    return this.boardRepository.listTags().map((tag) => PostTagSchema.parse(tag));
   }
 
   findPosts(query: unknown): PostListResponse {
     const parsedQuery = ListPostsQuerySchema.parse(query);
-    const filteredPosts = this.filterPosts(parsedQuery);
+    const filteredPosts = this.filterPosts(this.boardRepository.listPosts(), parsedQuery);
     const sortedPosts = this.sortPosts(filteredPosts, parsedQuery.sort);
     const totalItems = sortedPosts.length;
     const totalPages = Math.max(1, Math.ceil(totalItems / parsedQuery.pageSize));
@@ -118,7 +63,7 @@ export class BoardService {
     const request = CreatePostRequestSchema.parse(input);
     const now = new Date().toISOString();
     const post: PostRecord = {
-      id: `post-${this.nextPostNumber++}`,
+      id: this.boardRepository.createPostId(),
       title: request.title,
       excerpt: request.excerpt,
       content: request.content,
@@ -129,7 +74,7 @@ export class BoardService {
       tagIds: this.resolveTagIds(request.tagIds)
     };
 
-    this.posts.unshift(post);
+    this.boardRepository.createPost(post);
 
     return this.toPost(post);
   }
@@ -165,13 +110,8 @@ export class BoardService {
     const post = this.findPostRecord(id);
 
     this.assertOwner(post, user);
-    this.posts.splice(this.posts.indexOf(post), 1);
-
-    for (let index = this.comments.length - 1; index >= 0; index -= 1) {
-      if (this.comments[index]?.postId === id) {
-        this.comments.splice(index, 1);
-      }
-    }
+    this.boardRepository.deletePost(post);
+    this.boardRepository.deleteCommentsByPostId(id);
 
     return DeletePostResponseSchema.parse({ ok: true, id });
   }
@@ -180,7 +120,7 @@ export class BoardService {
     this.findPostRecord(postId);
 
     return CommentListResponseSchema.parse({
-      items: this.comments.filter((comment) => comment.postId === postId)
+      items: this.boardRepository.listComments(postId)
     });
   }
 
@@ -190,7 +130,7 @@ export class BoardService {
     const request = CreateCommentRequestSchema.parse(input);
     const now = new Date().toISOString();
     const comment = CommentSchema.parse({
-      id: `comment-${this.nextCommentNumber++}`,
+      id: this.boardRepository.createCommentId(),
       postId,
       content: request.content,
       authorId: user.id,
@@ -199,7 +139,7 @@ export class BoardService {
       updatedAt: now
     });
 
-    this.comments.push(comment);
+    this.boardRepository.createComment(comment);
 
     return comment;
   }
@@ -227,15 +167,15 @@ export class BoardService {
     const comment = this.findCommentRecord(postId, commentId);
 
     this.assertOwner(comment, user);
-    this.comments.splice(this.comments.indexOf(comment), 1);
+    this.boardRepository.deleteComment(comment);
 
     return DeleteCommentResponseSchema.parse({ ok: true, id: commentId });
   }
 
-  private filterPosts(query: ListPostsQuery) {
+  private filterPosts(posts: PostRecord[], query: ListPostsQuery) {
     const keyword = query.q.trim().toLowerCase();
 
-    return this.posts.filter((post) => {
+    return posts.filter((post) => {
       const tags = this.getPostTags(post);
       const matchesKeyword =
         !keyword ||
@@ -263,7 +203,7 @@ export class BoardService {
   }
 
   private findPostRecord(id: string) {
-    const post = this.posts.find((item) => item.id === id);
+    const post = this.boardRepository.findPost(id);
 
     if (!post) {
       throw new NotFoundException("게시글을 찾을 수 없습니다.");
@@ -273,7 +213,7 @@ export class BoardService {
   }
 
   private findCommentRecord(postId: string, commentId: string) {
-    const comment = this.comments.find((item) => item.postId === postId && item.id === commentId);
+    const comment = this.boardRepository.findComment(postId, commentId);
 
     if (!comment) {
       throw new NotFoundException("댓글을 찾을 수 없습니다.");
@@ -284,7 +224,7 @@ export class BoardService {
 
   private resolveTagIds(tagIds: string[]) {
     const uniqueTagIds = [...new Set(tagIds)];
-    const unknownTagIds = uniqueTagIds.filter((tagId) => !this.tags.some((tag) => tag.id === tagId));
+    const unknownTagIds = uniqueTagIds.filter((tagId) => !this.boardRepository.findTag(tagId));
 
     if (unknownTagIds.length > 0) {
       throw new BadRequestException(`존재하지 않는 태그입니다: ${unknownTagIds.join(", ")}`);
@@ -294,7 +234,7 @@ export class BoardService {
   }
 
   private getPostTags(post: PostRecord) {
-    return post.tagIds.map((tagId) => this.tags.find((tag) => tag.id === tagId)).filter((tag) => tag !== undefined);
+    return post.tagIds.map((tagId) => this.boardRepository.findTag(tagId)).filter((tag) => tag !== undefined);
   }
 
   private toPost(post: PostRecord): Post {

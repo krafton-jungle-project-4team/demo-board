@@ -1,7 +1,7 @@
 import { Controller, Get } from "@nestjs/common";
 import { ApiOkResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
-import { BoardService } from "./board.service";
-import { PostTagDto } from "./posts.dto";
+import { BoardService } from "../service/board.service";
+import { PostTagDto } from "./board.dto";
 
 @ApiTags("post-tags")
 @Controller("post-tags")

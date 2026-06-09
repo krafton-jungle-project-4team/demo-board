@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import { randomBytes } from "node:crypto";
 import { CompleteSignUpRequestSchema, UpdateCurrentUserRequestSchema, UserSchema, type User } from "@nmm/shared";
+import { AuthRepository, type UserRecord } from "../database/auth.repository";
 
 export const sessionCookieName = "nmm_session";
 
@@ -23,24 +24,9 @@ export type SessionCookieOptions = {
   path: "/api";
 };
 
-type UserRecord = User;
 type ActiveUser = User & {
   name: string;
   status: "ACTIVE";
-};
-
-type OAuthAccountRecord = {
-  provider: "github";
-  providerAccountId: string;
-  userId: string;
-  accessToken: string;
-  providerLogin: string;
-  updatedAt: string;
-};
-
-type OAuthStateRecord = {
-  redirectTo: string;
-  expiresAt: number;
 };
 
 type GitHubProfile = {
@@ -59,30 +45,13 @@ type GitHubEmail = {
 
 @Injectable()
 export class AuthService {
-  private nextUserNumber = 2;
-  private readonly users = new Map<string, UserRecord>();
-  private readonly userIdsByEmail = new Map<string, string>();
-  private readonly sessionUserIds = new Map<string, string>();
-  private readonly oauthAccounts = new Map<string, OAuthAccountRecord>();
-  private readonly oauthStates = new Map<string, OAuthStateRecord>();
-
-  constructor() {
-    this.saveUser({
-      id: "user-sijun",
-      email: "sijun@example.com",
-      name: "sijun",
-      image: null,
-      role: "USER",
-      status: "ACTIVE",
-      createdAt: new Date("2026-06-09T00:00:00.000Z").toISOString()
-    });
-  }
+  constructor(private readonly authRepository: AuthRepository) {}
 
   createGitHubAuthorizationUrl(redirectTo?: string) {
     const config = this.getGitHubOAuthConfig();
     const state = randomBytes(32).toString("base64url");
 
-    this.oauthStates.set(state, {
+    this.authRepository.saveOAuthState(state, {
       redirectTo: this.normalizeRedirectPath(redirectTo, this.loginRedirectPath),
       expiresAt: Date.now() + 10 * 60 * 1000
     });
@@ -127,6 +96,7 @@ export class AuthService {
 
     user.name = request.name;
     user.status = "ACTIVE";
+    this.authRepository.saveUser(user);
 
     return this.toUser(user);
   }
@@ -136,6 +106,7 @@ export class AuthService {
     const user = this.requireActiveUserRecord(context);
 
     user.name = request.name;
+    this.authRepository.saveUser(user);
 
     return this.toUser(user);
   }
@@ -154,7 +125,7 @@ export class AuthService {
 
   deleteSession(sessionToken: string | undefined) {
     if (sessionToken) {
-      this.sessionUserIds.delete(sessionToken);
+      this.authRepository.deleteSession(sessionToken);
     }
   }
 
@@ -179,8 +150,7 @@ export class AuthService {
 
   private requireUserRecord(context: AuthRequestContext): UserRecord {
     const sessionToken = this.readSessionToken(context);
-    const userId = sessionToken ? this.sessionUserIds.get(sessionToken) : undefined;
-    const user = userId ? this.users.get(userId) : undefined;
+    const user = sessionToken ? this.authRepository.findUserBySessionToken(sessionToken) : undefined;
 
     if (!user) {
       throw new UnauthorizedException("로그인이 필요합니다.");
@@ -311,18 +281,17 @@ export class AuthService {
 
   private upsertGitHubUser(input: { accessToken: string; email: string; profile: GitHubProfile }): UserRecord {
     const providerAccountKey = this.createProviderAccountKey("github", String(input.profile.id));
-    const existingAccount = this.oauthAccounts.get(providerAccountKey);
+    const existingAccount = this.authRepository.findOAuthAccount(providerAccountKey);
     const now = new Date().toISOString();
-    let user = existingAccount ? this.users.get(existingAccount.userId) : undefined;
+    let user = existingAccount ? this.authRepository.findUserById(existingAccount.userId) : undefined;
 
     if (!user) {
-      const existingUserId = this.userIdsByEmail.get(input.email);
-      user = existingUserId ? this.users.get(existingUserId) : undefined;
+      user = this.authRepository.findUserByEmail(input.email);
     }
 
     if (!user) {
       user = {
-        id: `user-${this.nextUserNumber++}`,
+        id: this.authRepository.createUserId(),
         email: input.email,
         name: null,
         image: input.profile.avatarUrl,
@@ -336,7 +305,7 @@ export class AuthService {
       this.saveUser(user);
     }
 
-    this.oauthAccounts.set(providerAccountKey, {
+    this.authRepository.saveOAuthAccount(providerAccountKey, {
       provider: "github",
       providerAccountId: String(input.profile.id),
       userId: user.id,
@@ -349,9 +318,7 @@ export class AuthService {
   }
 
   private consumeOAuthState(state: string) {
-    const stateRecord = this.oauthStates.get(state);
-
-    this.oauthStates.delete(state);
+    const stateRecord = this.authRepository.consumeOAuthState(state);
 
     if (!stateRecord || stateRecord.expiresAt < Date.now()) {
       throw new BadRequestException("GitHub OAuth state가 유효하지 않습니다.");
@@ -363,14 +330,13 @@ export class AuthService {
   private createSession(user: UserRecord) {
     const sessionToken = randomBytes(32).toString("base64url");
 
-    this.sessionUserIds.set(sessionToken, user.id);
+    this.authRepository.saveSession(sessionToken, user.id);
 
     return sessionToken;
   }
 
   private saveUser(user: UserRecord) {
-    this.users.set(user.id, user);
-    this.userIdsByEmail.set(user.email, user.id);
+    this.authRepository.saveUser(user);
   }
 
   private toUser(user: UserRecord): User {
