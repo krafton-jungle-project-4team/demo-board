@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Headers, Param, Patch, Post } from "@nes
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiCookieAuth,
   ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
@@ -35,6 +36,7 @@ export class CommentsController {
   }
 
   @Post()
+  @ApiCookieAuth("sessionCookie")
   @ApiBearerAuth("session")
   @ApiOperation({ summary: "댓글 작성" })
   @ApiParam({ name: "postId", type: String, example: "post-1" })
@@ -43,12 +45,14 @@ export class CommentsController {
   createComment(
     @Param("postId") postId: string,
     @Body() body: CreateCommentDto,
-    @Headers("authorization") authorization?: string
+    @Headers("authorization") authorization?: string,
+    @Headers("cookie") cookieHeader?: string
   ) {
-    return this.boardService.createComment(postId, body, this.authService.requireUser(authorization));
+    return this.boardService.createComment(postId, body, this.authService.requireUser({ authorization, cookieHeader }));
   }
 
   @Patch(":commentId")
+  @ApiCookieAuth("sessionCookie")
   @ApiBearerAuth("session")
   @ApiOperation({ summary: "댓글 수정" })
   @ApiParam({ name: "postId", type: String, example: "post-1" })
@@ -59,12 +63,19 @@ export class CommentsController {
     @Param("postId") postId: string,
     @Param("commentId") commentId: string,
     @Body() body: UpdateCommentDto,
-    @Headers("authorization") authorization?: string
+    @Headers("authorization") authorization?: string,
+    @Headers("cookie") cookieHeader?: string
   ) {
-    return this.boardService.updateComment(postId, commentId, body, this.authService.requireUser(authorization));
+    return this.boardService.updateComment(
+      postId,
+      commentId,
+      body,
+      this.authService.requireUser({ authorization, cookieHeader })
+    );
   }
 
   @Delete(":commentId")
+  @ApiCookieAuth("sessionCookie")
   @ApiBearerAuth("session")
   @ApiOperation({ summary: "댓글 삭제" })
   @ApiParam({ name: "postId", type: String, example: "post-1" })
@@ -73,8 +84,13 @@ export class CommentsController {
   deleteComment(
     @Param("postId") postId: string,
     @Param("commentId") commentId: string,
-    @Headers("authorization") authorization?: string
+    @Headers("authorization") authorization?: string,
+    @Headers("cookie") cookieHeader?: string
   ) {
-    return this.boardService.deleteComment(postId, commentId, this.authService.requireUser(authorization));
+    return this.boardService.deleteComment(
+      postId,
+      commentId,
+      this.authService.requireUser({ authorization, cookieHeader })
+    );
   }
 }

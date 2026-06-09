@@ -22,48 +22,81 @@
         ]
       }
     },
-    "/api/auth/signup": {
-      "post": {
-        "operationId": "AuthController_signUp",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SignUpDto"
-              }
+    "/api/auth/github/start": {
+      "get": {
+        "operationId": "AuthController_startGitHub",
+        "parameters": [
+          {
+            "name": "redirectTo",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "/posts",
+              "type": "string"
             }
           }
-        },
+        ],
         "responses": {
-          "201": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthSessionResponseDto"
-                }
-              }
-            }
+          "302": {
+            "description": "GitHub OAuth 승인 화면으로 리다이렉트한다."
           }
         },
-        "summary": "회원가입",
+        "summary": "GitHub OAuth 로그인 시작",
         "tags": [
           "auth"
         ]
       }
     },
-    "/api/auth/login": {
+    "/api/auth/github/callback": {
+      "get": {
+        "operationId": "AuthController_githubCallback",
+        "parameters": [
+          {
+            "name": "error",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "세션 쿠키를 설정한 뒤 web 화면으로 리다이렉트한다."
+          }
+        },
+        "summary": "GitHub OAuth callback 처리",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/signup/complete": {
       "post": {
-        "operationId": "AuthController_login",
+        "operationId": "AuthController_completeSignUp",
         "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/LoginDto"
+                "$ref": "#/components/schemas/CompleteSignUpDto"
               }
             }
           }
@@ -74,13 +107,21 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AuthSessionResponseDto"
+                  "$ref": "#/components/schemas/UserDto"
                 }
               }
             }
           }
         },
-        "summary": "로그인",
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "OAuth 가입 완료",
         "tags": [
           "auth"
         ]
@@ -105,9 +146,35 @@
         "security": [
           {
             "session": []
+          },
+          {
+            "sessionCookie": []
           }
         ],
         "summary": "현재 로그인 사용자 조회",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "session": []
+          },
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "로그아웃",
         "tags": [
           "auth"
         ]
@@ -182,6 +249,9 @@
         "security": [
           {
             "session": []
+          },
+          {
+            "sessionCookie": []
           }
         ],
         "summary": "댓글 작성",
@@ -238,6 +308,9 @@
         "security": [
           {
             "session": []
+          },
+          {
+            "sessionCookie": []
           }
         ],
         "summary": "댓글 수정",
@@ -282,6 +355,9 @@
         "security": [
           {
             "session": []
+          },
+          {
+            "sessionCookie": []
           }
         ],
         "summary": "댓글 삭제",
@@ -427,6 +503,9 @@
         "security": [
           {
             "session": []
+          },
+          {
+            "sessionCookie": []
           }
         ],
         "summary": "게시글 생성",
@@ -504,6 +583,9 @@
         "security": [
           {
             "session": []
+          },
+          {
+            "sessionCookie": []
           }
         ],
         "summary": "게시글 수정",
@@ -539,6 +621,9 @@
         "security": [
           {
             "session": []
+          },
+          {
+            "sessionCookie": []
           }
         ],
         "summary": "게시글 삭제",
@@ -558,6 +643,11 @@
   "servers": [],
   "components": {
     "securitySchemes": {
+      "sessionCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "nmm_session"
+      },
       "session": {
         "scheme": "bearer",
         "bearerFormat": "session",
@@ -577,28 +667,16 @@
           "ok"
         ]
       },
-      "SignUpDto": {
+      "CompleteSignUpDto": {
         "type": "object",
         "properties": {
-          "email": {
-            "type": "string",
-            "example": "sijun@example.com"
-          },
           "name": {
             "type": "string",
             "example": "sijun"
-          },
-          "password": {
-            "type": "string",
-            "minLength": 8,
-            "format": "password",
-            "example": "password123"
           }
         },
         "required": [
-          "email",
-          "name",
-          "password"
+          "name"
         ]
       },
       "UserDto": {
@@ -616,6 +694,11 @@
             "type": "string",
             "example": "sijun"
           },
+          "image": {
+            "type": "string",
+            "nullable": true,
+            "example": "https://avatars.githubusercontent.com/u/1?v=4"
+          },
           "role": {
             "type": "string",
             "enum": [
@@ -623,6 +706,15 @@
               "ADMIN"
             ],
             "example": "USER"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "ACTIVE",
+              "SUSPENDED"
+            ],
+            "example": "ACTIVE"
           },
           "createdAt": {
             "type": "string",
@@ -633,42 +725,10 @@
           "id",
           "email",
           "name",
+          "image",
           "role",
+          "status",
           "createdAt"
-        ]
-      },
-      "AuthSessionResponseDto": {
-        "type": "object",
-        "properties": {
-          "user": {
-            "$ref": "#/components/schemas/UserDto"
-          },
-          "sessionToken": {
-            "type": "string",
-            "example": "session-token"
-          }
-        },
-        "required": [
-          "user",
-          "sessionToken"
-        ]
-      },
-      "LoginDto": {
-        "type": "object",
-        "properties": {
-          "email": {
-            "type": "string",
-            "example": "sijun@example.com"
-          },
-          "password": {
-            "type": "string",
-            "format": "password",
-            "example": "password123"
-          }
-        },
-        "required": [
-          "email",
-          "password"
         ]
       },
       "CommentDto": {

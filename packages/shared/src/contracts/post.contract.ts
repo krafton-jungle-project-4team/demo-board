@@ -9,41 +9,6 @@ export type PostView = z.infer<typeof PostViewSchema>;
 export const PostStatusSchema = z.enum(["draft", "published"]);
 export type PostStatus = z.infer<typeof PostStatusSchema>;
 
-export const UserRoleSchema = z.enum(["USER", "ADMIN"]);
-export type UserRole = z.infer<typeof UserRoleSchema>;
-
-export const UserSchema = z.object({
-  id: z.string(),
-  email: z.string().email(),
-  name: z.string().min(1),
-  role: UserRoleSchema,
-  createdAt: z.string().datetime()
-});
-
-export type User = z.infer<typeof UserSchema>;
-
-export const SignUpRequestSchema = z.object({
-  email: z.string().email(),
-  name: z.string().min(1),
-  password: z.string().min(8)
-});
-
-export type SignUpRequest = z.infer<typeof SignUpRequestSchema>;
-
-export const LoginRequestSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1)
-});
-
-export type LoginRequest = z.infer<typeof LoginRequestSchema>;
-
-export const AuthSessionResponseSchema = z.object({
-  user: UserSchema,
-  sessionToken: z.string().min(1)
-});
-
-export type AuthSessionResponse = z.infer<typeof AuthSessionResponseSchema>;
-
 export const PostTagSchema = z.object({
   id: z.string(),
   name: z.string().min(1)

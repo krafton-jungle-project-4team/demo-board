@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as PostsRouteImport } from './routes/posts'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PostsPostIdRouteImport } from './routes/posts_.$postId'
+import { Route as AuthErrorRouteImport } from './routes/auth.error'
+import { Route as AuthCompleteSignupRouteImport } from './routes/auth.complete-signup'
 
 const PostsRoute = PostsRouteImport.update({
   id: '/posts',
@@ -28,34 +30,68 @@ const PostsPostIdRoute = PostsPostIdRouteImport.update({
   path: '/posts/$postId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthErrorRoute = AuthErrorRouteImport.update({
+  id: '/auth/error',
+  path: '/auth/error',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthCompleteSignupRoute = AuthCompleteSignupRouteImport.update({
+  id: '/auth/complete-signup',
+  path: '/auth/complete-signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/posts': typeof PostsRoute
+  '/auth/complete-signup': typeof AuthCompleteSignupRoute
+  '/auth/error': typeof AuthErrorRoute
   '/posts/$postId': typeof PostsPostIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/posts': typeof PostsRoute
+  '/auth/complete-signup': typeof AuthCompleteSignupRoute
+  '/auth/error': typeof AuthErrorRoute
   '/posts/$postId': typeof PostsPostIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/posts': typeof PostsRoute
+  '/auth/complete-signup': typeof AuthCompleteSignupRoute
+  '/auth/error': typeof AuthErrorRoute
   '/posts_/$postId': typeof PostsPostIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/posts' | '/posts/$postId'
+  fullPaths:
+    | '/'
+    | '/posts'
+    | '/auth/complete-signup'
+    | '/auth/error'
+    | '/posts/$postId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/posts' | '/posts/$postId'
-  id: '__root__' | '/' | '/posts' | '/posts_/$postId'
+  to:
+    | '/'
+    | '/posts'
+    | '/auth/complete-signup'
+    | '/auth/error'
+    | '/posts/$postId'
+  id:
+    | '__root__'
+    | '/'
+    | '/posts'
+    | '/auth/complete-signup'
+    | '/auth/error'
+    | '/posts_/$postId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   PostsRoute: typeof PostsRoute
+  AuthCompleteSignupRoute: typeof AuthCompleteSignupRoute
+  AuthErrorRoute: typeof AuthErrorRoute
   PostsPostIdRoute: typeof PostsPostIdRoute
 }
 
@@ -82,12 +118,28 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PostsPostIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/error': {
+      id: '/auth/error'
+      path: '/auth/error'
+      fullPath: '/auth/error'
+      preLoaderRoute: typeof AuthErrorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/complete-signup': {
+      id: '/auth/complete-signup'
+      path: '/auth/complete-signup'
+      fullPath: '/auth/complete-signup'
+      preLoaderRoute: typeof AuthCompleteSignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   PostsRoute: PostsRoute,
+  AuthCompleteSignupRoute: AuthCompleteSignupRoute,
+  AuthErrorRoute: AuthErrorRoute,
   PostsPostIdRoute: PostsPostIdRoute,
 }
 export const routeTree = rootRouteImport

@@ -31,6 +31,12 @@ function RootLayout() {
                 >
                   게시글
                 </Link>
+                <a
+                  href="/api/auth/github/start?redirectTo=/posts"
+                  className="rounded-lg px-3 py-2 text-sm text-muted-foreground hover:text-foreground"
+                >
+                  GitHub 로그인
+                </a>
               </nav>
             </div>
           </header>

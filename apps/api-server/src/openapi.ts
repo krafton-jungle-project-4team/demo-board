@@ -3,8 +3,12 @@ import path from "node:path";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { AppModule } from "./app.module";
+import { sessionCookieName } from "./auth.service";
+import { loadServerEnv } from "./env";
 
 async function emitOpenApiSpec() {
+  loadServerEnv();
+
   const app = await NestFactory.create(AppModule, {
     logger: false
   });
@@ -15,6 +19,7 @@ async function emitOpenApiSpec() {
     .setTitle("NMM API")
     .setDescription("나만의 무기 만들기 보일러플레이트용 게시판 API")
     .setVersion("0.1.0")
+    .addCookieAuth(sessionCookieName, { type: "apiKey", in: "cookie" }, "sessionCookie")
     .addBearerAuth(
       {
         type: "http",

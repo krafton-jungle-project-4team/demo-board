@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Headers, Param, Patch, Post as HttpPost,
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiCookieAuth,
   ApiCreatedResponse,
   ApiOkResponse,
   ApiOperation,
@@ -63,30 +64,46 @@ export class PostsController {
   }
 
   @HttpPost()
+  @ApiCookieAuth("sessionCookie")
   @ApiBearerAuth("session")
   @ApiOperation({ summary: "게시글 생성" })
   @ApiBody({ type: CreatePostDto })
   @ApiCreatedResponse({ type: PostDto })
-  createPost(@Body() body: CreatePostDto, @Headers("authorization") authorization?: string) {
-    return this.boardService.createPost(body, this.authService.requireUser(authorization));
+  createPost(
+    @Body() body: CreatePostDto,
+    @Headers("authorization") authorization?: string,
+    @Headers("cookie") cookieHeader?: string
+  ) {
+    return this.boardService.createPost(body, this.authService.requireUser({ authorization, cookieHeader }));
   }
 
   @Patch(":id")
+  @ApiCookieAuth("sessionCookie")
   @ApiBearerAuth("session")
   @ApiOperation({ summary: "게시글 수정" })
   @ApiParam({ name: "id", type: String, example: "post-1" })
   @ApiBody({ type: UpdatePostDto })
   @ApiOkResponse({ type: PostDto })
-  updatePost(@Param("id") id: string, @Body() body: UpdatePostDto, @Headers("authorization") authorization?: string) {
-    return this.boardService.updatePost(id, body, this.authService.requireUser(authorization));
+  updatePost(
+    @Param("id") id: string,
+    @Body() body: UpdatePostDto,
+    @Headers("authorization") authorization?: string,
+    @Headers("cookie") cookieHeader?: string
+  ) {
+    return this.boardService.updatePost(id, body, this.authService.requireUser({ authorization, cookieHeader }));
   }
 
   @Delete(":id")
+  @ApiCookieAuth("sessionCookie")
   @ApiBearerAuth("session")
   @ApiOperation({ summary: "게시글 삭제" })
   @ApiParam({ name: "id", type: String, example: "post-1" })
   @ApiOkResponse({ type: DeletePostResponseDto })
-  deletePost(@Param("id") id: string, @Headers("authorization") authorization?: string) {
-    return this.boardService.deletePost(id, this.authService.requireUser(authorization));
+  deletePost(
+    @Param("id") id: string,
+    @Headers("authorization") authorization?: string,
+    @Headers("cookie") cookieHeader?: string
+  ) {
+    return this.boardService.deletePost(id, this.authService.requireUser({ authorization, cookieHeader }));
   }
 }

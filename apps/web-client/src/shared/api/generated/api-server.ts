@@ -5,11 +5,8 @@
  * 나만의 무기 만들기 보일러플레이트용 게시판 API
  * OpenAPI spec version: 0.1.0
  */
-export interface SignUpDto {
-  email: string;
+export interface CompleteSignUpDto {
   name: string;
-  /** @minLength 8 */
-  password: string;
 }
 
 export type UserDtoRole = typeof UserDtoRole[keyof typeof UserDtoRole];
@@ -20,22 +17,24 @@ export const UserDtoRole = {
   ADMIN: 'ADMIN',
 } as const;
 
+export type UserDtoStatus = typeof UserDtoStatus[keyof typeof UserDtoStatus];
+
+
+export const UserDtoStatus = {
+  PENDING: 'PENDING',
+  ACTIVE: 'ACTIVE',
+  SUSPENDED: 'SUSPENDED',
+} as const;
+
 export interface UserDto {
   id: string;
   email: string;
   name: string;
+  /** @nullable */
+  image: string | null;
   role: UserDtoRole;
+  status: UserDtoStatus;
   createdAt: string;
-}
-
-export interface AuthSessionResponseDto {
-  user: UserDto;
-  sessionToken: string;
-}
-
-export interface LoginDto {
-  email: string;
-  password: string;
 }
 
 export interface CommentDto {
@@ -140,6 +139,16 @@ export interface DeletePostResponseDto {
   id: string;
 }
 
+export type AuthControllerStartGitHubParams = {
+redirectTo?: string;
+};
+
+export type AuthControllerGithubCallbackParams = {
+error?: string;
+state?: string;
+code?: string;
+};
+
 export type PostsControllerFindPostsParams = {
 view?: PostsControllerFindPostsView;
 sort?: PostsControllerFindPostsSort;
@@ -173,63 +182,108 @@ export const PostsControllerFindPostsSort = {
   'title-asc': 'title-asc',
 } as const;
 
-export const getAuthControllerSignUpUrl = () => {
+export const getAuthControllerStartGitHubUrl = (params?: AuthControllerStartGitHubParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/auth/signup`
+  return stringifiedParams.length > 0 ? `/api/auth/github/start?${stringifiedParams}` : `/api/auth/github/start`
 }
 
 /**
- * @summary 회원가입
+ * @summary GitHub OAuth 로그인 시작
  */
-export const authControllerSignUp = async (signUpDto: SignUpDto, options?: RequestInit): Promise<AuthSessionResponseDto> => {
+export const authControllerStartGitHub = async (params?: AuthControllerStartGitHubParams, options?: RequestInit): Promise<unknown> => {
 
-  const res = await fetch(getAuthControllerSignUpUrl(),
+  const res = await fetch(getAuthControllerStartGitHubUrl(params),
   {
     ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(signUpDto)
+    method: 'GET'
+
+
   }
 )
 
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: AuthSessionResponseDto = body ? JSON.parse(body) : {}
+  const data: unknown = body ? JSON.parse(body) : {}
   return data
 }
 
 
 
-export const getAuthControllerLoginUrl = () => {
+export const getAuthControllerGithubCallbackUrl = (params?: AuthControllerGithubCallbackParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/auth/login`
+  return stringifiedParams.length > 0 ? `/api/auth/github/callback?${stringifiedParams}` : `/api/auth/github/callback`
 }
 
 /**
- * @summary 로그인
+ * @summary GitHub OAuth callback 처리
  */
-export const authControllerLogin = async (loginDto: LoginDto, options?: RequestInit): Promise<AuthSessionResponseDto> => {
+export const authControllerGithubCallback = async (params?: AuthControllerGithubCallbackParams, options?: RequestInit): Promise<unknown> => {
 
-  const res = await fetch(getAuthControllerLoginUrl(),
+  const res = await fetch(getAuthControllerGithubCallbackUrl(params),
   {
     ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(loginDto)
+    method: 'GET'
+
+
   }
 )
 
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
-  const data: AuthSessionResponseDto = body ? JSON.parse(body) : {}
+  const data: unknown = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+export const getAuthControllerCompleteSignUpUrl = () => {
+
+
+
+
+  return `/api/auth/signup/complete`
+}
+
+/**
+ * @summary OAuth 가입 완료
+ */
+export const authControllerCompleteSignUp = async (completeSignUpDto: CompleteSignUpDto, options?: RequestInit): Promise<UserDto> => {
+
+  const res = await fetch(getAuthControllerCompleteSignUpUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(completeSignUpDto)
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: UserDto = body ? JSON.parse(body) : {}
   return data
 }
 
@@ -261,6 +315,37 @@ export const authControllerMe = async ( options?: RequestInit): Promise<UserDto>
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
 
   const data: UserDto = body ? JSON.parse(body) : {}
+  return data
+}
+
+
+
+export const getAuthControllerLogoutUrl = () => {
+
+
+
+
+  return `/api/auth/logout`
+}
+
+/**
+ * @summary 로그아웃
+ */
+export const authControllerLogout = async ( options?: RequestInit): Promise<void> => {
+
+  const res = await fetch(getAuthControllerLogoutUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+)
+
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: void = body ? JSON.parse(body) : undefined
   return data
 }
 

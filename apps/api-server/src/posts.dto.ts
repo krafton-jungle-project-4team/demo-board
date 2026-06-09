@@ -1,28 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import type { PostSort, PostStatus, PostView, UserRole } from "@nmm/shared";
+import type { PostSort, PostStatus, PostView, UserRole, UserStatus } from "@nmm/shared";
 
 export const postSortValues = ["created-desc", "created-asc", "title-asc"] as const satisfies readonly PostSort[];
 export const postViewValues = ["table", "card"] as const satisfies readonly PostView[];
 export const postStatusValues = ["draft", "published"] as const satisfies readonly PostStatus[];
 export const userRoleValues = ["USER", "ADMIN"] as const satisfies readonly UserRole[];
+export const userStatusValues = ["PENDING", "ACTIVE", "SUSPENDED"] as const satisfies readonly UserStatus[];
 
-export class SignUpDto {
-  @ApiProperty({ type: String, example: "sijun@example.com" })
-  email!: string;
-
+export class CompleteSignUpDto {
   @ApiProperty({ type: String, example: "sijun" })
   name!: string;
-
-  @ApiProperty({ type: String, minLength: 8, format: "password", example: "password123" })
-  password!: string;
-}
-
-export class LoginDto {
-  @ApiProperty({ type: String, example: "sijun@example.com" })
-  email!: string;
-
-  @ApiProperty({ type: String, format: "password", example: "password123" })
-  password!: string;
 }
 
 export class UserDto {
@@ -35,19 +22,17 @@ export class UserDto {
   @ApiProperty({ type: String, example: "sijun" })
   name!: string;
 
+  @ApiProperty({ type: String, nullable: true, example: "https://avatars.githubusercontent.com/u/1?v=4" })
+  image!: string | null;
+
   @ApiProperty({ enum: userRoleValues, example: "USER" })
   role!: UserRole;
 
+  @ApiProperty({ enum: userStatusValues, example: "ACTIVE" })
+  status!: UserStatus;
+
   @ApiProperty({ type: String, example: "2026-06-09T00:00:00.000Z" })
   createdAt!: string;
-}
-
-export class AuthSessionResponseDto {
-  @ApiProperty({ type: () => UserDto })
-  user!: UserDto;
-
-  @ApiProperty({ type: String, example: "session-token" })
-  sessionToken!: string;
 }
 
 export class ListPostsQueryDto {
