@@ -9,8 +9,7 @@
     "prebuild": "npm run routes:generate",
     "build": "tsc -p tsconfig.app.json --noEmit && vite build",
     "routes:generate": "tsr generate",
-    "typecheck": "tsc -p tsconfig.app.json --noEmit",
-    "preview": "vite preview"
+    "typecheck": "tsc -p tsconfig.app.json --noEmit"
   },
   "dependencies": {
     "@nmm/shared": "file:../../packages/shared",

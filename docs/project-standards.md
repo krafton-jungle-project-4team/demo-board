@@ -13,6 +13,12 @@
 - commit 전 검증: Husky `pre-commit`에서 `lint-staged`와 `npm run verify`
 - `lint-staged`: 커밋에 포함된 파일만 Prettier/ESLint 자동 수정을 적용한다.
 
+## NPM scripts
+
+- 사용자가 실행하는 작업은 루트 `package.json` script로 제공한다.
+- workspace script는 루트 script가 호출하는 내부 도구 명령으로만 둔다.
+- 최적화보다 실행 순서와 대상이 바로 보이는 명령을 우선한다.
+
 ## 공통 규칙
 
 - ESLint가 코드 규칙과 파일/폴더명을 검증한다.
