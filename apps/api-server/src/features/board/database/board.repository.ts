@@ -1,17 +1,7 @@
 import { Injectable, type OnModuleInit } from "@nestjs/common";
 import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
 import { DataSource, In, Repository } from "typeorm";
-import {
-    CommentSchema,
-    PostSchema,
-    type Comment,
-    type CreateCommentRequest,
-    type CreatePostRequest,
-    type Post,
-    type PostTag,
-    type UpdateCommentRequest,
-    type UpdatePostRequest
-} from "@nmm/shared";
+import type { CreateCommentRequest, CreatePostRequest, UpdateCommentRequest, UpdatePostRequest } from "@nmm/shared";
 import {
     boardErrors,
     CommentEntity,
@@ -50,20 +40,26 @@ export class BoardTypeOrmRepository implements BoardRepository, OnModuleInit {
         }
     }
 
-    async listTags(): Promise<PostTag[]> {
-        return (await this.tags.find()).map((tag) => this.toExistingPostTag(tag));
+    async listTags(): Promise<PostTagEntity[]> {
+        return (await this.tags.find()).map((tag) => this.toExistingPostTagEntity(tag));
     }
 
-    async listPosts(): Promise<Post[]> {
+    async listPostTags(postId: number): Promise<PostTagEntity[]> {
+        const links = await this.postTagLinks.findBy({ postId });
+
+        return this.findTagsByIds(links.map((link) => Number(link.tagId)));
+    }
+
+    async listPosts(): Promise<PostEntity[]> {
         const posts = await this.posts.find();
 
-        return Promise.all(posts.map((post) => this.toPost(post)));
+        return posts.map((post) => this.toExistingPostEntity(post));
     }
 
-    async findPost(id: number): Promise<Post | undefined> {
+    async findPost(id: number): Promise<PostEntity | undefined> {
         const post = await this.posts.findOneBy({ id });
 
-        return post ? this.toPost(post) : undefined;
+        return post ? this.toExistingPostEntity(post) : undefined;
     }
 
     async createPost(request: CreatePostRequest, user: BoardUser) {
@@ -72,8 +68,8 @@ export class BoardTypeOrmRepository implements BoardRepository, OnModuleInit {
         return this.insertPostWithTags(request, user, tags);
     }
 
-    async savePost(post: Post, request: UpdatePostRequest) {
-        const tags = request.tagIds === undefined ? post.tags : await this.resolveTags(request.tagIds);
+    async savePost(post: PostEntity, request: UpdatePostRequest) {
+        const tags = request.tagIds === undefined ? undefined : await this.resolveTags(request.tagIds);
 
         return this.savePostWithTags(
             {
@@ -81,19 +77,18 @@ export class BoardTypeOrmRepository implements BoardRepository, OnModuleInit {
                 title: request.title ?? post.title,
                 excerpt: request.excerpt ?? post.excerpt,
                 content: request.content ?? post.content,
-                updatedAt: new Date().toISOString(),
-                tags
+                updatedAt: new Date()
             },
             tags
         );
     }
 
-    async listComments(postId: number): Promise<Comment[]> {
-        return (await this.comments.findBy({ postId })).map((comment) => this.toExistingComment(comment));
+    async listComments(postId: number): Promise<CommentEntity[]> {
+        return (await this.comments.findBy({ postId })).map((comment) => this.toExistingCommentEntity(comment));
     }
 
-    async findComment(postId: number, commentId: number): Promise<Comment | undefined> {
-        return this.toComment(
+    async findComment(postId: number, commentId: number): Promise<CommentEntity | undefined> {
+        return this.toOptionalCommentEntity(
             await this.comments.findOneBy({
                 id: commentId,
                 postId
@@ -102,26 +97,26 @@ export class BoardTypeOrmRepository implements BoardRepository, OnModuleInit {
     }
 
     async createComment(postId: number, request: CreateCommentRequest, user: BoardUser) {
-        return this.toExistingComment(await this.comments.save(this.toNewCommentEntity(postId, request, user)));
+        return this.toExistingCommentEntity(await this.comments.save(this.toNewCommentEntity(postId, request, user)));
     }
 
-    async saveComment(comment: Comment, request: UpdateCommentRequest) {
-        return this.toExistingComment(
+    async saveComment(comment: CommentEntity, request: UpdateCommentRequest) {
+        return this.toExistingCommentEntity(
             await this.comments.save(
                 this.toCommentEntity({
                     ...comment,
                     content: request.content ?? comment.content,
-                    updatedAt: new Date().toISOString()
+                    updatedAt: new Date()
                 })
             )
         );
     }
 
-    async deleteComment(comment: Comment) {
+    async deleteComment(comment: CommentEntity) {
         await this.comments.delete({ id: comment.id });
     }
 
-    async deletePostWithComments(post: Post) {
+    async deletePostWithComments(post: PostEntity) {
         await this.dataSource.transaction(async (manager) => {
             await manager.getRepository(CommentEntity).delete({ postId: post.id });
             await manager.getRepository(PostTagLinkEntity).delete({ postId: post.id });
@@ -129,12 +124,12 @@ export class BoardTypeOrmRepository implements BoardRepository, OnModuleInit {
         });
     }
 
-    private async findTagsByIds(ids: number[]): Promise<PostTag[]> {
+    private async findTagsByIds(ids: number[]): Promise<PostTagEntity[]> {
         if (ids.length === 0) {
             return [];
         }
 
-        return (await this.tags.findBy({ id: In(ids) })).map((tag) => this.toExistingPostTag(tag));
+        return (await this.tags.findBy({ id: In(ids) })).map((tag) => this.toExistingPostTagEntity(tag));
     }
 
     private async resolveTags(tagIds: number[]) {
@@ -146,31 +141,23 @@ export class BoardTypeOrmRepository implements BoardRepository, OnModuleInit {
             throw boardErrors.unknownTags();
         }
 
-        return uniqueTagIds.map((tagId) => tagById.get(tagId) as PostTag);
+        return uniqueTagIds.map((tagId) => tagById.get(tagId) as PostTagEntity);
     }
 
-    private async toPost(post: PostEntity): Promise<Post> {
-        const links = await this.postTagLinks.findBy({ postId: post.id });
-        const tags = await this.findTagsByIds(links.map((link) => Number(link.tagId)));
-
-        return this.toPostWithTags(post, tags);
-    }
-
-    private toPostWithTags(post: PostEntity, tags: PostTag[]): Post {
-        return PostSchema.parse({
+    private toExistingPostEntity(post: PostEntity): PostEntity {
+        return {
             id: Number(post.id),
             title: post.title,
             excerpt: post.excerpt,
             content: post.content,
             authorId: post.authorId,
             authorName: post.authorName,
-            createdAt: post.createdAt.toISOString(),
-            updatedAt: post.updatedAt.toISOString(),
-            tags
-        });
+            createdAt: new Date(post.createdAt),
+            updatedAt: new Date(post.updatedAt)
+        };
     }
 
-    private toPostEntity(post: Post): PostEntity {
+    private toPostEntity(post: PostEntity): PostEntity {
         return {
             id: post.id,
             title: post.title,
@@ -199,42 +186,34 @@ export class BoardTypeOrmRepository implements BoardRepository, OnModuleInit {
         };
     }
 
-    private toExistingPostTag(tag: PostTagEntity) {
+    private toExistingPostTagEntity(tag: PostTagEntity): PostTagEntity {
         return {
             id: Number(tag.id),
             name: tag.name
-        } satisfies PostTag;
+        };
     }
 
-    private toComment(comment: CommentEntity | null) {
+    private toOptionalCommentEntity(comment: CommentEntity | null) {
         if (!comment) {
             return undefined;
         }
 
-        return CommentSchema.parse({
+        return this.toExistingCommentEntity(comment);
+    }
+
+    private toExistingCommentEntity(comment: CommentEntity): CommentEntity {
+        return {
             id: Number(comment.id),
             postId: Number(comment.postId),
             content: comment.content,
             authorId: comment.authorId,
             authorName: comment.authorName,
-            createdAt: comment.createdAt.toISOString(),
-            updatedAt: comment.updatedAt.toISOString()
-        });
+            createdAt: new Date(comment.createdAt),
+            updatedAt: new Date(comment.updatedAt)
+        };
     }
 
-    private toExistingComment(comment: CommentEntity) {
-        return CommentSchema.parse({
-            id: Number(comment.id),
-            postId: Number(comment.postId),
-            content: comment.content,
-            authorId: comment.authorId,
-            authorName: comment.authorName,
-            createdAt: comment.createdAt.toISOString(),
-            updatedAt: comment.updatedAt.toISOString()
-        });
-    }
-
-    private toCommentEntity(comment: Comment): CommentEntity {
+    private toCommentEntity(comment: CommentEntity): CommentEntity {
         return {
             id: comment.id,
             postId: comment.postId,
@@ -266,7 +245,7 @@ export class BoardTypeOrmRepository implements BoardRepository, OnModuleInit {
     private async insertPostWithTags(
         request: CreatePostRequest,
         user: Pick<BoardUser, "id" | "name">,
-        tags: PostTag[],
+        tags: PostTagEntity[],
         createdAt = new Date().toISOString()
     ) {
         return this.dataSource.transaction(async (manager) => {
@@ -280,22 +259,25 @@ export class BoardTypeOrmRepository implements BoardRepository, OnModuleInit {
                 await postTagLinks.save(tags.map((tag) => ({ postId: savedPostId, tagId: tag.id })));
             }
 
-            return this.toPostWithTags(savedPost, tags);
+            return this.toExistingPostEntity(savedPost);
         });
     }
 
-    private async savePostWithTags(post: Post, tags: PostTag[]) {
+    private async savePostWithTags(post: PostEntity, tags?: PostTagEntity[]) {
         return this.dataSource.transaction(async (manager) => {
             const postTagLinks = manager.getRepository(PostTagLinkEntity);
 
             const savedPost = await manager.getRepository(PostEntity).save(this.toPostEntity(post));
-            await postTagLinks.delete({ postId: post.id });
 
-            if (tags.length > 0) {
-                await postTagLinks.save(tags.map((tag) => ({ postId: post.id, tagId: tag.id })));
+            if (tags !== undefined) {
+                await postTagLinks.delete({ postId: post.id });
+
+                if (tags.length > 0) {
+                    await postTagLinks.save(tags.map((tag) => ({ postId: post.id, tagId: tag.id })));
+                }
             }
 
-            return this.toPostWithTags(savedPost, tags);
+            return this.toExistingPostEntity(savedPost);
         });
     }
 
@@ -307,7 +289,7 @@ export class BoardTypeOrmRepository implements BoardRepository, OnModuleInit {
         }
 
         return (await this.tags.save([{ name: "react" }, { name: "nest" }, { name: "boilerplate" }])).map((tag) =>
-            this.toExistingPostTag(tag)
+            this.toExistingPostTagEntity(tag)
         );
     }
 
@@ -344,7 +326,7 @@ export class BoardTypeOrmRepository implements BoardRepository, OnModuleInit {
             }
         ];
 
-        const savedPosts: Post[] = [];
+        const savedPosts: PostEntity[] = [];
 
         for (const post of posts) {
             savedPosts.push(
@@ -371,7 +353,7 @@ export class BoardTypeOrmRepository implements BoardRepository, OnModuleInit {
         });
     }
 
-    private readTagId(tags: PostTag[], name: string) {
+    private readTagId(tags: PostTagEntity[], name: string) {
         const tag = tags.find((tag) => tag.name === name);
 
         if (!tag) {

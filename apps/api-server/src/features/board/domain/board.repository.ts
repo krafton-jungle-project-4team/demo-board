@@ -1,26 +1,22 @@
-import type {
-    Comment,
-    CreateCommentRequest,
-    CreatePostRequest,
-    Post,
-    PostTag,
-    UpdateCommentRequest,
-    UpdatePostRequest
-} from "@nmm/shared";
+import type { CreateCommentRequest, CreatePostRequest, UpdateCommentRequest, UpdatePostRequest } from "@nmm/shared";
 import type { BoardUser } from "./board.model";
+import type { CommentEntity } from "./comment.entity";
+import type { PostEntity } from "./post.entity";
+import type { PostTagEntity } from "./post-tag.entity";
 
 export const BOARD_REPOSITORY = Symbol("BOARD_REPOSITORY");
 
 export type BoardRepository = {
-    listTags(): Promise<PostTag[]>;
-    listPosts(): Promise<Post[]>;
-    findPost(id: number): Promise<Post | undefined>;
-    listComments(postId: number): Promise<Comment[]>;
-    findComment(postId: number, commentId: number): Promise<Comment | undefined>;
-    createPost(request: CreatePostRequest, user: BoardUser): Promise<Post>;
-    savePost(post: Post, request: UpdatePostRequest): Promise<Post>;
-    deletePostWithComments(post: Post): Promise<void>;
-    createComment(postId: number, request: CreateCommentRequest, user: BoardUser): Promise<Comment>;
-    saveComment(comment: Comment, request: UpdateCommentRequest): Promise<Comment>;
-    deleteComment(comment: Comment): Promise<void>;
+    listTags(): Promise<PostTagEntity[]>;
+    listPostTags(postId: number): Promise<PostTagEntity[]>;
+    listPosts(): Promise<PostEntity[]>;
+    findPost(id: number): Promise<PostEntity | undefined>;
+    listComments(postId: number): Promise<CommentEntity[]>;
+    findComment(postId: number, commentId: number): Promise<CommentEntity | undefined>;
+    createPost(request: CreatePostRequest, user: BoardUser): Promise<PostEntity>;
+    savePost(post: PostEntity, request: UpdatePostRequest): Promise<PostEntity>;
+    deletePostWithComments(post: PostEntity): Promise<void>;
+    createComment(postId: number, request: CreateCommentRequest, user: BoardUser): Promise<CommentEntity>;
+    saveComment(comment: CommentEntity, request: UpdateCommentRequest): Promise<CommentEntity>;
+    deleteComment(comment: CommentEntity): Promise<void>;
 };

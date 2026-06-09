@@ -23,7 +23,7 @@ export class BoardCommandService {
     ) {}
 
     async createPost(request: CreatePostRequest, user: BoardUser): Promise<Post> {
-        return this.boardRepository.createPost(request, user);
+        return this.boardQueryService.toPost(await this.boardRepository.createPost(request, user));
     }
 
     async updatePost(id: number, request: UpdatePostRequest, user: BoardUser): Promise<Post> {
@@ -31,7 +31,7 @@ export class BoardCommandService {
 
         this.assertOwner(post, user);
 
-        return this.boardRepository.savePost(post, request);
+        return this.boardQueryService.toPost(await this.boardRepository.savePost(post, request));
     }
 
     async deletePost(id: number, user: BoardUser): Promise<DeletePostResponse> {
@@ -46,7 +46,7 @@ export class BoardCommandService {
     async createComment(postId: number, request: CreateCommentRequest, user: BoardUser): Promise<Comment> {
         await this.boardQueryService.findExistingPost(postId);
 
-        return this.boardRepository.createComment(postId, request, user);
+        return this.boardQueryService.toComment(await this.boardRepository.createComment(postId, request, user));
     }
 
     async updateComment(
@@ -61,7 +61,7 @@ export class BoardCommandService {
 
         this.assertOwner(comment, user);
 
-        return this.boardRepository.saveComment(comment, request);
+        return this.boardQueryService.toComment(await this.boardRepository.saveComment(comment, request));
     }
 
     async deleteComment(postId: number, commentId: number, user: BoardUser): Promise<DeleteCommentResponse> {
