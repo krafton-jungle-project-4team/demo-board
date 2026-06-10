@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post as HttpPost, Query, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
 import {
     CreatePostRequestSchema,
     DeletePostResponseSchema,
@@ -33,7 +33,7 @@ export class PostsController {
         return PostSchema.parse(post);
     }
 
-    @HttpPost()
+    @Post()
     @UseGuards(ActiveUserGuard)
     async createPost(@Body() body: unknown, @CurrentAuth() claims: AuthClaims) {
         const post = await this.boardCommandService.createPost(CreatePostRequestSchema.parse(body), claims);
