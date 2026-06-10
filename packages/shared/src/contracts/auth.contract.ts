@@ -24,14 +24,20 @@ export const CompleteSignUpRequestSchema = z.object({
 
 export type CompleteSignUpRequest = z.infer<typeof CompleteSignUpRequestSchema>;
 
+export const CompleteSignUpResponseSchema = z.object({
+    userId: z.string()
+});
+
+export type CompleteSignUpResponse = z.infer<typeof CompleteSignUpResponseSchema>;
+
 export const UpdateCurrentUserRequestSchema = z.object({
     name: z.string().trim().min(1)
 });
 
 export type UpdateCurrentUserRequest = z.infer<typeof UpdateCurrentUserRequestSchema>;
 
-export const LogoutResponseSchema = z.object({
-    ok: z.boolean()
+export const UpdateCurrentUserResponseSchema = z.object({
+    userId: z.string()
 });
 
-export type LogoutResponse = z.infer<typeof LogoutResponseSchema>;
+export type UpdateCurrentUserResponse = z.infer<typeof UpdateCurrentUserResponseSchema>;

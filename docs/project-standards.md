@@ -69,6 +69,7 @@
 - TanStack Query hook은 feature 코드에서 직접 작성한다.
 - API 계약이 바뀌면 shared contract, API 서버 controller 파싱, Web HTTP 함수를 같은 작업 단위로 갱신한다.
 - JSON 성공 응답은 `{ requestId, data }`, JSON 에러 응답은 `{ requestId, error: { code, message } }`를 쓴다.
+- Command API 응답은 전체 리소스 데이터를 반환하지 않고 API별 필수 식별자를 포함한다. 추가 상태는 필요할 때만 둔다.
 - `/api/auth/*`는 Better Auth가 처리하며 표준 응답 envelope를 강제하지 않는다.
 - 앱 전용 인증 API는 `/api/account/*`에 두고 shared contract와 표준 envelope를 쓴다.
 - API 서버 앱 에러는 `app-errors.ts`에 code/message/status를 모아둔다.

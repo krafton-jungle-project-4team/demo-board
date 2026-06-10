@@ -1,11 +1,12 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from "@nestjs/common";
 import {
     CommentListResponseSchema,
-    CommentSchema,
     CreateCommentRequestSchema,
+    CreateCommentResponseSchema,
     DeleteCommentResponseSchema,
     ResourceIdSchema,
-    UpdateCommentRequestSchema
+    UpdateCommentRequestSchema,
+    UpdateCommentResponseSchema
 } from "@nmm/shared";
 import { ActiveAccountGuard, CurrentAuth, type AuthClaims } from "../../auth";
 import { BoardCommandService } from "../service/board-command.service";
@@ -29,14 +30,13 @@ export class CommentsController {
     @UseGuards(ActiveAccountGuard)
     async createComment(@Param("postId") postId: string, @Body() body: unknown, @CurrentAuth() claims: AuthClaims) {
         const parsedPostId = ResourceIdSchema.parse(postId);
-        const comment = await this.boardCommandService.createComment(
+        const response = await this.boardCommandService.createComment(
             parsedPostId,
             CreateCommentRequestSchema.parse(body),
             claims
         );
-        const response = await this.boardQueryService.findComment(parsedPostId, comment);
 
-        return CommentSchema.parse(response);
+        return CreateCommentResponseSchema.parse(response);
     }
 
     @Patch(":commentId")
@@ -49,15 +49,14 @@ export class CommentsController {
     ) {
         const parsedPostId = ResourceIdSchema.parse(postId);
         const parsedCommentId = ResourceIdSchema.parse(commentId);
-        await this.boardCommandService.updateComment(
+        const response = await this.boardCommandService.updateComment(
             parsedPostId,
             parsedCommentId,
             UpdateCommentRequestSchema.parse(body),
             claims
         );
-        const comment = await this.boardQueryService.findComment(parsedPostId, parsedCommentId);
 
-        return CommentSchema.parse(comment);
+        return UpdateCommentResponseSchema.parse(response);
     }
 
     @Delete(":commentId")

@@ -1,5 +1,11 @@
 import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
-import type { CreatePostRequest, Post, PostListResponse, UpdatePostRequest } from "@nmm/shared";
+import type {
+    CreatePostRequest,
+    CreatePostResponse,
+    PostListResponse,
+    UpdatePostRequest,
+    UpdatePostResponse
+} from "@nmm/shared";
 import {
     createPost,
     deletePost,
@@ -32,14 +38,14 @@ export function usePostDetailQuery(id: RouteResourceId) {
     });
 }
 
-export function useCreatePostMutation(options?: { onSuccess?: (post: Post) => void }) {
+export function useCreatePostMutation(options?: { onSuccess?: (response: CreatePostResponse) => void }) {
     return useMutation({
         mutationFn: (data: CreatePostRequest) => createPost(data),
         onSuccess: options?.onSuccess
     });
 }
 
-export function useUpdatePostMutation(options?: { onSuccess?: (post: Post) => void }) {
+export function useUpdatePostMutation(options?: { onSuccess?: (response: UpdatePostResponse) => void }) {
     return useMutation({
         mutationFn: ({ id, data }: { id: RouteResourceId; data: UpdatePostRequest }) => updatePost(id, data),
         onSuccess: options?.onSuccess

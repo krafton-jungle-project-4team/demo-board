@@ -3,7 +3,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@nmm/ui/components";
-import type { CreatePostRequest, Post } from "@nmm/shared";
+import type { CreatePostRequest, Post, UpdatePostResponse } from "@nmm/shared";
 import { useCurrentUserQuery } from "@/features/auth";
 import {
     PostForm,
@@ -93,13 +93,13 @@ function EditablePostEditPage({ post }: EditablePostEditPageProps) {
         [initialValues]
     );
 
-    function handleUpdatePostSuccess(updatedPost: Post) {
+    function handleUpdatePostSuccess(response: UpdatePostResponse) {
         void queryClient.invalidateQueries({ queryKey: postQueryKeys.listPrefix });
-        void queryClient.invalidateQueries({ queryKey: postQueryKeys.detail(updatedPost.id) });
+        void queryClient.invalidateQueries({ queryKey: postQueryKeys.detail(response.postId) });
         void navigate({
             to: "/posts/$postId",
             params: {
-                postId: String(updatedPost.id)
+                postId: String(response.postId)
             }
         });
     }

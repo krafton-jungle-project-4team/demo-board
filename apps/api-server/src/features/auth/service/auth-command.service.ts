@@ -1,11 +1,20 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import type { CompleteSignUpRequest, UpdateCurrentUserRequest, User } from "@nmm/shared";
+import type {
+    CompleteSignUpRequest,
+    CompleteSignUpResponse,
+    UpdateCurrentUserRequest,
+    UpdateCurrentUserResponse,
+    UserStatus
+} from "@nmm/shared";
 import { Not, Repository } from "typeorm";
 import type { AuthClaims } from "../auth.model";
 import { SessionEntity, UserEntity } from "../database";
 
-type AuthUserProfile = Pick<User, "name" | "status">;
+type AuthUserProfile = {
+    name: string | null;
+    status: UserStatus;
+};
 
 @Injectable()
 export class AuthCommandService {
@@ -14,37 +23,27 @@ export class AuthCommandService {
         @InjectRepository(SessionEntity) private readonly sessions: Repository<SessionEntity>
     ) {}
 
-    async completeSignUp(request: CompleteSignUpRequest, claims: AuthClaims): Promise<User> {
+    async completeSignUp(request: CompleteSignUpRequest, claims: AuthClaims): Promise<CompleteSignUpResponse> {
         await this.updateUserProfile(claims.userId, {
             name: request.name,
             status: "ACTIVE"
         });
         await this.deleteUserSessions(claims.userId, claims.sessionId);
 
-        return this.findUserRecord(claims.userId);
+        return { userId: claims.userId };
     }
 
-    async updateCurrentUser(request: UpdateCurrentUserRequest, claims: AuthClaims): Promise<User> {
+    async updateCurrentUser(request: UpdateCurrentUserRequest, claims: AuthClaims): Promise<UpdateCurrentUserResponse> {
         await this.updateUserProfile(claims.userId, {
             name: request.name,
             status: claims.status
         });
 
-        return this.findUserRecord(claims.userId);
-    }
-
-    private async findUserRecord(userId: string): Promise<User> {
-        const user = await this.users.findOneBy({ id: userId });
-
-        if (!user) {
-            throw new Error("Authenticated user not found.");
-        }
-
-        return UserEntity.from(user).toUser();
+        return { userId: claims.userId };
     }
 
     private async updateUserProfile(userId: string, profile: AuthUserProfile) {
-        await this.users.update(
+        const result = await this.users.update(
             { id: userId },
             {
                 name: profile.name ?? "",
@@ -52,6 +51,10 @@ export class AuthCommandService {
                 updatedAt: new Date()
             }
         );
+
+        if (result.affected === 0) {
+            throw new Error("Authenticated user not found.");
+        }
     }
 
     private async deleteUserSessions(userId: string, exceptSessionId?: string) {

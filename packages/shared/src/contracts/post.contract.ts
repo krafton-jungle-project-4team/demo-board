@@ -60,12 +60,23 @@ export const CreatePostRequestSchema = z.object({
 
 export type CreatePostRequest = z.infer<typeof CreatePostRequestSchema>;
 
+export const CreatePostResponseSchema = z.object({
+    postId: ResourceIdSchema
+});
+
+export type CreatePostResponse = z.infer<typeof CreatePostResponseSchema>;
+
 export const UpdatePostRequestSchema = CreatePostRequestSchema.partial();
 export type UpdatePostRequest = z.infer<typeof UpdatePostRequestSchema>;
 
+export const UpdatePostResponseSchema = z.object({
+    postId: ResourceIdSchema
+});
+
+export type UpdatePostResponse = z.infer<typeof UpdatePostResponseSchema>;
+
 export const DeletePostResponseSchema = z.object({
-    ok: z.boolean(),
-    id: ResourceIdSchema
+    postId: ResourceIdSchema
 });
 
 export type DeletePostResponse = z.infer<typeof DeletePostResponseSchema>;
@@ -94,12 +105,23 @@ export const CreateCommentRequestSchema = z.object({
 
 export type CreateCommentRequest = z.infer<typeof CreateCommentRequestSchema>;
 
+export const CreateCommentResponseSchema = z.object({
+    commentId: ResourceIdSchema
+});
+
+export type CreateCommentResponse = z.infer<typeof CreateCommentResponseSchema>;
+
 export const UpdateCommentRequestSchema = CreateCommentRequestSchema.partial();
 export type UpdateCommentRequest = z.infer<typeof UpdateCommentRequestSchema>;
 
+export const UpdateCommentResponseSchema = z.object({
+    commentId: ResourceIdSchema
+});
+
+export type UpdateCommentResponse = z.infer<typeof UpdateCommentResponseSchema>;
+
 export const DeleteCommentResponseSchema = z.object({
-    ok: z.boolean(),
-    id: ResourceIdSchema
+    commentId: ResourceIdSchema
 });
 
 export type DeleteCommentResponse = z.infer<typeof DeleteCommentResponseSchema>;

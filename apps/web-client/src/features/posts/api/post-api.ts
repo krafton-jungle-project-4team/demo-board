@@ -1,15 +1,18 @@
 import {
     CommentListResponseSchema,
-    CommentSchema,
     CreateCommentRequestSchema,
+    CreateCommentResponseSchema,
     CreatePostRequestSchema,
+    CreatePostResponseSchema,
     DeleteCommentResponseSchema,
     DeletePostResponseSchema,
     PostListResponseSchema,
     PostSchema,
     PostTagSchema,
     UpdateCommentRequestSchema,
+    UpdateCommentResponseSchema,
     UpdatePostRequestSchema,
+    UpdatePostResponseSchema,
     type CreateCommentRequest,
     type CreatePostRequest,
     type ListPostsQuery,
@@ -36,14 +39,14 @@ export function findPost(id: RouteResourceId, signal?: AbortSignal) {
 }
 
 export function createPost(request: CreatePostRequest) {
-    return requestApiData("posts", PostSchema, {
+    return requestApiData("posts", CreatePostResponseSchema, {
         method: "POST",
         json: CreatePostRequestSchema.parse(request)
     });
 }
 
 export function updatePost(id: RouteResourceId, request: UpdatePostRequest) {
-    return requestApiData(`posts/${encodeURIComponent(toRouteId(id))}`, PostSchema, {
+    return requestApiData(`posts/${encodeURIComponent(toRouteId(id))}`, UpdatePostResponseSchema, {
         method: "PATCH",
         json: UpdatePostRequestSchema.parse(request)
     });
@@ -66,7 +69,7 @@ export function findComments(postId: RouteResourceId, signal?: AbortSignal) {
 }
 
 export function createComment(postId: RouteResourceId, request: CreateCommentRequest) {
-    return requestApiData(`posts/${encodeURIComponent(toRouteId(postId))}/comments`, CommentSchema, {
+    return requestApiData(`posts/${encodeURIComponent(toRouteId(postId))}/comments`, CreateCommentResponseSchema, {
         method: "POST",
         json: CreateCommentRequestSchema.parse(request)
     });
@@ -75,7 +78,7 @@ export function createComment(postId: RouteResourceId, request: CreateCommentReq
 export function updateComment(postId: RouteResourceId, commentId: RouteResourceId, request: UpdateCommentRequest) {
     return requestApiData(
         `posts/${encodeURIComponent(toRouteId(postId))}/comments/${encodeURIComponent(toRouteId(commentId))}`,
-        CommentSchema,
+        UpdateCommentResponseSchema,
         {
             method: "PATCH",
             json: UpdateCommentRequestSchema.parse(request)

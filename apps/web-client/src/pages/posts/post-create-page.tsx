@@ -2,7 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@nmm/ui/components";
-import type { CreatePostRequest, Post } from "@nmm/shared";
+import type { CreatePostRequest, CreatePostResponse } from "@nmm/shared";
 import { PostForm, postQueryKeys, useCreatePostMutation } from "@/features/posts";
 import { useState } from "react";
 
@@ -21,12 +21,12 @@ export function PostCreatePage() {
         onSuccess: handleCreatePostSuccess
     });
 
-    function handleCreatePostSuccess(post: Post) {
+    function handleCreatePostSuccess(response: CreatePostResponse) {
         void queryClient.invalidateQueries({ queryKey: postQueryKeys.listPrefix });
         void navigate({
             to: "/posts/$postId",
             params: {
-                postId: String(post.id)
+                postId: String(response.postId)
             }
         });
     }

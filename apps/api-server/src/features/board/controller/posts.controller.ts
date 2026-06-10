@@ -1,12 +1,14 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from "@nestjs/common";
 import {
     CreatePostRequestSchema,
+    CreatePostResponseSchema,
     DeletePostResponseSchema,
     ListPostsQuerySchema,
     PostListResponseSchema,
     PostSchema,
     ResourceIdSchema,
-    UpdatePostRequestSchema
+    UpdatePostRequestSchema,
+    UpdatePostResponseSchema
 } from "@nmm/shared";
 import { ActiveAccountGuard, CurrentAuth, type AuthClaims } from "../../auth";
 import { BoardCommandService } from "../service/board-command.service";
@@ -36,23 +38,21 @@ export class PostsController {
     @Post()
     @UseGuards(ActiveAccountGuard)
     async createPost(@Body() body: unknown, @CurrentAuth() claims: AuthClaims) {
-        const postId = await this.boardCommandService.createPost(CreatePostRequestSchema.parse(body), claims);
-        const post = await this.boardQueryService.findPost(postId);
+        const response = await this.boardCommandService.createPost(CreatePostRequestSchema.parse(body), claims);
 
-        return PostSchema.parse(post);
+        return CreatePostResponseSchema.parse(response);
     }
 
     @Patch(":id")
     @UseGuards(ActiveAccountGuard)
     async updatePost(@Param("id") id: string, @Body() body: unknown, @CurrentAuth() claims: AuthClaims) {
-        const postId = await this.boardCommandService.updatePost(
+        const response = await this.boardCommandService.updatePost(
             ResourceIdSchema.parse(id),
             UpdatePostRequestSchema.parse(body),
             claims
         );
-        const post = await this.boardQueryService.findPost(postId);
 
-        return PostSchema.parse(post);
+        return UpdatePostResponseSchema.parse(response);
     }
 
     @Delete(":id")

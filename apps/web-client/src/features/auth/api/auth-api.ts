@@ -1,7 +1,8 @@
 import {
     CompleteSignUpRequestSchema,
-    LogoutResponseSchema,
+    CompleteSignUpResponseSchema,
     UpdateCurrentUserRequestSchema,
+    UpdateCurrentUserResponseSchema,
     UserSchema,
     type CompleteSignUpRequest,
     type UpdateCurrentUserRequest
@@ -14,14 +15,14 @@ export function getCurrentUser(signal?: AbortSignal) {
 }
 
 export function completeSignUp(request: CompleteSignUpRequest) {
-    return requestApiData("account/signup/complete", UserSchema, {
+    return requestApiData("account/signup/complete", CompleteSignUpResponseSchema, {
         method: "POST",
         json: CompleteSignUpRequestSchema.parse(request)
     });
 }
 
 export function updateCurrentUser(request: UpdateCurrentUserRequest) {
-    return requestApiData("account/me", UserSchema, {
+    return requestApiData("account/me", UpdateCurrentUserResponseSchema, {
         method: "PATCH",
         json: UpdateCurrentUserRequestSchema.parse(request)
     });
@@ -29,6 +30,4 @@ export function updateCurrentUser(request: UpdateCurrentUserRequest) {
 
 export async function logout() {
     await authClient.signOut();
-
-    return LogoutResponseSchema.parse({ ok: true });
 }
