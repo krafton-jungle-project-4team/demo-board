@@ -53,13 +53,13 @@
 ## API 계약
 
 - API 요청/응답 계약 원본은 `packages/shared/src/contracts/*.contract.ts`의 Zod schema다.
-- API 서버는 shared Zod schema로 외부 입력을 검증한다.
-- API 서버 controller는 외부 입력을 shared Zod schema로 파싱한 뒤 service에 넘긴다.
+- API 서버 controller는 외부 요청과 응답을 shared Zod schema로 파싱한다.
+- API 서버 service는 shared contract type만 사용하고 Zod schema 값을 import하지 않는다.
 - Web은 shared Zod schema로 표준 응답 envelope를 파싱하는 수동 typed HTTP 함수를 쓴다.
 - OpenAPI/Orval/generated client는 기본 API 공유 방식으로 쓰지 않는다.
 - Web feature 코드는 API 객체 형식 원본으로 shared contract를 우선 사용한다.
 - TanStack Query hook은 feature 코드에서 직접 작성한다.
-- API 계약이 바뀌면 shared contract, API 서버 검증, Web fetch 함수를 같은 작업 단위로 갱신한다.
+- API 계약이 바뀌면 shared contract, API 서버 controller 파싱, Web HTTP 함수를 같은 작업 단위로 갱신한다.
 - JSON 성공 응답은 `{ requestId, data }`, JSON 에러 응답은 `{ requestId, error: { code, message } }`를 쓴다.
 - `/api/auth/*`는 Better Auth가 처리하며 표준 응답 envelope를 강제하지 않는다.
 - 앱 전용 인증 API는 `/api/account/*`에 두고 shared contract와 표준 envelope를 쓴다.
@@ -78,6 +78,7 @@
 - API 요청/응답의 ID는 숫자로 다루고, URL 파라미터 경계에서만 문자열을 숫자로 파싱한다.
 - API 서버 feature는 `controller`, `service`, `database`를 우선 사용하고 `domain` 레이어를 두지 않는다.
 - TypeORM entity는 `database`에 둔다.
+- TypeORM entity의 DB 값 정규화와 API 객체 변환은 entity의 `from`, `to*` 메서드에 둔다.
 - service는 TypeORM repository/DataSource를 직접 주입받아 DB를 다룬다.
 - repository interface와 구현체 레이어는 두지 않는다.
 - service는 query(read only)와 command(변경 목적)를 파일 단위로 분리한다.

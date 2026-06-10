@@ -1,6 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { UserSchema } from "@nmm/shared";
 import { Repository } from "typeorm";
 import { appErrors } from "../../../app-errors";
 import { BETTER_AUTH, type BetterAuth } from "../database";
@@ -102,7 +101,7 @@ export class AuthQueryService {
     }
 
     private toUserRecord(user: UserEntity): UserRecord {
-        return UserSchema.parse({
+        return {
             id: user.id,
             email: user.email,
             name: user.name.trim() || null,
@@ -110,6 +109,6 @@ export class AuthQueryService {
             role: user.role === "ADMIN" ? "ADMIN" : "USER",
             status: this.toUserStatus(user.status),
             createdAt: user.createdAt.toISOString()
-        });
+        };
     }
 }

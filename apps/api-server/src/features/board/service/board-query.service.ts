@@ -1,18 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import {
-    CommentListResponseSchema,
-    CommentSchema,
-    PostListResponseSchema,
-    PostSchema,
-    PostTagSchema,
-    type Comment,
-    type CommentListResponse,
-    type ListPostsQuery,
-    type Post,
-    type PostListResponse,
-    type PostTag
-} from "@nmm/shared";
+import type { CommentListResponse, ListPostsQuery, Post, PostListResponse, PostTag } from "@nmm/shared";
 import { In, Repository } from "typeorm";
 import { appErrors } from "../../../app-errors";
 import { CommentEntity, PostEntity, PostTagEntity, PostTagLinkEntity } from "../database";
@@ -27,7 +15,11 @@ export class BoardQueryService {
     ) {}
 
     async findTags(): Promise<PostTag[]> {
-        return (await this.listTags()).map((tag) => this.toPostTag(tag));
+        return (await this.listTags()).map((tag) => tag.toPostTag());
+    }
+
+    async findPostTags(postId: number): Promise<PostTag[]> {
+        return (await this.listPostTags(postId)).map((tag) => tag.toPostTag());
     }
 
     async findPosts(query: ListPostsQuery): Promise<PostListResponse> {
@@ -38,28 +30,32 @@ export class BoardQueryService {
         const page = Math.min(query.page, totalPages);
         const startIndex = (page - 1) * query.pageSize;
         const items = await Promise.all(
-            sortedPosts.slice(startIndex, startIndex + query.pageSize).map((post) => this.toPost(post))
+            sortedPosts
+                .slice(startIndex, startIndex + query.pageSize)
+                .map(async (post) => post.toPost(await this.findPostTags(post.id)))
         );
 
-        return PostListResponseSchema.parse({
+        return {
             items,
             page,
             pageSize: query.pageSize,
             totalItems,
             totalPages
-        });
+        };
     }
 
     async findPost(id: number): Promise<Post> {
-        return this.toPost(await this.findExistingPost(id));
+        const post = await this.findExistingPost(id);
+
+        return post.toPost(await this.findPostTags(post.id));
     }
 
     async findComments(postId: number): Promise<CommentListResponse> {
         await this.findExistingPost(postId);
 
-        return CommentListResponseSchema.parse({
-            items: (await this.listComments(postId)).map((comment) => this.toComment(comment))
-        });
+        return {
+            items: (await this.listComments(postId)).map((comment) => comment.toComment())
+        };
     }
 
     async findExistingPost(id: number): Promise<PostEntity> {
@@ -82,34 +78,8 @@ export class BoardQueryService {
         return comment;
     }
 
-    async toPost(post: PostEntity): Promise<Post> {
-        return PostSchema.parse({
-            id: Number(post.id),
-            title: post.title,
-            excerpt: post.excerpt,
-            content: post.content,
-            authorId: post.authorId,
-            authorName: post.authorName,
-            createdAt: post.createdAt.toISOString(),
-            updatedAt: post.updatedAt.toISOString(),
-            tags: (await this.listPostTags(post.id)).map((tag) => this.toPostTag(tag))
-        });
-    }
-
-    toComment(comment: CommentEntity): Comment {
-        return CommentSchema.parse({
-            id: Number(comment.id),
-            postId: Number(comment.postId),
-            content: comment.content,
-            authorId: comment.authorId,
-            authorName: comment.authorName,
-            createdAt: comment.createdAt.toISOString(),
-            updatedAt: comment.updatedAt.toISOString()
-        });
-    }
-
     async listTags(): Promise<PostTagEntity[]> {
-        return (await this.tags.find()).map((tag) => this.toExistingPostTagEntity(tag));
+        return (await this.tags.find()).map((tag) => PostTagEntity.from(tag));
     }
 
     async listPostTags(postId: number): Promise<PostTagEntity[]> {
@@ -119,17 +89,17 @@ export class BoardQueryService {
     }
 
     async listPosts(): Promise<PostEntity[]> {
-        return (await this.posts.find()).map((post) => this.toExistingPostEntity(post));
+        return (await this.posts.find()).map((post) => PostEntity.from(post));
     }
 
     async findPostEntity(id: number): Promise<PostEntity | undefined> {
         const post = await this.posts.findOneBy({ id });
 
-        return post ? this.toExistingPostEntity(post) : undefined;
+        return post ? PostEntity.from(post) : undefined;
     }
 
     async listComments(postId: number): Promise<CommentEntity[]> {
-        return (await this.comments.findBy({ postId })).map((comment) => this.toExistingCommentEntity(comment));
+        return (await this.comments.findBy({ postId })).map((comment) => CommentEntity.from(comment));
     }
 
     async findComment(postId: number, commentId: number): Promise<CommentEntity | undefined> {
@@ -151,45 +121,6 @@ export class BoardQueryService {
         }
 
         return uniqueTagIds.map((tagId) => tagById.get(tagId) as PostTagEntity);
-    }
-
-    toExistingPostEntity(post: PostEntity): PostEntity {
-        return {
-            id: Number(post.id),
-            title: post.title,
-            excerpt: post.excerpt,
-            content: post.content,
-            authorId: post.authorId,
-            authorName: post.authorName,
-            createdAt: new Date(post.createdAt),
-            updatedAt: new Date(post.updatedAt)
-        };
-    }
-
-    toExistingPostTagEntity(tag: PostTagEntity): PostTagEntity {
-        return {
-            id: Number(tag.id),
-            name: tag.name
-        };
-    }
-
-    toExistingCommentEntity(comment: CommentEntity): CommentEntity {
-        return {
-            id: Number(comment.id),
-            postId: Number(comment.postId),
-            content: comment.content,
-            authorId: comment.authorId,
-            authorName: comment.authorName,
-            createdAt: new Date(comment.createdAt),
-            updatedAt: new Date(comment.updatedAt)
-        };
-    }
-
-    private toPostTag(tag: PostTagEntity): PostTag {
-        return PostTagSchema.parse({
-            id: Number(tag.id),
-            name: tag.name
-        });
     }
 
     private async filterPosts(posts: PostEntity[], query: ListPostsQuery) {
@@ -235,7 +166,7 @@ export class BoardQueryService {
             return [];
         }
 
-        return (await this.tags.findBy({ id: In(ids) })).map((tag) => this.toExistingPostTagEntity(tag));
+        return (await this.tags.findBy({ id: In(ids) })).map((tag) => PostTagEntity.from(tag));
     }
 
     private toOptionalCommentEntity(comment: CommentEntity | null) {
@@ -243,6 +174,6 @@ export class BoardQueryService {
             return undefined;
         }
 
-        return this.toExistingCommentEntity(comment);
+        return CommentEntity.from(comment);
     }
 }

@@ -1,8 +1,6 @@
 import { Injectable, type OnModuleInit } from "@nestjs/common";
 import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
 import {
-    DeleteCommentResponseSchema,
-    DeletePostResponseSchema,
     type Comment,
     type CreateCommentRequest,
     type CreatePostRequest,
@@ -35,15 +33,15 @@ export class BoardCommandService implements OnModuleInit {
         }
 
         const tags = await this.seedTags();
-        const posts = await this.seedPosts({
+        const postIds = await this.seedPosts({
             boilerplate: this.readTagId(tags, "boilerplate"),
             nest: this.readTagId(tags, "nest"),
             react: this.readTagId(tags, "react")
         });
-        const firstPost = posts[0];
+        const firstPostId = postIds[0];
 
-        if (firstPost) {
-            await this.seedComments(firstPost.id);
+        if (firstPostId) {
+            await this.seedComments(firstPostId);
         }
     }
 
@@ -51,7 +49,7 @@ export class BoardCommandService implements OnModuleInit {
         const user = await this.authQueryService.requireCompletedUserRecord(claims);
         const tags = await this.boardQueryService.resolveTags(request.tagIds);
 
-        return this.boardQueryService.toPost(await this.insertPostWithTags(request, user, tags));
+        return this.boardQueryService.findPost(await this.insertPostWithTags(request, user, tags));
     }
 
     async updatePost(id: number, request: UpdatePostRequest, claims: AuthClaims): Promise<Post> {
@@ -61,18 +59,13 @@ export class BoardCommandService implements OnModuleInit {
         const tags =
             request.tagIds === undefined ? undefined : await this.boardQueryService.resolveTags(request.tagIds);
 
-        return this.boardQueryService.toPost(
-            await this.savePostWithTags(
-                {
-                    ...post,
-                    title: request.title ?? post.title,
-                    excerpt: request.excerpt ?? post.excerpt,
-                    content: request.content ?? post.content,
-                    updatedAt: new Date()
-                },
-                tags
-            )
-        );
+        post.title = request.title ?? post.title;
+        post.excerpt = request.excerpt ?? post.excerpt;
+        post.content = request.content ?? post.content;
+        post.updatedAt = new Date();
+        await this.savePostWithTags(post, tags);
+
+        return this.boardQueryService.findPost(id);
     }
 
     async deletePost(id: number, claims: AuthClaims): Promise<DeletePostResponse> {
@@ -81,18 +74,25 @@ export class BoardCommandService implements OnModuleInit {
         this.assertOwner(post, claims);
         await this.deletePostWithComments(post);
 
-        return DeletePostResponseSchema.parse({ ok: true, id });
+        return { ok: true, id };
     }
 
     async createComment(postId: number, request: CreateCommentRequest, claims: AuthClaims): Promise<Comment> {
         await this.boardQueryService.findExistingPost(postId);
         const user = await this.authQueryService.requireCompletedUserRecord(claims);
-
-        return this.boardQueryService.toComment(
-            this.boardQueryService.toExistingCommentEntity(
-                await this.comments.save(this.toNewCommentEntity(postId, request, user))
-            )
+        const now = new Date();
+        const savedComment = await this.comments.save(
+            this.comments.create({
+                postId,
+                content: request.content,
+                authorId: user.id,
+                authorName: user.name,
+                createdAt: now,
+                updatedAt: now
+            })
         );
+
+        return (await this.boardQueryService.findExistingComment(postId, Number(savedComment.id))).toComment();
     }
 
     async updateComment(
@@ -107,17 +107,11 @@ export class BoardCommandService implements OnModuleInit {
 
         this.assertOwner(comment, claims);
 
-        return this.boardQueryService.toComment(
-            this.boardQueryService.toExistingCommentEntity(
-                await this.comments.save(
-                    this.toCommentEntity({
-                        ...comment,
-                        content: request.content ?? comment.content,
-                        updatedAt: new Date()
-                    })
-                )
-            )
-        );
+        comment.content = request.content ?? comment.content;
+        comment.updatedAt = new Date();
+        await this.comments.save(comment);
+
+        return (await this.boardQueryService.findExistingComment(postId, commentId)).toComment();
     }
 
     async deleteComment(postId: number, commentId: number, claims: AuthClaims): Promise<DeleteCommentResponse> {
@@ -128,7 +122,7 @@ export class BoardCommandService implements OnModuleInit {
         this.assertOwner(comment, claims);
         await this.comments.delete({ id: comment.id });
 
-        return DeleteCommentResponseSchema.parse({ ok: true, id: commentId });
+        return { ok: true, id: commentId };
     }
 
     private assertOwner(resource: { authorId: string }, claims: Pick<AuthClaims, "role" | "userId">) {
@@ -137,89 +131,40 @@ export class BoardCommandService implements OnModuleInit {
         }
     }
 
-    private toPostEntity(post: PostEntity): PostEntity {
-        return {
-            id: post.id,
-            title: post.title,
-            excerpt: post.excerpt,
-            content: post.content,
-            authorId: post.authorId,
-            authorName: post.authorName,
-            createdAt: new Date(post.createdAt),
-            updatedAt: new Date(post.updatedAt)
-        };
-    }
-
-    private toNewPostEntity(
-        request: CreatePostRequest,
-        user: Pick<CompletedUserRecord, "id" | "name">,
-        createdAt: string
-    ): Omit<PostEntity, "id"> {
-        return {
-            title: request.title,
-            excerpt: request.excerpt,
-            content: request.content,
-            authorId: user.id,
-            authorName: user.name,
-            createdAt: new Date(createdAt),
-            updatedAt: new Date(createdAt)
-        };
-    }
-
-    private toCommentEntity(comment: CommentEntity): CommentEntity {
-        return {
-            id: comment.id,
-            postId: comment.postId,
-            content: comment.content,
-            authorId: comment.authorId,
-            authorName: comment.authorName,
-            createdAt: new Date(comment.createdAt),
-            updatedAt: new Date(comment.updatedAt)
-        };
-    }
-
-    private toNewCommentEntity(
-        postId: number,
-        request: CreateCommentRequest,
-        user: Pick<CompletedUserRecord, "id" | "name">
-    ): Omit<CommentEntity, "id"> {
-        const now = new Date();
-
-        return {
-            postId,
-            content: request.content,
-            authorId: user.id,
-            authorName: user.name,
-            createdAt: now,
-            updatedAt: now
-        };
-    }
-
     private async insertPostWithTags(
         request: CreatePostRequest,
         user: Pick<CompletedUserRecord, "id" | "name">,
         tags: PostTagEntity[],
         createdAt = new Date().toISOString()
-    ) {
+    ): Promise<number> {
         return this.dataSource.transaction(async (manager) => {
             const postTagLinks = manager.getRepository(PostTagLinkEntity);
-            const savedPost = await manager
-                .getRepository(PostEntity)
-                .save(this.toNewPostEntity(request, user, createdAt));
+            const savedPost = await manager.getRepository(PostEntity).save(
+                manager.getRepository(PostEntity).create({
+                    title: request.title,
+                    excerpt: request.excerpt,
+                    content: request.content,
+                    authorId: user.id,
+                    authorName: user.name,
+                    createdAt: new Date(createdAt),
+                    updatedAt: new Date(createdAt)
+                })
+            );
             const savedPostId = Number(savedPost.id);
 
             if (tags.length > 0) {
                 await postTagLinks.save(tags.map((tag) => ({ postId: savedPostId, tagId: tag.id })));
             }
 
-            return this.boardQueryService.toExistingPostEntity(savedPost);
+            return savedPostId;
         });
     }
 
     private async savePostWithTags(post: PostEntity, tags?: PostTagEntity[]) {
-        return this.dataSource.transaction(async (manager) => {
+        await this.dataSource.transaction(async (manager) => {
             const postTagLinks = manager.getRepository(PostTagLinkEntity);
-            const savedPost = await manager.getRepository(PostEntity).save(this.toPostEntity(post));
+
+            await manager.getRepository(PostEntity).save(post);
 
             if (tags !== undefined) {
                 await postTagLinks.delete({ postId: post.id });
@@ -228,8 +173,6 @@ export class BoardCommandService implements OnModuleInit {
                     await postTagLinks.save(tags.map((tag) => ({ postId: post.id, tagId: tag.id })));
                 }
             }
-
-            return this.boardQueryService.toExistingPostEntity(savedPost);
         });
     }
 
@@ -249,7 +192,7 @@ export class BoardCommandService implements OnModuleInit {
         }
 
         return (await this.tags.save([{ name: "react" }, { name: "nest" }, { name: "boilerplate" }])).map((tag) =>
-            this.boardQueryService.toExistingPostTagEntity(tag)
+            PostTagEntity.from(tag)
         );
     }
 
@@ -286,10 +229,10 @@ export class BoardCommandService implements OnModuleInit {
             }
         ];
 
-        const savedPosts: PostEntity[] = [];
+        const savedPostIds: number[] = [];
 
         for (const post of posts) {
-            savedPosts.push(
+            savedPostIds.push(
                 await this.insertPostWithTags(
                     post.request,
                     user,
@@ -299,7 +242,7 @@ export class BoardCommandService implements OnModuleInit {
             );
         }
 
-        return savedPosts;
+        return savedPostIds;
     }
 
     private async seedComments(postId: number) {

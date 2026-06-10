@@ -1,5 +1,12 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from "@nestjs/common";
-import { CreateCommentRequestSchema, ResourceIdSchema, UpdateCommentRequestSchema } from "@nmm/shared";
+import {
+    CommentListResponseSchema,
+    CommentSchema,
+    CreateCommentRequestSchema,
+    DeleteCommentResponseSchema,
+    ResourceIdSchema,
+    UpdateCommentRequestSchema
+} from "@nmm/shared";
 import { ActiveUserGuard, CurrentAuth, type AuthClaims } from "../../auth";
 import { BoardCommandService } from "../service/board-command.service";
 import { BoardQueryService } from "../service/board-query.service";
@@ -13,17 +20,21 @@ export class CommentsController {
 
     @Get()
     async findComments(@Param("postId") postId: string) {
-        return this.boardQueryService.findComments(ResourceIdSchema.parse(postId));
+        const response = await this.boardQueryService.findComments(ResourceIdSchema.parse(postId));
+
+        return CommentListResponseSchema.parse(response);
     }
 
     @Post()
     @UseGuards(ActiveUserGuard)
     async createComment(@Param("postId") postId: string, @Body() body: unknown, @CurrentAuth() claims: AuthClaims) {
-        return this.boardCommandService.createComment(
+        const comment = await this.boardCommandService.createComment(
             ResourceIdSchema.parse(postId),
             CreateCommentRequestSchema.parse(body),
             claims
         );
+
+        return CommentSchema.parse(comment);
     }
 
     @Patch(":commentId")
@@ -34,12 +45,14 @@ export class CommentsController {
         @Body() body: unknown,
         @CurrentAuth() claims: AuthClaims
     ) {
-        return this.boardCommandService.updateComment(
+        const comment = await this.boardCommandService.updateComment(
             ResourceIdSchema.parse(postId),
             ResourceIdSchema.parse(commentId),
             UpdateCommentRequestSchema.parse(body),
             claims
         );
+
+        return CommentSchema.parse(comment);
     }
 
     @Delete(":commentId")
@@ -49,10 +62,12 @@ export class CommentsController {
         @Param("commentId") commentId: string,
         @CurrentAuth() claims: AuthClaims
     ) {
-        return this.boardCommandService.deleteComment(
+        const response = await this.boardCommandService.deleteComment(
             ResourceIdSchema.parse(postId),
             ResourceIdSchema.parse(commentId),
             claims
         );
+
+        return DeleteCommentResponseSchema.parse(response);
     }
 }

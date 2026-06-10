@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, Patch, Post, UseGuards } from "@nestjs/common";
-import { CompleteSignUpRequestSchema, UpdateCurrentUserRequestSchema, type User } from "@nmm/shared";
+import { CompleteSignUpRequestSchema, UpdateCurrentUserRequestSchema, UserSchema, type User } from "@nmm/shared";
 import type { AuthClaims } from "../auth.model";
 import { AuthCommandService } from "../service/auth-command.service";
 import { AuthQueryService } from "../service/auth-query.service";
@@ -18,18 +18,27 @@ export class AuthController {
     @HttpCode(200)
     @UseGuards(SessionUserGuard)
     async completeSignUp(@Body() body: unknown, @CurrentAuth() claims: AuthClaims) {
-        return this.authCommandService.completeSignUp(CompleteSignUpRequestSchema.parse(body), claims);
+        const user = await this.authCommandService.completeSignUp(CompleteSignUpRequestSchema.parse(body), claims);
+
+        return UserSchema.parse(user);
     }
 
     @Get("me")
     @UseGuards(SessionUserGuard)
     async me(@CurrentAuth() claims: AuthClaims): Promise<User> {
-        return this.authQueryService.findUserRecord(claims);
+        const user = await this.authQueryService.findUserRecord(claims);
+
+        return UserSchema.parse(user);
     }
 
     @Patch("me")
     @UseGuards(ActiveUserGuard)
     async updateMe(@Body() body: unknown, @CurrentAuth() claims: AuthClaims) {
-        return this.authCommandService.updateCurrentUser(UpdateCurrentUserRequestSchema.parse(body), claims);
+        const user = await this.authCommandService.updateCurrentUser(
+            UpdateCurrentUserRequestSchema.parse(body),
+            claims
+        );
+
+        return UserSchema.parse(user);
     }
 }

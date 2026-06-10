@@ -1,5 +1,13 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post as HttpPost, Query, UseGuards } from "@nestjs/common";
-import { CreatePostRequestSchema, ListPostsQuerySchema, ResourceIdSchema, UpdatePostRequestSchema } from "@nmm/shared";
+import {
+    CreatePostRequestSchema,
+    DeletePostResponseSchema,
+    ListPostsQuerySchema,
+    PostListResponseSchema,
+    PostSchema,
+    ResourceIdSchema,
+    UpdatePostRequestSchema
+} from "@nmm/shared";
 import { ActiveUserGuard, CurrentAuth, type AuthClaims } from "../../auth";
 import { BoardCommandService } from "../service/board-command.service";
 import { BoardQueryService } from "../service/board-query.service";
@@ -13,33 +21,43 @@ export class PostsController {
 
     @Get()
     async findPosts(@Query() query: unknown) {
-        return this.boardQueryService.findPosts(ListPostsQuerySchema.parse(query));
+        const response = await this.boardQueryService.findPosts(ListPostsQuerySchema.parse(query));
+
+        return PostListResponseSchema.parse(response);
     }
 
     @Get(":id")
     async findPost(@Param("id") id: string) {
-        return this.boardQueryService.findPost(ResourceIdSchema.parse(id));
+        const post = await this.boardQueryService.findPost(ResourceIdSchema.parse(id));
+
+        return PostSchema.parse(post);
     }
 
     @HttpPost()
     @UseGuards(ActiveUserGuard)
     async createPost(@Body() body: unknown, @CurrentAuth() claims: AuthClaims) {
-        return this.boardCommandService.createPost(CreatePostRequestSchema.parse(body), claims);
+        const post = await this.boardCommandService.createPost(CreatePostRequestSchema.parse(body), claims);
+
+        return PostSchema.parse(post);
     }
 
     @Patch(":id")
     @UseGuards(ActiveUserGuard)
     async updatePost(@Param("id") id: string, @Body() body: unknown, @CurrentAuth() claims: AuthClaims) {
-        return this.boardCommandService.updatePost(
+        const post = await this.boardCommandService.updatePost(
             ResourceIdSchema.parse(id),
             UpdatePostRequestSchema.parse(body),
             claims
         );
+
+        return PostSchema.parse(post);
     }
 
     @Delete(":id")
     @UseGuards(ActiveUserGuard)
     async deletePost(@Param("id") id: string, @CurrentAuth() claims: AuthClaims) {
-        return this.boardCommandService.deletePost(ResourceIdSchema.parse(id), claims);
+        const response = await this.boardCommandService.deletePost(ResourceIdSchema.parse(id), claims);
+
+        return DeletePostResponseSchema.parse(response);
     }
 }

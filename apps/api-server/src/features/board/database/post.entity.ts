@@ -1,3 +1,4 @@
+import type { Post, PostTag } from "@nmm/shared";
 import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity("posts")
@@ -25,4 +26,31 @@ export class PostEntity {
 
     @Column({ name: "updated_at", type: "timestamptz" })
     updatedAt!: Date;
+
+    static from(post: PostEntity): PostEntity {
+        return Object.assign(new PostEntity(), {
+            id: Number(post.id),
+            title: post.title,
+            excerpt: post.excerpt,
+            content: post.content,
+            authorId: post.authorId,
+            authorName: post.authorName,
+            createdAt: new Date(post.createdAt),
+            updatedAt: new Date(post.updatedAt)
+        });
+    }
+
+    toPost(tags: PostTag[]): Post {
+        return {
+            id: Number(this.id),
+            title: this.title,
+            excerpt: this.excerpt,
+            content: this.content,
+            authorId: this.authorId,
+            authorName: this.authorName,
+            createdAt: new Date(this.createdAt).toISOString(),
+            updatedAt: new Date(this.updatedAt).toISOString(),
+            tags
+        };
+    }
 }

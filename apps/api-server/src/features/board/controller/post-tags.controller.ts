@@ -1,4 +1,5 @@
 import { Controller, Get } from "@nestjs/common";
+import { PostTagSchema } from "@nmm/shared";
 import { BoardQueryService } from "../service/board-query.service";
 
 @Controller("post-tags")
@@ -7,6 +8,8 @@ export class PostTagsController {
 
     @Get()
     async findTags() {
-        return this.boardQueryService.findTags();
+        const tags = await this.boardQueryService.findTags();
+
+        return PostTagSchema.array().parse(tags);
     }
 }
