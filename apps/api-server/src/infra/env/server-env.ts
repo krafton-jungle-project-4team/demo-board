@@ -16,10 +16,6 @@ export type ServerEnv = {
     githubOAuth: GitHubOAuthEnv;
 };
 
-loadServerEnv();
-
-export const serverEnv: ServerEnv = createServerEnv();
-
 const RequiredStringSchema = z.string().min(1);
 const NumberEnvSchema = RequiredStringSchema.transform(Number).pipe(z.number().finite());
 const BooleanEnvSchema = z.stringbool({ truthy: ["true"], falsy: ["false"], case: "sensitive" });
@@ -76,3 +72,7 @@ function createServerEnv(): ServerEnv {
         }
     };
 }
+
+loadServerEnv();
+
+export const serverEnv: ServerEnv = createServerEnv();

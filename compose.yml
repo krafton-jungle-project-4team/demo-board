@@ -26,7 +26,7 @@ services:
             target: development
         image: namanmu-api-server:dev
         container_name: namanmu-api-server
-        command: sh -c "npm run build -w @nmm/shared && cd apps/api-server && npx nest start --watch"
+        command: sh -c "HUSKY=0 npm ci && npm run build -w @nmm/shared && cd apps/api-server && npx nest start --watch"
         depends_on:
             postgres:
                 condition: service_healthy
