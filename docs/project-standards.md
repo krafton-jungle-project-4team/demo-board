@@ -17,8 +17,10 @@
 - 사용자가 실행하는 작업은 루트 `package.json` script로 제공한다.
 - workspace script는 루트 script가 호출하는 내부 도구 명령으로만 둔다.
 - 최적화보다 실행 순서와 대상이 바로 보이는 명령을 우선한다.
-- `npm run dev`는 웹 개발 서버만 실행한다.
-- API 서버와 DB가 필요하면 `npm run dev:api` 또는 `npm run dev:all`을 실행한다.
+- `npm run dev`와 `npm run dev:all`은 웹과 API 서버를 함께 실행한다.
+- `npm run dev:web`은 웹 개발 서버만 실행한다.
+- `npm run dev:api`는 API 서버만 실행하며 Postgres를 자동으로 시작하지 않는다.
+- 로컬 Postgres가 필요하면 `npm run dev:db`로 명시적으로 시작한다.
 
 ## 공통 규칙
 

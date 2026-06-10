@@ -27,9 +27,6 @@ services:
         image: namanmu-api-server:dev
         container_name: namanmu-api-server
         command: sh apps/api-server/scripts/dev-entrypoint.sh
-        depends_on:
-            postgres:
-                condition: service_healthy
         env_file:
             - apps/api-server/.env
         environment:
