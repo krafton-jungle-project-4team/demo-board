@@ -1,5 +1,5 @@
 import type { ApiRequest } from "../../../infra/http";
-import type { AuthClaims } from "../domain";
+import type { AuthClaims } from "../auth.model";
 import type { AuthRequestContext } from "../service/auth-query.service";
 
 type HttpHeaderValue = string | string[] | undefined;

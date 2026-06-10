@@ -1,5 +1,5 @@
-import { Column, Entity, PrimaryColumn } from "typeorm";
 import type { UserRole, UserStatus } from "@nmm/shared";
+import { Column, Entity, PrimaryColumn } from "typeorm";
 
 @Entity("user")
 export class UserEntity {

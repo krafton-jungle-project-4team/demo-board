@@ -1,13 +1,11 @@
 import { Inject, Injectable } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { UserSchema } from "@nmm/shared";
+import { Repository } from "typeorm";
+import { appErrors } from "../../../app-errors";
 import { BETTER_AUTH, type BetterAuth } from "../database";
-import {
-    AUTH_REPOSITORY,
-    authErrors,
-    type AuthClaims,
-    type AuthRepository,
-    type CompletedUserRecord,
-    type UserRecord
-} from "../domain";
+import { UserEntity } from "../database/user.entity";
+import type { AuthClaims, CompletedUserRecord, UserRecord } from "../auth.model";
 
 export type AuthRequestContext = {
     authorization?: string;
@@ -19,7 +17,7 @@ export type AuthRequestContext = {
 export class AuthQueryService {
     constructor(
         @Inject(BETTER_AUTH) private readonly auth: BetterAuth,
-        @Inject(AUTH_REPOSITORY) private readonly authRepository: AuthRepository
+        @InjectRepository(UserEntity) private readonly users: Repository<UserEntity>
     ) {}
 
     async requireAuthClaims(context: AuthRequestContext): Promise<AuthClaims> {
@@ -32,25 +30,25 @@ export class AuthQueryService {
         const claims = session ? this.toAuthClaims(session) : undefined;
 
         if (!claims) {
-            throw authErrors.sessionRequired();
+            throw appErrors.authSessionRequired();
         }
 
         if (claims.status === "SUSPENDED") {
-            throw authErrors.userSuspended();
+            throw appErrors.authUserSuspended();
         }
 
         if (claims.status === "PENDING" && !context.allowPending) {
-            throw authErrors.signupRequired();
+            throw appErrors.authSignupRequired();
         }
 
         return claims;
     }
 
     async findUserRecord(claims: AuthClaims): Promise<UserRecord> {
-        const user = await this.authRepository.findUser(claims.userId);
+        const user = await this.findUser(claims.userId);
 
         if (!user) {
-            throw authErrors.sessionRequired();
+            throw appErrors.authSessionRequired();
         }
 
         return user;
@@ -60,7 +58,7 @@ export class AuthQueryService {
         const user = await this.findUserRecord(claims);
 
         if (user.status !== "ACTIVE" || !user.name) {
-            throw authErrors.signupRequired();
+            throw appErrors.authSignupRequired();
         }
 
         return user as CompletedUserRecord;
@@ -95,5 +93,23 @@ export class AuthQueryService {
         }
 
         return "PENDING";
+    }
+
+    private async findUser(id: string): Promise<UserRecord | undefined> {
+        const user = await this.users.findOneBy({ id });
+
+        return user ? this.toUserRecord(user) : undefined;
+    }
+
+    private toUserRecord(user: UserEntity): UserRecord {
+        return UserSchema.parse({
+            id: user.id,
+            email: user.email,
+            name: user.name.trim() || null,
+            image: user.image,
+            role: user.role === "ADMIN" ? "ADMIN" : "USER",
+            status: this.toUserStatus(user.status),
+            createdAt: user.createdAt.toISOString()
+        });
     }
 }

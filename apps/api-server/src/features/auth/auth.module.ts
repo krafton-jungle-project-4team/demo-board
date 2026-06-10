@@ -4,8 +4,14 @@ import { DataSource } from "typeorm";
 import { ActiveUserGuard } from "./controller/active-user.guard";
 import { AuthController } from "./controller/auth.controller";
 import { SessionUserGuard } from "./controller/session-user.guard";
-import { AuthTypeOrmRepository, BETTER_AUTH, createBetterAuth } from "./database";
-import { AccountEntity, AUTH_REPOSITORY, SessionEntity, UserEntity, VerificationEntity } from "./domain";
+import {
+    AccountEntity,
+    BETTER_AUTH,
+    createBetterAuth,
+    SessionEntity,
+    UserEntity,
+    VerificationEntity
+} from "./database";
 import { AuthCommandService } from "./service/auth-command.service";
 import { AuthQueryService } from "./service/auth-query.service";
 
@@ -17,11 +23,6 @@ import { AuthQueryService } from "./service/auth-query.service";
             provide: BETTER_AUTH,
             useFactory: createBetterAuth,
             inject: [DataSource]
-        },
-        AuthTypeOrmRepository,
-        {
-            provide: AUTH_REPOSITORY,
-            useExisting: AuthTypeOrmRepository
         },
         AuthCommandService,
         AuthQueryService,

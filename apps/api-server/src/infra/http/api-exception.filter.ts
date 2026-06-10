@@ -1,14 +1,12 @@
 import { ArgumentsHost, Catch, HttpException, HttpStatus, type ExceptionFilter } from "@nestjs/common";
-import { DomainError } from "../../core/domain";
+import type { AppErrorBody } from "../../app-errors";
 import { getRequestId, type ApiErrorResponse, type ApiRequest, type ApiResponse } from "./api-response";
 
-export type HttpDomainError = {
+type HttpApiError = {
     statusCode: number;
     code: string;
     message: string;
 };
-
-export type DomainErrorHttpMapper = (error: DomainError) => HttpDomainError | undefined;
 
 type WritableApiResponse = ApiResponse & {
     headersSent?: boolean;
@@ -18,8 +16,6 @@ type WritableApiResponse = ApiResponse & {
 
 @Catch()
 export class ApiExceptionFilter implements ExceptionFilter {
-    constructor(private readonly mapDomainError: DomainErrorHttpMapper) {}
-
     catch(exception: unknown, host: ArgumentsHost) {
         const http = host.switchToHttp();
         const request = http.getRequest<ApiRequest>();
@@ -41,17 +37,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
         });
     }
 
-    private toHttpError(exception: unknown): HttpDomainError {
-        if (exception instanceof DomainError) {
-            return (
-                this.mapDomainError(exception) ?? {
-                    statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
-                    code: "UNKNOWN_DOMAIN_ERROR",
-                    message: exception.message
-                }
-            );
-        }
-
+    private toHttpError(exception: unknown): HttpApiError {
         if (this.isValidationError(exception)) {
             return {
                 statusCode: HttpStatus.BAD_REQUEST,
@@ -61,6 +47,16 @@ export class ApiExceptionFilter implements ExceptionFilter {
         }
 
         if (exception instanceof HttpException) {
+            const appError = this.readAppErrorBody(exception.getResponse());
+
+            if (appError) {
+                return {
+                    statusCode: exception.getStatus(),
+                    code: appError.code,
+                    message: appError.message
+                };
+            }
+
             return {
                 statusCode: exception.getStatus(),
                 code: "HTTP_ERROR",
@@ -99,5 +95,22 @@ export class ApiExceptionFilter implements ExceptionFilter {
         }
 
         return exception.message || "요청을 처리할 수 없습니다.";
+    }
+
+    private readAppErrorBody(response: unknown): AppErrorBody | undefined {
+        if (!response || typeof response !== "object" || !("code" in response) || !("message" in response)) {
+            return undefined;
+        }
+
+        const body = response as { code?: unknown; message?: unknown };
+
+        if (typeof body.code !== "string" || typeof body.message !== "string") {
+            return undefined;
+        }
+
+        return {
+            code: body.code as AppErrorBody["code"],
+            message: body.message
+        };
     }
 }

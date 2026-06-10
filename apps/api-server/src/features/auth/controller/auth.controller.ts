@@ -1,6 +1,6 @@
 import { Body, Controller, Get, HttpCode, Patch, Post, UseGuards } from "@nestjs/common";
 import { CompleteSignUpRequestSchema, UpdateCurrentUserRequestSchema, type User } from "@nmm/shared";
-import type { AuthClaims } from "../domain";
+import type { AuthClaims } from "../auth.model";
 import { AuthCommandService } from "../service/auth-command.service";
 import { AuthQueryService } from "../service/auth-query.service";
 import { ActiveUserGuard } from "./active-user.guard";

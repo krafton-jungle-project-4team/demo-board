@@ -63,7 +63,7 @@
 - JSON 성공 응답은 `{ requestId, data }`, JSON 에러 응답은 `{ requestId, error: { code, message } }`를 쓴다.
 - `/api/auth/*`는 Better Auth가 처리하며 표준 응답 envelope를 강제하지 않는다.
 - 앱 전용 인증 API는 `/api/account/*`에 두고 shared contract와 표준 envelope를 쓴다.
-- 도메인 오류는 code/message만 관리하고, HTTP status 변환은 controller/web server boundary에서 처리한다.
+- API 서버 앱 에러는 `app-errors.ts`에 code/message/status를 모아둔다.
 - API 서버 env 파일은 `apps/api-server/.env`로 고정하고, 없으면 서버 시작이 실패한다.
 - env 값은 기본값 없이 `apps/api-server/.env`에서 읽어 `serverEnv` 전역 객체로 생성한다.
 - Docker Compose는 `npm run dev:api`의 `--env-file apps/api-server/.env`로 env 값을 주입한다.
@@ -76,13 +76,12 @@
 - 사용자 `role` 또는 `status` 변경은 service가 해당 사용자의 기존 세션을 만료한다.
 - 게시글/댓글/태그처럼 생성되는 리소스 ID는 DB `bigint` auto-increment를 사용하고 앱 코드에서 직접 만들지 않는다.
 - API 요청/응답의 ID는 숫자로 다루고, URL 파라미터 경계에서만 문자열을 숫자로 파싱한다.
-- API 서버 feature는 `controller`, `service`, `database`를 우선 사용한다.
-- API 서버 feature의 `domain`은 앱 도메인 타입, 오류, repository 계약, TypeORM entity를 둔다.
-- TypeORM repository 구현체와 외부 adapter 연결은 `database`에 둔다.
-- 도메인 저장소 계약은 repository로 부르고, TypeORM repository class는 그 구현체로 둔다.
+- API 서버 feature는 `controller`, `service`, `database`를 우선 사용하고 `domain` 레이어를 두지 않는다.
+- TypeORM entity는 `database`에 둔다.
+- service는 TypeORM repository/DataSource를 직접 주입받아 DB를 다룬다.
+- repository interface와 구현체 레이어는 두지 않는다.
 - service는 query(read only)와 command(변경 목적)를 파일 단위로 분리한다.
 - API 서버 공통 순수 코드는 `core`, 전역 인프라/프레임워크 코드는 `infra`에 둔다.
-- 도메인 에러 정의는 `core/domain`의 공통 타입과 헬퍼로 만든다.
 
 ## TypeScript 설정
 

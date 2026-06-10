@@ -5,4 +5,4 @@ export { SessionUserGuard } from "./controller/session-user.guard";
 export { BETTER_AUTH, type BetterAuth } from "./database";
 export { AuthCommandService } from "./service/auth-command.service";
 export { AuthQueryService, type AuthRequestContext } from "./service/auth-query.service";
-export type { AuthClaims, CompletedUserRecord, UserRecord } from "./domain";
+export type { AuthClaims, CompletedUserRecord, UserRecord } from "./auth.model";

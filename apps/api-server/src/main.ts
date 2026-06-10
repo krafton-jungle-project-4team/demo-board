@@ -3,7 +3,6 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 import { serverEnv } from "./infra/env";
 import { ApiExceptionFilter, ApiResponseInterceptor } from "./infra/http";
 import { AppModule } from "./app.module";
-import { mapDomainErrorToHttp } from "./app-http-error.mapper";
 import { BETTER_AUTH, type BetterAuth } from "./features/auth";
 
 async function bootstrap() {
@@ -20,7 +19,7 @@ async function bootstrap() {
     app.useBodyParser("urlencoded", { extended: true });
 
     app.setGlobalPrefix("api");
-    app.useGlobalFilters(new ApiExceptionFilter(mapDomainErrorToHttp));
+    app.useGlobalFilters(new ApiExceptionFilter());
     app.useGlobalInterceptors(new ApiResponseInterceptor());
 
     await app.listen(serverEnv.app.port);
