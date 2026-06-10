@@ -55,7 +55,7 @@
 - API 요청/응답 계약 원본은 `packages/shared/src/contracts/*.contract.ts`의 Zod schema다.
 - API 서버는 shared Zod schema로 외부 입력을 검증한다.
 - API 서버 controller는 외부 입력을 shared Zod schema로 파싱한 뒤 service에 넘긴다.
-- Web은 shared Zod schema로 표준 응답 envelope를 파싱하는 수동 typed fetch 함수를 쓴다.
+- Web은 shared Zod schema로 표준 응답 envelope를 파싱하는 수동 typed HTTP 함수를 쓴다.
 - OpenAPI/Orval/generated client는 기본 API 공유 방식으로 쓰지 않는다.
 - Web feature 코드는 API 객체 형식 원본으로 shared contract를 우선 사용한다.
 - TanStack Query hook은 feature 코드에서 직접 작성한다.

@@ -10,20 +10,20 @@ import { requestApiData } from "@/shared/api/http-client";
 import { authClient } from "./auth-client";
 
 export function getCurrentUser(signal?: AbortSignal) {
-    return requestApiData("/api/account/me", UserSchema, { signal });
+    return requestApiData("account/me", UserSchema, { signal });
 }
 
 export function completeSignUp(request: CompleteSignUpRequest) {
-    return requestApiData("/api/account/signup/complete", UserSchema, {
+    return requestApiData("account/signup/complete", UserSchema, {
         method: "POST",
-        body: CompleteSignUpRequestSchema.parse(request)
+        json: CompleteSignUpRequestSchema.parse(request)
     });
 }
 
 export function updateCurrentUser(request: UpdateCurrentUserRequest) {
-    return requestApiData("/api/account/me", UserSchema, {
+    return requestApiData("account/me", UserSchema, {
         method: "PATCH",
-        body: UpdateCurrentUserRequestSchema.parse(request)
+        json: UpdateCurrentUserRequestSchema.parse(request)
     });
 }
 
