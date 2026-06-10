@@ -74,7 +74,9 @@
 - Command API 응답은 전체 리소스 데이터를 반환하지 않고 API별 필수 식별자를 포함한다. 추가 상태는 필요할 때만 둔다.
 - `/api/auth/*`는 Better Auth가 처리하며 표준 응답 envelope를 강제하지 않는다.
 - 앱 전용 인증 API는 `/api/account/*`에 두고 shared contract와 표준 envelope를 쓴다.
-- API 서버 앱 에러는 `app-errors.ts`에 code/message/status를 모아둔다.
+- API 서버 전역 에러 코드는 `app-errors.ts`에 `DomainError` 타입과 생성 함수만 둔다.
+- 도메인별 에러 code/message/status는 해당 feature 내부에 두고 feature index로 export하지 않는다.
+- 전역 exception filter는 `DomainError`를 `{ requestId, error: { code, message } }`로 변환한다.
 - API 서버 env 파일은 `apps/api-server/.env`로 고정하고, 없으면 서버 시작이 실패한다.
 - env 값은 기본값 없이 `apps/api-server/.env`에서 읽어 `serverEnv` 전역 객체로 생성한다.
 - Docker Compose는 `npm run dev:api`의 `--env-file apps/api-server/.env`로 env 값을 주입한다.

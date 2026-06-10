@@ -2,9 +2,9 @@ import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import type { Comment, CommentListResponse, ListPostsQuery, Post, PostListResponse, PostTag } from "@nmm/shared";
 import { In, Repository } from "typeorm";
-import { appErrors } from "../../../app-errors";
 import { ASSERT_THROW } from "../../../core/assert";
 import { UserEntity } from "../../auth/database";
+import { boardErrors } from "../board-errors";
 import { CommentEntity, PostEntity, PostTagEntity, PostTagLinkEntity } from "../database";
 
 @Injectable()
@@ -95,7 +95,7 @@ export class BoardQueryService {
         const post = await this.posts.findOneBy({ id });
 
         if (!post) {
-            throw appErrors.boardPostNotFound();
+            throw boardErrors.postNotFound();
         }
 
         const author = users.find((user) => user.id === post.authorId);
@@ -115,7 +115,7 @@ export class BoardQueryService {
         const post = await this.posts.findOneBy({ id: postId });
 
         if (!post) {
-            throw appErrors.boardPostNotFound();
+            throw boardErrors.postNotFound();
         }
 
         const comment = await this.comments.findOneBy({
@@ -124,7 +124,7 @@ export class BoardQueryService {
         });
 
         if (!comment) {
-            throw appErrors.boardCommentNotFound();
+            throw boardErrors.commentNotFound();
         }
 
         const author = users.find((user) => user.id === comment.authorId);
@@ -140,7 +140,7 @@ export class BoardQueryService {
         const post = await this.posts.findOneBy({ id: postId });
 
         if (!post) {
-            throw appErrors.boardPostNotFound();
+            throw boardErrors.postNotFound();
         }
 
         const comments = await this.comments.findBy({ postId });

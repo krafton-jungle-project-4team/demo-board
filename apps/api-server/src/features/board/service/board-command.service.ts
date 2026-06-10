@@ -13,8 +13,8 @@ import {
     type UpdatePostResponse
 } from "@nmm/shared";
 import { DataSource, In, Repository } from "typeorm";
-import { appErrors } from "../../../app-errors";
 import type { AuthClaims } from "../../auth/auth.model";
+import { boardErrors } from "../board-errors";
 import { CommentEntity, PostEntity, PostTagEntity, PostTagLinkEntity } from "../database";
 
 @Injectable()
@@ -116,7 +116,7 @@ export class BoardCommandService {
         const post = await this.posts.findOneBy({ id });
 
         if (!post) {
-            throw appErrors.boardPostNotFound();
+            throw boardErrors.postNotFound();
         }
 
         return post;
@@ -129,7 +129,7 @@ export class BoardCommandService {
         });
 
         if (!comment) {
-            throw appErrors.boardCommentNotFound();
+            throw boardErrors.commentNotFound();
         }
 
         return comment;
@@ -142,7 +142,7 @@ export class BoardCommandService {
         const hasUnknownTag = uniqueTagIds.some((tagId) => !tagById.has(tagId));
 
         if (hasUnknownTag) {
-            throw appErrors.boardUnknownTags();
+            throw boardErrors.unknownTags();
         }
 
         const resolvedTags = uniqueTagIds.map((tagId) => tagById.get(tagId) as PostTagEntity);
@@ -152,7 +152,7 @@ export class BoardCommandService {
 
     private assertOwner(resource: { authorId: string }, claims: Pick<AuthClaims, "role" | "userId">) {
         if (resource.authorId !== claims.userId && claims.role !== "ADMIN") {
-            throw appErrors.boardNotResourceOwner();
+            throw boardErrors.notResourceOwner();
         }
     }
 

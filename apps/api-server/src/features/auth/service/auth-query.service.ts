@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { appErrors } from "../../../app-errors";
+import { authErrors } from "../auth-errors";
 import { BETTER_AUTH, type BetterAuth } from "../database";
 import { UserEntity } from "../database/user.entity";
 import type { AuthClaims, UserRecord } from "../auth.model";
@@ -59,7 +59,7 @@ export class AuthQueryService {
         });
 
         if (!session) {
-            throw appErrors.authSessionRequired();
+            throw authErrors.sessionRequired();
         }
 
         return session;
@@ -67,11 +67,11 @@ export class AuthQueryService {
 
     private assertAllowedClaims(claims: AuthClaims, context: AuthRequestContext) {
         if (claims.status === "SUSPENDED") {
-            throw appErrors.authUserSuspended();
+            throw authErrors.userSuspended();
         }
 
         if (claims.status === "PENDING" && !context.allowPending) {
-            throw appErrors.authSignupRequired();
+            throw authErrors.signupRequired();
         }
     }
 

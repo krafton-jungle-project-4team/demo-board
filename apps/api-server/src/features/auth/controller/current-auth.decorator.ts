@@ -1,12 +1,12 @@
 import { createParamDecorator, type ExecutionContext } from "@nestjs/common";
-import { appErrors } from "../../../app-errors";
+import { authErrors } from "../auth-errors";
 import type { AuthenticatedRequest } from "./auth-request";
 
 export const CurrentAuth = createParamDecorator((_data: unknown, context: ExecutionContext) => {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
 
     if (!request.authClaims) {
-        throw appErrors.authSessionRequired();
+        throw authErrors.sessionRequired();
     }
 
     return request.authClaims;

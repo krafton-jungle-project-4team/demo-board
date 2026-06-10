@@ -1,5 +1,5 @@
 import { ArgumentsHost, Catch, HttpException, HttpStatus, type ExceptionFilter } from "@nestjs/common";
-import type { AppErrorBody } from "../../app-errors";
+import { DomainError } from "../../app-errors";
 import { getRequestId, type ApiErrorResponse, type ApiRequest, type ApiResponse } from "./api-response";
 
 type HttpApiError = {
@@ -38,6 +38,14 @@ export class ApiExceptionFilter implements ExceptionFilter {
     }
 
     private toHttpError(exception: unknown): HttpApiError {
+        if (exception instanceof DomainError) {
+            return {
+                statusCode: exception.statusCode,
+                code: exception.code,
+                message: exception.message
+            };
+        }
+
         if (this.isValidationError(exception)) {
             return {
                 statusCode: HttpStatus.BAD_REQUEST,
@@ -47,16 +55,6 @@ export class ApiExceptionFilter implements ExceptionFilter {
         }
 
         if (exception instanceof HttpException) {
-            const appError = this.readAppErrorBody(exception.getResponse());
-
-            if (appError) {
-                return {
-                    statusCode: exception.getStatus(),
-                    code: appError.code,
-                    message: appError.message
-                };
-            }
-
             return {
                 statusCode: exception.getStatus(),
                 code: "HTTP_ERROR",
@@ -95,22 +93,5 @@ export class ApiExceptionFilter implements ExceptionFilter {
         }
 
         return exception.message || "요청을 처리할 수 없습니다.";
-    }
-
-    private readAppErrorBody(response: unknown): AppErrorBody | undefined {
-        if (!response || typeof response !== "object" || !("code" in response) || !("message" in response)) {
-            return undefined;
-        }
-
-        const body = response as { code?: unknown; message?: unknown };
-
-        if (typeof body.code !== "string" || typeof body.message !== "string") {
-            return undefined;
-        }
-
-        return {
-            code: body.code as AppErrorBody["code"],
-            message: body.message
-        };
     }
 }
