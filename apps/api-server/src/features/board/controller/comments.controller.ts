@@ -7,7 +7,7 @@ import {
     ResourceIdSchema,
     UpdateCommentRequestSchema
 } from "@nmm/shared";
-import { ActiveUserGuard, CurrentAuth, type AuthClaims } from "../../auth";
+import { ActiveAccountGuard, CurrentAuth, type AuthClaims } from "../../auth";
 import { BoardCommandService } from "../service/board-command.service";
 import { BoardQueryService } from "../service/board-query.service";
 
@@ -26,37 +26,42 @@ export class CommentsController {
     }
 
     @Post()
-    @UseGuards(ActiveUserGuard)
+    @UseGuards(ActiveAccountGuard)
     async createComment(@Param("postId") postId: string, @Body() body: unknown, @CurrentAuth() claims: AuthClaims) {
+        const parsedPostId = ResourceIdSchema.parse(postId);
         const comment = await this.boardCommandService.createComment(
-            ResourceIdSchema.parse(postId),
+            parsedPostId,
             CreateCommentRequestSchema.parse(body),
             claims
         );
+        const response = await this.boardQueryService.findComment(parsedPostId, comment);
 
-        return CommentSchema.parse(comment);
+        return CommentSchema.parse(response);
     }
 
     @Patch(":commentId")
-    @UseGuards(ActiveUserGuard)
+    @UseGuards(ActiveAccountGuard)
     async updateComment(
         @Param("postId") postId: string,
         @Param("commentId") commentId: string,
         @Body() body: unknown,
         @CurrentAuth() claims: AuthClaims
     ) {
-        const comment = await this.boardCommandService.updateComment(
-            ResourceIdSchema.parse(postId),
-            ResourceIdSchema.parse(commentId),
+        const parsedPostId = ResourceIdSchema.parse(postId);
+        const parsedCommentId = ResourceIdSchema.parse(commentId);
+        await this.boardCommandService.updateComment(
+            parsedPostId,
+            parsedCommentId,
             UpdateCommentRequestSchema.parse(body),
             claims
         );
+        const comment = await this.boardQueryService.findComment(parsedPostId, parsedCommentId);
 
         return CommentSchema.parse(comment);
     }
 
     @Delete(":commentId")
-    @UseGuards(ActiveUserGuard)
+    @UseGuards(ActiveAccountGuard)
     async deleteComment(
         @Param("postId") postId: string,
         @Param("commentId") commentId: string,

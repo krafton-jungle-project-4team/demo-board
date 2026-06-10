@@ -4,7 +4,6 @@ import type { CompleteSignUpRequest, UpdateCurrentUserRequest, User } from "@nmm
 import { Not, Repository } from "typeorm";
 import type { AuthClaims } from "../auth.model";
 import { SessionEntity, UserEntity } from "../database";
-import { AuthQueryService } from "./auth-query.service";
 
 type AuthUserProfile = Pick<User, "name" | "status">;
 
@@ -12,8 +11,7 @@ type AuthUserProfile = Pick<User, "name" | "status">;
 export class AuthCommandService {
     constructor(
         @InjectRepository(UserEntity) private readonly users: Repository<UserEntity>,
-        @InjectRepository(SessionEntity) private readonly sessions: Repository<SessionEntity>,
-        private readonly authQueryService: AuthQueryService
+        @InjectRepository(SessionEntity) private readonly sessions: Repository<SessionEntity>
     ) {}
 
     async completeSignUp(request: CompleteSignUpRequest, claims: AuthClaims): Promise<User> {
@@ -23,7 +21,7 @@ export class AuthCommandService {
         });
         await this.deleteUserSessions(claims.userId, claims.sessionId);
 
-        return this.authQueryService.findUserRecord(claims);
+        return this.findUserRecord(claims.userId);
     }
 
     async updateCurrentUser(request: UpdateCurrentUserRequest, claims: AuthClaims): Promise<User> {
@@ -32,7 +30,17 @@ export class AuthCommandService {
             status: claims.status
         });
 
-        return this.authQueryService.findUserRecord(claims);
+        return this.findUserRecord(claims.userId);
+    }
+
+    private async findUserRecord(userId: string): Promise<User> {
+        const user = await this.users.findOneBy({ id: userId });
+
+        if (!user) {
+            throw new Error("Authenticated user not found.");
+        }
+
+        return UserEntity.from(user).toUser();
     }
 
     private async updateUserProfile(userId: string, profile: AuthUserProfile) {

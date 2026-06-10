@@ -1,63 +1,38 @@
-import { Injectable, type OnModuleInit } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
 import {
-    type Comment,
     type CreateCommentRequest,
     type CreatePostRequest,
     type DeleteCommentResponse,
     type DeletePostResponse,
-    type Post,
     type UpdateCommentRequest,
     type UpdatePostRequest
 } from "@nmm/shared";
-import { DataSource, Repository } from "typeorm";
+import { DataSource, In, Repository } from "typeorm";
 import { appErrors } from "../../../app-errors";
-import { AuthQueryService, type AuthClaims, type CompletedUserRecord } from "../../auth";
+import type { AuthClaims } from "../../auth/auth.model";
 import { CommentEntity, PostEntity, PostTagEntity, PostTagLinkEntity } from "../database";
-import { BoardQueryService } from "./board-query.service";
 
 @Injectable()
-export class BoardCommandService implements OnModuleInit {
+export class BoardCommandService {
     constructor(
         @InjectDataSource() private readonly dataSource: DataSource,
         @InjectRepository(PostEntity) private readonly posts: Repository<PostEntity>,
         @InjectRepository(PostTagEntity) private readonly tags: Repository<PostTagEntity>,
-        @InjectRepository(CommentEntity) private readonly comments: Repository<CommentEntity>,
-        private readonly boardQueryService: BoardQueryService,
-        private readonly authQueryService: AuthQueryService
+        @InjectRepository(CommentEntity) private readonly comments: Repository<CommentEntity>
     ) {}
 
-    async onModuleInit() {
-        if (!this.dataSource.isInitialized || (await this.posts.count()) > 0) {
-            return;
-        }
+    async createPost(request: CreatePostRequest, claims: AuthClaims): Promise<number> {
+        const tags = await this.resolveTags(request.tagIds);
 
-        const tags = await this.seedTags();
-        const postIds = await this.seedPosts({
-            boilerplate: this.readTagId(tags, "boilerplate"),
-            nest: this.readTagId(tags, "nest"),
-            react: this.readTagId(tags, "react")
-        });
-        const firstPostId = postIds[0];
-
-        if (firstPostId) {
-            await this.seedComments(firstPostId);
-        }
+        return this.insertPostWithTags(request, claims, tags);
     }
 
-    async createPost(request: CreatePostRequest, claims: AuthClaims): Promise<Post> {
-        const user = await this.authQueryService.requireCompletedUserRecord(claims);
-        const tags = await this.boardQueryService.resolveTags(request.tagIds);
-
-        return this.boardQueryService.findPost(await this.insertPostWithTags(request, user, tags));
-    }
-
-    async updatePost(id: number, request: UpdatePostRequest, claims: AuthClaims): Promise<Post> {
-        const post = await this.boardQueryService.findExistingPost(id);
+    async updatePost(id: number, request: UpdatePostRequest, claims: AuthClaims): Promise<number> {
+        const post = await this.findExistingPost(id);
 
         this.assertOwner(post, claims);
-        const tags =
-            request.tagIds === undefined ? undefined : await this.boardQueryService.resolveTags(request.tagIds);
+        const tags = request.tagIds === undefined ? undefined : await this.resolveTags(request.tagIds);
 
         post.title = request.title ?? post.title;
         post.excerpt = request.excerpt ?? post.excerpt;
@@ -65,11 +40,11 @@ export class BoardCommandService implements OnModuleInit {
         post.updatedAt = new Date();
         await this.savePostWithTags(post, tags);
 
-        return this.boardQueryService.findPost(id);
+        return id;
     }
 
     async deletePost(id: number, claims: AuthClaims): Promise<DeletePostResponse> {
-        const post = await this.boardQueryService.findExistingPost(id);
+        const post = await this.findExistingPost(id);
 
         this.assertOwner(post, claims);
         await this.deletePostWithComments(post);
@@ -77,22 +52,20 @@ export class BoardCommandService implements OnModuleInit {
         return { ok: true, id };
     }
 
-    async createComment(postId: number, request: CreateCommentRequest, claims: AuthClaims): Promise<Comment> {
-        await this.boardQueryService.findExistingPost(postId);
-        const user = await this.authQueryService.requireCompletedUserRecord(claims);
+    async createComment(postId: number, request: CreateCommentRequest, claims: AuthClaims): Promise<number> {
+        await this.findExistingPost(postId);
         const now = new Date();
         const savedComment = await this.comments.save(
             this.comments.create({
                 postId,
                 content: request.content,
-                authorId: user.id,
-                authorName: user.name,
+                authorId: claims.userId,
                 createdAt: now,
                 updatedAt: now
             })
         );
 
-        return (await this.boardQueryService.findExistingComment(postId, Number(savedComment.id))).toComment();
+        return Number(savedComment.id);
     }
 
     async updateComment(
@@ -100,10 +73,10 @@ export class BoardCommandService implements OnModuleInit {
         commentId: number,
         request: UpdateCommentRequest,
         claims: AuthClaims
-    ): Promise<Comment> {
-        await this.boardQueryService.findExistingPost(postId);
+    ): Promise<number> {
+        await this.findExistingPost(postId);
 
-        const comment = await this.boardQueryService.findExistingComment(postId, commentId);
+        const comment = await this.findExistingComment(postId, commentId);
 
         this.assertOwner(comment, claims);
 
@@ -111,18 +84,56 @@ export class BoardCommandService implements OnModuleInit {
         comment.updatedAt = new Date();
         await this.comments.save(comment);
 
-        return (await this.boardQueryService.findExistingComment(postId, commentId)).toComment();
+        return commentId;
     }
 
     async deleteComment(postId: number, commentId: number, claims: AuthClaims): Promise<DeleteCommentResponse> {
-        await this.boardQueryService.findExistingPost(postId);
+        await this.findExistingPost(postId);
 
-        const comment = await this.boardQueryService.findExistingComment(postId, commentId);
+        const comment = await this.findExistingComment(postId, commentId);
 
         this.assertOwner(comment, claims);
         await this.comments.delete({ id: comment.id });
 
         return { ok: true, id: commentId };
+    }
+
+    private async findExistingPost(id: number): Promise<PostEntity> {
+        const post = await this.posts.findOneBy({ id });
+
+        if (!post) {
+            throw appErrors.boardPostNotFound();
+        }
+
+        return post;
+    }
+
+    private async findExistingComment(postId: number, commentId: number): Promise<CommentEntity> {
+        const comment = await this.comments.findOneBy({
+            id: commentId,
+            postId
+        });
+
+        if (!comment) {
+            throw appErrors.boardCommentNotFound();
+        }
+
+        return comment;
+    }
+
+    private async resolveTags(tagIds: number[]) {
+        const uniqueTagIds = [...new Set(tagIds)];
+        const tags = uniqueTagIds.length === 0 ? [] : await this.tags.findBy({ id: In(uniqueTagIds) });
+        const tagById = new Map(tags.map((tag) => [Number(tag.id), tag]));
+        const hasUnknownTag = uniqueTagIds.some((tagId) => !tagById.has(tagId));
+
+        if (hasUnknownTag) {
+            throw appErrors.boardUnknownTags();
+        }
+
+        const resolvedTags = uniqueTagIds.map((tagId) => tagById.get(tagId) as PostTagEntity);
+
+        return resolvedTags;
     }
 
     private assertOwner(resource: { authorId: string }, claims: Pick<AuthClaims, "role" | "userId">) {
@@ -133,7 +144,7 @@ export class BoardCommandService implements OnModuleInit {
 
     private async insertPostWithTags(
         request: CreatePostRequest,
-        user: Pick<CompletedUserRecord, "id" | "name">,
+        claims: Pick<AuthClaims, "userId">,
         tags: PostTagEntity[],
         createdAt = new Date().toISOString()
     ): Promise<number> {
@@ -144,8 +155,7 @@ export class BoardCommandService implements OnModuleInit {
                     title: request.title,
                     excerpt: request.excerpt,
                     content: request.content,
-                    authorId: user.id,
-                    authorName: user.name,
+                    authorId: claims.userId,
                     createdAt: new Date(createdAt),
                     updatedAt: new Date(createdAt)
                 })
@@ -153,7 +163,8 @@ export class BoardCommandService implements OnModuleInit {
             const savedPostId = Number(savedPost.id);
 
             if (tags.length > 0) {
-                await postTagLinks.save(tags.map((tag) => ({ postId: savedPostId, tagId: tag.id })));
+                const links = tags.map((tag) => ({ postId: savedPostId, tagId: tag.id }));
+                await postTagLinks.save(links);
             }
 
             return savedPostId;
@@ -170,7 +181,8 @@ export class BoardCommandService implements OnModuleInit {
                 await postTagLinks.delete({ postId: post.id });
 
                 if (tags.length > 0) {
-                    await postTagLinks.save(tags.map((tag) => ({ postId: post.id, tagId: tag.id })));
+                    const links = tags.map((tag) => ({ postId: post.id, tagId: tag.id }));
+                    await postTagLinks.save(links);
                 }
             }
         });
@@ -182,87 +194,5 @@ export class BoardCommandService implements OnModuleInit {
             await manager.getRepository(PostTagLinkEntity).delete({ postId: post.id });
             await manager.getRepository(PostEntity).delete({ id: post.id });
         });
-    }
-
-    private async seedTags() {
-        const existingTags = await this.boardQueryService.listTags();
-
-        if (existingTags.length > 0) {
-            return existingTags;
-        }
-
-        return (await this.tags.save([{ name: "react" }, { name: "nest" }, { name: "boilerplate" }])).map((tag) =>
-            PostTagEntity.from(tag)
-        );
-    }
-
-    private async seedPosts(tagIds: { boilerplate: number; nest: number; react: number }) {
-        const user = { id: "user-sijun", name: "sijun" };
-        const posts = [
-            {
-                createdAt: "2026-06-09T00:00:00.000Z",
-                request: {
-                    title: "프론트 공통 스택 결정",
-                    excerpt: "라우터, 서버 상태, URL 상태를 분리해 보일러플레이트의 기준을 잡는다.",
-                    content:
-                        "TanStack Router, TanStack Query, nuqs, shadcn/ui를 연결해 게시판 CRUD 화면의 개발 출발점을 만든다.",
-                    tagIds: [tagIds.react, tagIds.boilerplate]
-                }
-            },
-            {
-                createdAt: "2026-06-09T00:10:00.000Z",
-                request: {
-                    title: "Shared contract API 연결",
-                    excerpt: "shared Zod schema로 API 요청과 응답 계약을 공유한다.",
-                    content: "FE는 작은 fetch 함수를 직접 작성하고, BE와 같은 schema로 응답 데이터를 검증한다.",
-                    tagIds: [tagIds.nest, tagIds.boilerplate]
-                }
-            },
-            {
-                createdAt: "2026-06-09T00:20:00.000Z",
-                request: {
-                    title: "URL 상태 규칙",
-                    excerpt: "검색어, 페이지, 정렬, 보기 방식은 공유 가능한 URL 상태로 둔다.",
-                    content: "draft, token, PII, 대용량 데이터, 휘발성 UI 상태는 URL에 넣지 않는다.",
-                    tagIds: [tagIds.boilerplate]
-                }
-            }
-        ];
-
-        const savedPostIds: number[] = [];
-
-        for (const post of posts) {
-            savedPostIds.push(
-                await this.insertPostWithTags(
-                    post.request,
-                    user,
-                    await this.boardQueryService.resolveTags(post.request.tagIds),
-                    post.createdAt
-                )
-            );
-        }
-
-        return savedPostIds;
-    }
-
-    private async seedComments(postId: number) {
-        await this.comments.save({
-            postId,
-            content: "보일러플레이트 기준을 확인하기 위한 댓글 예시입니다.",
-            authorId: "user-sijun",
-            authorName: "sijun",
-            createdAt: new Date("2026-06-09T00:30:00.000Z"),
-            updatedAt: new Date("2026-06-09T00:30:00.000Z")
-        });
-    }
-
-    private readTagId(tags: PostTagEntity[], name: string) {
-        const tag = tags.find((tag) => tag.name === name);
-
-        if (!tag) {
-            throw new Error(`Seed tag not found: ${name}`);
-        }
-
-        return tag.id;
     }
 }

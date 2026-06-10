@@ -34,7 +34,6 @@ function createServerEnv(): ServerEnv {
             username: readStringEnv("NMM_DB_USERNAME"),
             password: readStringEnv("NMM_DB_PASSWORD"),
             database: readStringEnv("NMM_DB_DATABASE"),
-            synchronize: readBooleanEnv("NMM_DB_SYNCHRONIZE"),
             logging: readBooleanEnv("NMM_DB_LOGGING"),
             manualInitialization: readBooleanEnv("NMM_DB_MANUAL_INITIALIZATION")
         },

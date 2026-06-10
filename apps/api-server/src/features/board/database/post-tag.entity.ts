@@ -9,13 +9,6 @@ export class PostTagEntity {
     @Column({ type: "text", unique: true })
     name!: string;
 
-    static from(tag: PostTagEntity): PostTagEntity {
-        return Object.assign(new PostTagEntity(), {
-            id: Number(tag.id),
-            name: tag.name
-        });
-    }
-
     toPostTag(): PostTag {
         return {
             id: Number(this.id),

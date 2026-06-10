@@ -1,7 +1,7 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { DataSource } from "typeorm";
-import { ActiveUserGuard } from "./controller/active-user.guard";
+import { ActiveAccountGuard } from "./controller/active-account.guard";
 import { AuthController } from "./controller/auth.controller";
 import { SessionUserGuard } from "./controller/session-user.guard";
 import {
@@ -26,9 +26,9 @@ import { AuthQueryService } from "./service/auth-query.service";
         },
         AuthCommandService,
         AuthQueryService,
-        ActiveUserGuard,
+        ActiveAccountGuard,
         SessionUserGuard
     ],
-    exports: [BETTER_AUTH, AuthQueryService, ActiveUserGuard, SessionUserGuard]
+    exports: [BETTER_AUTH, AuthQueryService, ActiveAccountGuard, SessionUserGuard]
 })
 export class AuthModule {}

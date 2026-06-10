@@ -7,7 +7,7 @@ export function createTypeOrmOptions(): TypeOrmModuleOptions {
     return {
         type: "postgres" as const,
         autoLoadEntities: true,
-        synchronize: database.synchronize,
+        synchronize: false,
         logging: database.logging,
         manualInitialization: database.manualInitialization,
         host: database.host,

@@ -76,11 +76,18 @@
 - env 값은 기본값 없이 `apps/api-server/.env`에서 읽어 `serverEnv` 전역 객체로 생성한다.
 - Docker Compose는 `npm run dev:api`의 `--env-file apps/api-server/.env`로 env 값을 주입한다.
 - 필요한 env 키는 `apps/api-server/.env.example`에 둔다.
+- API 서버 DB 스키마는 `apps/api-server/database/init-db.sql`에 둔다.
+- API 서버 더미 데이터는 `apps/api-server/database/dummy-data.sql`에 둔다.
+- TypeORM `synchronize`는 사용하지 않는다.
+- service/module은 DB seed를 수행하지 않는다.
 - API 서버 인증은 Better Auth social provider와 TypeORM adapter를 기준으로 한다.
 - 인증이 필요한 controller method는 guard가 세션을 검증하고 `@CurrentAuth()`로 `AuthClaims`를 받는다.
+- 활성 계정만 허용하는 controller method는 `ActiveAccountGuard`와 `@CurrentAuth()`로 `AuthClaims`를 받는다.
 - controller는 인증 헤더/cookie를 직접 읽지 않는다.
 - 인증 guard는 세션에서 `AuthClaims`만 request에 둔다.
-- `AuthClaims`는 `userId`, `sessionId`, `role`, `status`만 포함하고, `name` 같은 프로필 정보는 필요할 때 DB에서 조회한다.
+- `AuthClaims`는 `userId`, `sessionId`, `role`, `status`만 포함한다.
+- 생성 리소스는 작성자 ID만 저장한다.
+- 작성자 이름이 필요한 응답은 read service가 사용자 데이터를 조회해 만든다.
 - 사용자 `role` 또는 `status` 변경은 service가 해당 사용자의 기존 세션을 만료한다.
 - 게시글/댓글/태그처럼 생성되는 리소스 ID는 DB `bigint` auto-increment를 사용하고 앱 코드에서 직접 만들지 않는다.
 - API 요청/응답의 ID는 숫자로 다루고, URL 파라미터 경계에서만 문자열을 숫자로 파싱한다.
@@ -88,6 +95,11 @@
 - TypeORM entity는 `database`에 둔다.
 - TypeORM entity의 DB 값 정규화와 API 객체 변환은 entity의 `from`, `to*` 메서드에 둔다.
 - service는 TypeORM repository/DataSource를 직접 주입받아 DB를 다룬다.
+- service는 다른 service를 주입하지 않는다. 여러 service가 같은 데이터가 필요하면 같은 repository/DataSource를 각자 주입한다.
+- service method는 외부에서 호출되는 API만 public으로 두고, 내부에서만 쓰는 method는 private으로 둔다.
+- 단순 조회/가공 helper는 가능하면 별도 method로 빼지 않고 호출 method 안에 둔다.
+- read service method는 필요한 데이터를 먼저 조회하고, `map`/`filter`를 쓸 때도 중간 변수에 이름을 붙여 가공한 뒤 반환한다.
+- 당연히 성립해야 하는 전처리 조건은 `ASSERT_VERIFY`, `ASSERT_WARN`, `ASSERT_THROW`, `ASSERT_MUST`를 의도에 맞게 쓰고, 입력은 조건과 설명만 둔다.
 - repository interface와 구현체 레이어는 두지 않는다.
 - service는 query(read only)와 command(변경 목적)를 파일 단위로 분리한다.
 - API 서버 공통 순수 코드는 `core`, 전역 인프라/프레임워크 코드는 `infra`에 둔다.

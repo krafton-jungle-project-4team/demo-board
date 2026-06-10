@@ -8,8 +8,3 @@ export type AuthClaims = {
 };
 
 export type UserRecord = User;
-
-export type CompletedUserRecord = UserRecord & {
-    name: string;
-    status: "ACTIVE";
-};

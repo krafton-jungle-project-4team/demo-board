@@ -4,7 +4,7 @@ import { Repository } from "typeorm";
 import { appErrors } from "../../../app-errors";
 import { BETTER_AUTH, type BetterAuth } from "../database";
 import { UserEntity } from "../database/user.entity";
-import type { AuthClaims, CompletedUserRecord, UserRecord } from "../auth.model";
+import type { AuthClaims, UserRecord } from "../auth.model";
 
 export type AuthRequestContext = {
     authorization?: string;
@@ -20,26 +20,9 @@ export class AuthQueryService {
     ) {}
 
     async requireAuthClaims(context: AuthRequestContext): Promise<AuthClaims> {
-        const session = await this.auth.api.getSession({
-            headers: this.toHeaders(context),
-            query: {
-                disableCookieCache: true
-            }
-        });
-        const claims = session ? this.toAuthClaims(session) : undefined;
+        const claims = this.toAuthClaims(await this.requireSession(context));
 
-        if (!claims) {
-            throw appErrors.authSessionRequired();
-        }
-
-        if (claims.status === "SUSPENDED") {
-            throw appErrors.authUserSuspended();
-        }
-
-        if (claims.status === "PENDING" && !context.allowPending) {
-            throw appErrors.authSignupRequired();
-        }
-
+        this.assertAllowedClaims(claims, context);
         return claims;
     }
 
@@ -47,20 +30,10 @@ export class AuthQueryService {
         const user = await this.findUser(claims.userId);
 
         if (!user) {
-            throw appErrors.authSessionRequired();
+            throw new Error("Authenticated user not found.");
         }
 
         return user;
-    }
-
-    async requireCompletedUserRecord(claims: AuthClaims): Promise<CompletedUserRecord> {
-        const user = await this.findUserRecord(claims);
-
-        if (user.status !== "ACTIVE" || !user.name) {
-            throw appErrors.authSignupRequired();
-        }
-
-        return user as CompletedUserRecord;
     }
 
     private toHeaders(context: AuthRequestContext) {
@@ -77,38 +50,43 @@ export class AuthQueryService {
         return headers;
     }
 
+    private async requireSession(context: AuthRequestContext): Promise<BetterAuth["$Infer"]["Session"]> {
+        const session = await this.auth.api.getSession({
+            headers: this.toHeaders(context),
+            query: {
+                disableCookieCache: true
+            }
+        });
+
+        if (!session) {
+            throw appErrors.authSessionRequired();
+        }
+
+        return session;
+    }
+
+    private assertAllowedClaims(claims: AuthClaims, context: AuthRequestContext) {
+        if (claims.status === "SUSPENDED") {
+            throw appErrors.authUserSuspended();
+        }
+
+        if (claims.status === "PENDING" && !context.allowPending) {
+            throw appErrors.authSignupRequired();
+        }
+    }
+
     private toAuthClaims(session: BetterAuth["$Infer"]["Session"]): AuthClaims {
         return {
             userId: session.user.id,
             sessionId: session.session.id,
             role: session.user.role === "ADMIN" ? "ADMIN" : "USER",
-            status: this.toUserStatus(session.user.status)
+            status: UserEntity.toUserStatus(session.user.status)
         };
-    }
-
-    private toUserStatus(value: unknown) {
-        if (value === "ACTIVE" || value === "SUSPENDED") {
-            return value;
-        }
-
-        return "PENDING";
     }
 
     private async findUser(id: string): Promise<UserRecord | undefined> {
         const user = await this.users.findOneBy({ id });
 
-        return user ? this.toUserRecord(user) : undefined;
-    }
-
-    private toUserRecord(user: UserEntity): UserRecord {
-        return {
-            id: user.id,
-            email: user.email,
-            name: user.name.trim() || null,
-            image: user.image,
-            role: user.role === "ADMIN" ? "ADMIN" : "USER",
-            status: this.toUserStatus(user.status),
-            createdAt: user.createdAt.toISOString()
-        };
+        return user ? UserEntity.from(user).toUser() : undefined;
     }
 }

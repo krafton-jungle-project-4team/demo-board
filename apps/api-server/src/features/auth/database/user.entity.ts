@@ -1,4 +1,4 @@
-import type { UserRole, UserStatus } from "@nmm/shared";
+import type { User, UserRole, UserStatus } from "@nmm/shared";
 import { Column, Entity, PrimaryColumn } from "typeorm";
 
 @Entity("user")
@@ -29,4 +29,38 @@ export class UserEntity {
 
     @Column({ type: "text", default: "PENDING" })
     status!: UserStatus;
+
+    static from(user: UserEntity): UserEntity {
+        return Object.assign(new UserEntity(), {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            emailVerified: user.emailVerified,
+            image: user.image,
+            createdAt: new Date(user.createdAt),
+            updatedAt: new Date(user.updatedAt),
+            role: user.role,
+            status: user.status
+        });
+    }
+
+    toUser(): User {
+        return {
+            id: this.id,
+            email: this.email,
+            name: this.name.trim() || null,
+            image: this.image,
+            role: this.role === "ADMIN" ? "ADMIN" : "USER",
+            status: UserEntity.toUserStatus(this.status),
+            createdAt: this.createdAt.toISOString()
+        };
+    }
+
+    static toUserStatus(value: unknown): UserStatus {
+        if (value === "ACTIVE" || value === "SUSPENDED") {
+            return value;
+        }
+
+        return "PENDING";
+    }
 }

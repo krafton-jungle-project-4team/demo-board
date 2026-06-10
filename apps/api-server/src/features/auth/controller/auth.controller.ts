@@ -3,7 +3,7 @@ import { CompleteSignUpRequestSchema, UpdateCurrentUserRequestSchema, UserSchema
 import type { AuthClaims } from "../auth.model";
 import { AuthCommandService } from "../service/auth-command.service";
 import { AuthQueryService } from "../service/auth-query.service";
-import { ActiveUserGuard } from "./active-user.guard";
+import { ActiveAccountGuard } from "./active-account.guard";
 import { CurrentAuth } from "./current-auth.decorator";
 import { SessionUserGuard } from "./session-user.guard";
 
@@ -32,7 +32,7 @@ export class AuthController {
     }
 
     @Patch("me")
-    @UseGuards(ActiveUserGuard)
+    @UseGuards(ActiveAccountGuard)
     async updateMe(@Body() body: unknown, @CurrentAuth() claims: AuthClaims) {
         const user = await this.authCommandService.updateCurrentUser(
             UpdateCurrentUserRequestSchema.parse(body),

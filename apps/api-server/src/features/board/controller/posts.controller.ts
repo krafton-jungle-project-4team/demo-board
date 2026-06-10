@@ -8,7 +8,7 @@ import {
     ResourceIdSchema,
     UpdatePostRequestSchema
 } from "@nmm/shared";
-import { ActiveUserGuard, CurrentAuth, type AuthClaims } from "../../auth";
+import { ActiveAccountGuard, CurrentAuth, type AuthClaims } from "../../auth";
 import { BoardCommandService } from "../service/board-command.service";
 import { BoardQueryService } from "../service/board-query.service";
 
@@ -34,27 +34,29 @@ export class PostsController {
     }
 
     @Post()
-    @UseGuards(ActiveUserGuard)
+    @UseGuards(ActiveAccountGuard)
     async createPost(@Body() body: unknown, @CurrentAuth() claims: AuthClaims) {
-        const post = await this.boardCommandService.createPost(CreatePostRequestSchema.parse(body), claims);
+        const postId = await this.boardCommandService.createPost(CreatePostRequestSchema.parse(body), claims);
+        const post = await this.boardQueryService.findPost(postId);
 
         return PostSchema.parse(post);
     }
 
     @Patch(":id")
-    @UseGuards(ActiveUserGuard)
+    @UseGuards(ActiveAccountGuard)
     async updatePost(@Param("id") id: string, @Body() body: unknown, @CurrentAuth() claims: AuthClaims) {
-        const post = await this.boardCommandService.updatePost(
+        const postId = await this.boardCommandService.updatePost(
             ResourceIdSchema.parse(id),
             UpdatePostRequestSchema.parse(body),
             claims
         );
+        const post = await this.boardQueryService.findPost(postId);
 
         return PostSchema.parse(post);
     }
 
     @Delete(":id")
-    @UseGuards(ActiveUserGuard)
+    @UseGuards(ActiveAccountGuard)
     async deletePost(@Param("id") id: string, @CurrentAuth() claims: AuthClaims) {
         const response = await this.boardCommandService.deletePost(ResourceIdSchema.parse(id), claims);
 

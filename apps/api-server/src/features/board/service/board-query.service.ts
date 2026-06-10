@@ -1,8 +1,10 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import type { CommentListResponse, ListPostsQuery, Post, PostListResponse, PostTag } from "@nmm/shared";
+import type { Comment, CommentListResponse, ListPostsQuery, Post, PostListResponse, PostTag } from "@nmm/shared";
 import { In, Repository } from "typeorm";
 import { appErrors } from "../../../app-errors";
+import { ASSERT_THROW } from "../../../core/assert";
+import { UserEntity } from "../../auth/database";
 import { CommentEntity, PostEntity, PostTagEntity, PostTagLinkEntity } from "../database";
 
 @Injectable()
@@ -11,29 +13,73 @@ export class BoardQueryService {
         @InjectRepository(PostEntity) private readonly posts: Repository<PostEntity>,
         @InjectRepository(PostTagEntity) private readonly tags: Repository<PostTagEntity>,
         @InjectRepository(PostTagLinkEntity) private readonly postTagLinks: Repository<PostTagLinkEntity>,
-        @InjectRepository(CommentEntity) private readonly comments: Repository<CommentEntity>
+        @InjectRepository(CommentEntity) private readonly comments: Repository<CommentEntity>,
+        @InjectRepository(UserEntity) private readonly users: Repository<UserEntity>
     ) {}
 
     async findTags(): Promise<PostTag[]> {
-        return (await this.listTags()).map((tag) => tag.toPostTag());
-    }
+        const tagEntities = await this.tags.find();
+        const tags = tagEntities.map((tag) => tag.toPostTag());
 
-    async findPostTags(postId: number): Promise<PostTag[]> {
-        return (await this.listPostTags(postId)).map((tag) => tag.toPostTag());
+        return tags;
     }
 
     async findPosts(query: ListPostsQuery): Promise<PostListResponse> {
-        const filteredPosts = await this.filterPosts(await this.listPosts(), query);
-        const sortedPosts = this.sortPosts(filteredPosts, query.sort);
+        const users = await this.users.find();
+        const posts = await this.posts.find();
+        const keyword = query.q.trim().toLowerCase();
+        const postsWithTags = await Promise.all(
+            posts.map(async (post) => {
+                const author = users.find((user) => user.id === post.authorId);
+                const authorName = author?.name.trim();
+                const links = await this.postTagLinks.findBy({ postId: post.id });
+                const tagIds = links.map((link) => Number(link.tagId));
+                const tags = tagIds.length === 0 ? [] : await this.tags.findBy({ id: In(tagIds) });
+
+                ASSERT_THROW(authorName, "Board author not found.");
+
+                return {
+                    post,
+                    authorName,
+                    tags
+                };
+            })
+        );
+        const filteredPosts = postsWithTags.filter(({ authorName, post, tags }) => {
+            const searchableValues = [
+                post.title,
+                post.excerpt,
+                post.content,
+                authorName,
+                ...tags.map((tag) => tag.name)
+            ];
+            const matchesKeyword = !keyword || searchableValues.some((value) => value.toLowerCase().includes(keyword));
+            const matchesTag = !query.tagId || tags.some((tag) => Number(tag.id) === query.tagId);
+
+            return matchesKeyword && matchesTag;
+        });
+
+        const sortedPosts = [...filteredPosts].sort((left, right) => {
+            if (query.sort === "created-asc") {
+                return left.post.createdAt.getTime() - right.post.createdAt.getTime();
+            }
+
+            if (query.sort === "title-asc") {
+                return left.post.title.localeCompare(right.post.title);
+            }
+
+            return right.post.createdAt.getTime() - left.post.createdAt.getTime();
+        });
         const totalItems = sortedPosts.length;
         const totalPages = Math.max(1, Math.ceil(totalItems / query.pageSize));
         const page = Math.min(query.page, totalPages);
         const startIndex = (page - 1) * query.pageSize;
-        const items = await Promise.all(
-            sortedPosts
-                .slice(startIndex, startIndex + query.pageSize)
-                .map(async (post) => post.toPost(await this.findPostTags(post.id)))
-        );
+        const pagePosts = sortedPosts.slice(startIndex, startIndex + query.pageSize);
+        const items = pagePosts.map(({ authorName, post, tags }) => {
+            const responseTags = tags.map((tag) => tag.toPostTag());
+
+            return post.toPost(responseTags, authorName);
+        });
 
         return {
             items,
@@ -45,135 +91,68 @@ export class BoardQueryService {
     }
 
     async findPost(id: number): Promise<Post> {
-        const post = await this.findExistingPost(id);
-
-        return post.toPost(await this.findPostTags(post.id));
-    }
-
-    async findComments(postId: number): Promise<CommentListResponse> {
-        await this.findExistingPost(postId);
-
-        return {
-            items: (await this.listComments(postId)).map((comment) => comment.toComment())
-        };
-    }
-
-    async findExistingPost(id: number): Promise<PostEntity> {
-        const post = await this.findPostEntity(id);
+        const users = await this.users.find();
+        const post = await this.posts.findOneBy({ id });
 
         if (!post) {
             throw appErrors.boardPostNotFound();
         }
 
-        return post;
+        const author = users.find((user) => user.id === post.authorId);
+        const authorName = author?.name.trim();
+        const links = await this.postTagLinks.findBy({ postId: post.id });
+        const tagIds = links.map((link) => Number(link.tagId));
+        const tagEntities = tagIds.length === 0 ? [] : await this.tags.findBy({ id: In(tagIds) });
+        const tags = tagEntities.map((tag) => tag.toPostTag());
+
+        ASSERT_THROW(authorName, "Board author not found.");
+
+        return post.toPost(tags, authorName);
     }
 
-    async findExistingComment(postId: number, commentId: number): Promise<CommentEntity> {
-        const comment = await this.findComment(postId, commentId);
+    async findComment(postId: number, commentId: number): Promise<Comment> {
+        const users = await this.users.find();
+        const post = await this.posts.findOneBy({ id: postId });
+
+        if (!post) {
+            throw appErrors.boardPostNotFound();
+        }
+
+        const comment = await this.comments.findOneBy({
+            id: commentId,
+            postId
+        });
 
         if (!comment) {
             throw appErrors.boardCommentNotFound();
         }
 
-        return comment;
+        const author = users.find((user) => user.id === comment.authorId);
+        const authorName = author?.name.trim();
+
+        ASSERT_THROW(authorName, "Board comment author not found.");
+
+        return comment.toComment(authorName);
     }
 
-    async listTags(): Promise<PostTagEntity[]> {
-        return (await this.tags.find()).map((tag) => PostTagEntity.from(tag));
-    }
+    async findComments(postId: number): Promise<CommentListResponse> {
+        const users = await this.users.find();
+        const post = await this.posts.findOneBy({ id: postId });
 
-    async listPostTags(postId: number): Promise<PostTagEntity[]> {
-        const links = await this.postTagLinks.findBy({ postId });
-
-        return this.findTagsByIds(links.map((link) => Number(link.tagId)));
-    }
-
-    async listPosts(): Promise<PostEntity[]> {
-        return (await this.posts.find()).map((post) => PostEntity.from(post));
-    }
-
-    async findPostEntity(id: number): Promise<PostEntity | undefined> {
-        const post = await this.posts.findOneBy({ id });
-
-        return post ? PostEntity.from(post) : undefined;
-    }
-
-    async listComments(postId: number): Promise<CommentEntity[]> {
-        return (await this.comments.findBy({ postId })).map((comment) => CommentEntity.from(comment));
-    }
-
-    async findComment(postId: number, commentId: number): Promise<CommentEntity | undefined> {
-        return this.toOptionalCommentEntity(
-            await this.comments.findOneBy({
-                id: commentId,
-                postId
-            })
-        );
-    }
-
-    async resolveTags(tagIds: number[]) {
-        const uniqueTagIds = [...new Set(tagIds)];
-        const tags = await this.findTagsByIds(uniqueTagIds);
-        const tagById = new Map(tags.map((tag) => [tag.id, tag]));
-
-        if (uniqueTagIds.some((tagId) => !tagById.has(tagId))) {
-            throw appErrors.boardUnknownTags();
+        if (!post) {
+            throw appErrors.boardPostNotFound();
         }
 
-        return uniqueTagIds.map((tagId) => tagById.get(tagId) as PostTagEntity);
-    }
+        const comments = await this.comments.findBy({ postId });
+        const items = comments.map((comment) => {
+            const author = users.find((user) => user.id === comment.authorId);
+            const authorName = author?.name.trim();
 
-    private async filterPosts(posts: PostEntity[], query: ListPostsQuery) {
-        const keyword = query.q.trim().toLowerCase();
+            ASSERT_THROW(authorName, "Board comment author not found.");
 
-        const postsWithTags = await Promise.all(
-            posts.map(async (post) => ({
-                post,
-                tags: await this.listPostTags(post.id)
-            }))
-        );
-
-        return postsWithTags
-            .filter(({ post, tags }) => {
-                const matchesKeyword =
-                    !keyword ||
-                    [post.title, post.excerpt, post.content, post.authorName, ...tags.map((tag) => tag.name)].some(
-                        (value) => value.toLowerCase().includes(keyword)
-                    );
-                const matchesTag = !query.tagId || tags.some((tag) => Number(tag.id) === query.tagId);
-
-                return matchesKeyword && matchesTag;
-            })
-            .map(({ post }) => post);
-    }
-
-    private sortPosts(posts: PostEntity[], sort: ListPostsQuery["sort"]) {
-        return [...posts].sort((left, right) => {
-            if (sort === "created-asc") {
-                return left.createdAt.getTime() - right.createdAt.getTime();
-            }
-
-            if (sort === "title-asc") {
-                return left.title.localeCompare(right.title);
-            }
-
-            return right.createdAt.getTime() - left.createdAt.getTime();
+            return comment.toComment(authorName);
         });
-    }
 
-    private async findTagsByIds(ids: number[]): Promise<PostTagEntity[]> {
-        if (ids.length === 0) {
-            return [];
-        }
-
-        return (await this.tags.findBy({ id: In(ids) })).map((tag) => PostTagEntity.from(tag));
-    }
-
-    private toOptionalCommentEntity(comment: CommentEntity | null) {
-        if (!comment) {
-            return undefined;
-        }
-
-        return CommentEntity.from(comment);
+        return { items };
     }
 }

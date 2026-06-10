@@ -3,7 +3,7 @@ import { AuthQueryService } from "../service/auth-query.service";
 import { type AuthenticatedRequest, toAuthRequestContext } from "./auth-request";
 
 @Injectable()
-export class ActiveUserGuard implements CanActivate {
+export class ActiveAccountGuard implements CanActivate {
     constructor(private readonly authQueryService: AuthQueryService) {}
 
     async canActivate(context: ExecutionContext) {
