@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label } from "@nmm/ui/components";
 import {
@@ -15,31 +15,47 @@ export function MyProfilePage() {
     const [name, setName] = useState("");
     const [message, setMessage] = useState<string | null>(null);
     const updateCurrentUserMutation = useUpdateCurrentUserMutation({
-        onSuccess: () => {
-            setMessage("저장되었습니다.");
-        }
+        onSuccess: handleUpdateCurrentUserSuccess
     });
     const logoutMutation = useLogoutMutation({
-        onSuccess: () => {
-            void navigate({ to: "/posts" });
-        }
+        onSuccess: handleLogoutSuccess
     });
 
-    useEffect(() => {
-        setName(currentUser?.name ?? "");
-    }, [currentUser?.name]);
+    useEffect(
+        function syncNameWithCurrentUser() {
+            setName(currentUser?.name ?? "");
+        },
+        [currentUser?.name]
+    );
 
-    function submitProfile(event: FormEvent<HTMLFormElement>) {
+    function handleUpdateCurrentUserSuccess() {
+        setMessage("저장되었습니다.");
+    }
+
+    function handleUpdateCurrentUserError() {
+        setMessage("저장에 실패했습니다.");
+    }
+
+    function handleLogoutSuccess() {
+        void navigate({ to: "/posts" });
+    }
+
+    function handleSignInClick() {
+        void signInWithGitHub("/me");
+    }
+
+    function handleLogoutClick() {
+        logoutMutation.mutate();
+    }
+
+    function handleNameChange(event: ChangeEvent<HTMLInputElement>) {
+        setName(event.target.value);
+    }
+
+    function handleProfileSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setMessage(null);
-        updateCurrentUserMutation.mutate(
-            { name },
-            {
-                onError: () => {
-                    setMessage("저장에 실패했습니다.");
-                }
-            }
-        );
+        updateCurrentUserMutation.mutate({ name }, { onError: handleUpdateCurrentUserError });
     }
 
     if (currentUserQuery.isPending) {
@@ -59,12 +75,7 @@ export function MyProfilePage() {
                         <CardDescription>로그인이 필요합니다.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Button
-                            type="button"
-                            onClick={() => {
-                                void signInWithGitHub("/me");
-                            }}
-                        >
+                        <Button type="button" onClick={handleSignInClick}>
                             GitHub 로그인
                         </Button>
                     </CardContent>
@@ -103,17 +114,10 @@ export function MyProfilePage() {
                     <CardDescription>{currentUser.role}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form className="grid gap-4" onSubmit={submitProfile}>
+                    <form className="grid gap-4" onSubmit={handleProfileSubmit}>
                         <div className="grid gap-2">
                             <Label htmlFor="profile-name">이름</Label>
-                            <Input
-                                id="profile-name"
-                                required
-                                value={name}
-                                onChange={(event) => {
-                                    setName(event.target.value);
-                                }}
-                            />
+                            <Input id="profile-name" required value={name} onChange={handleNameChange} />
                         </div>
                         {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
                         <div className="flex justify-end">
@@ -132,14 +136,7 @@ export function MyProfilePage() {
                 </CardContent>
             </Card>
             <div className="flex justify-end">
-                <Button
-                    type="button"
-                    variant="outline"
-                    disabled={logoutMutation.isPending}
-                    onClick={() => {
-                        logoutMutation.mutate();
-                    }}
-                >
+                <Button type="button" variant="outline" disabled={logoutMutation.isPending} onClick={handleLogoutClick}>
                     로그아웃
                 </Button>
             </div>

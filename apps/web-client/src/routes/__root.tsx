@@ -19,20 +19,7 @@ function RootLayout() {
                 <div className="min-h-svh">
                     <Header />
                     <main>
-                        <QueryErrorResetBoundary>
-                            {({ reset }) => (
-                                <AppErrorBoundary
-                                    onReset={reset}
-                                    fallback={({ error, reset: resetBoundary }) => (
-                                        <RouteErrorFallback error={error} onRetry={resetBoundary} />
-                                    )}
-                                >
-                                    <Suspense fallback={<RoutePending />}>
-                                        <Outlet />
-                                    </Suspense>
-                                </AppErrorBoundary>
-                            )}
-                        </QueryErrorResetBoundary>
+                        <QueryErrorResetBoundary>{renderQueryErrorResetBoundary}</QueryErrorResetBoundary>
                     </main>
                 </div>
                 {import.meta.env.DEV ? <TanStackRouterDevtools /> : null}
@@ -41,9 +28,36 @@ function RootLayout() {
     );
 }
 
+type QueryErrorResetBoundaryRenderProps = {
+    reset: () => void;
+};
+
+function renderQueryErrorResetBoundary({ reset }: QueryErrorResetBoundaryRenderProps) {
+    return (
+        <AppErrorBoundary onReset={reset} fallback={renderRouteErrorFallback}>
+            <Suspense fallback={<RoutePending />}>
+                <Outlet />
+            </Suspense>
+        </AppErrorBoundary>
+    );
+}
+
+type RouteErrorFallbackRenderProps = {
+    error: Error;
+    reset: () => void;
+};
+
+function renderRouteErrorFallback({ error, reset }: RouteErrorFallbackRenderProps) {
+    return <RouteErrorFallback error={error} onRetry={reset} />;
+}
+
 function Header() {
     const currentUserQuery = useCurrentUserQuery();
     const currentUser = currentUserQuery.data;
+
+    function handleSignInClick() {
+        void signInWithGitHub("/posts");
+    }
 
     return (
         <header className="border-b">
@@ -81,9 +95,7 @@ function Header() {
                         <button
                             type="button"
                             className="rounded-lg px-3 py-2 text-sm text-muted-foreground hover:text-foreground"
-                            onClick={() => {
-                                void signInWithGitHub("/posts");
-                            }}
+                            onClick={handleSignInClick}
                         >
                             GitHub 로그인
                         </button>

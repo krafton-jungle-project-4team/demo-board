@@ -2,7 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@nmm/ui/components";
-import type { CreatePostRequest } from "@nmm/shared";
+import type { CreatePostRequest, Post } from "@nmm/shared";
 import { PostForm, postQueryKeys, useCreatePostMutation } from "@/features/posts";
 import { useState } from "react";
 
@@ -18,16 +18,26 @@ export function PostCreatePage() {
     const queryClient = useQueryClient();
     const [values, setValues] = useState<CreatePostRequest>(emptyPost);
     const createMutation = useCreatePostMutation({
-        onSuccess: (post) => {
-            void queryClient.invalidateQueries({ queryKey: postQueryKeys.listPrefix });
-            void navigate({
-                to: "/posts/$postId",
-                params: {
-                    postId: String(post.id)
-                }
-            });
-        }
+        onSuccess: handleCreatePostSuccess
     });
+
+    function handleCreatePostSuccess(post: Post) {
+        void queryClient.invalidateQueries({ queryKey: postQueryKeys.listPrefix });
+        void navigate({
+            to: "/posts/$postId",
+            params: {
+                postId: String(post.id)
+            }
+        });
+    }
+
+    function handleCancel() {
+        void navigate({ to: "/posts" });
+    }
+
+    function handleSubmit() {
+        createMutation.mutate(values);
+    }
 
     return (
         <section className="mx-auto grid w-full max-w-3xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -46,12 +56,8 @@ export function PostCreatePage() {
             <PostForm
                 values={values}
                 isPending={createMutation.isPending}
-                onCancel={() => {
-                    void navigate({ to: "/posts" });
-                }}
-                onSubmit={() => {
-                    createMutation.mutate(values);
-                }}
+                onCancel={handleCancel}
+                onSubmit={handleSubmit}
                 onValuesChange={setValues}
             />
         </section>

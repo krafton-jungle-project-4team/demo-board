@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { LayoutGrid, List, Plus, Search } from "lucide-react";
+import type { ChangeEvent, FormEvent } from "react";
 import { Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@nmm/ui/components";
 import { useCurrentUserQuery } from "@/features/auth";
 import { PostCards, PostTable, postSortValues, usePostListQuery, usePostSearch } from "@/features/posts";
@@ -15,6 +16,48 @@ export function PostsPage() {
     const currentUser = useCurrentUserQuery().data;
     const postsQuery = usePostListQuery(params);
     const postsData = postsQuery.data;
+
+    function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
+        event.preventDefault();
+        submitQueryDraft();
+    }
+
+    function handleQueryChange(event: ChangeEvent<HTMLInputElement>) {
+        setQueryDraft(event.target.value);
+    }
+
+    function handleSortChange(sort: string) {
+        void setSearch({
+            sort: sort as (typeof postSortValues)[number],
+            page: 1
+        });
+    }
+
+    function handleTableViewClick() {
+        void setSearch({
+            view: "table",
+            page: 1
+        });
+    }
+
+    function handleCardViewClick() {
+        void setSearch({
+            view: "card",
+            page: 1
+        });
+    }
+
+    function handlePreviousPageClick() {
+        void setSearch({ page: Math.max(1, search.page - 1) });
+    }
+
+    function handleNextPageClick() {
+        if (!postsData) {
+            return;
+        }
+
+        void setSearch({ page: Math.min(postsData.totalPages, search.page + 1) });
+    }
 
     return (
         <section className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -34,38 +77,17 @@ export function PostsPage() {
             </div>
 
             <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_160px_auto]">
-                <form
-                    className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]"
-                    onSubmit={(event) => {
-                        event.preventDefault();
-                        submitQueryDraft();
-                    }}
-                >
+                <form className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]" onSubmit={handleSearchSubmit}>
                     <div className="relative">
                         <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-                        <Input
-                            className="pl-9"
-                            placeholder="검색어"
-                            value={queryDraft}
-                            onChange={(event) => {
-                                setQueryDraft(event.target.value);
-                            }}
-                        />
+                        <Input className="pl-9" placeholder="검색어" value={queryDraft} onChange={handleQueryChange} />
                     </div>
                     <Button type="submit" variant="outline">
                         <Search />
                         검색
                     </Button>
                 </form>
-                <Select
-                    value={search.sort}
-                    onValueChange={(sort) => {
-                        void setSearch({
-                            sort: sort as (typeof postSortValues)[number],
-                            page: 1
-                        });
-                    }}
-                >
+                <Select value={search.sort} onValueChange={handleSortChange}>
                     <SelectTrigger>
                         <SelectValue />
                     </SelectTrigger>
@@ -83,12 +105,7 @@ export function PostsPage() {
                         size="icon"
                         variant={search.view === "table" ? "secondary" : "ghost"}
                         aria-label="표 보기"
-                        onClick={() => {
-                            void setSearch({
-                                view: "table",
-                                page: 1
-                            });
-                        }}
+                        onClick={handleTableViewClick}
                     >
                         <List />
                     </Button>
@@ -97,12 +114,7 @@ export function PostsPage() {
                         size="icon"
                         variant={search.view === "card" ? "secondary" : "ghost"}
                         aria-label="카드 보기"
-                        onClick={() => {
-                            void setSearch({
-                                view: "card",
-                                page: 1
-                            });
-                        }}
+                        onClick={handleCardViewClick}
                     >
                         <LayoutGrid />
                     </Button>
@@ -126,9 +138,7 @@ export function PostsPage() {
                                 type="button"
                                 variant="outline"
                                 disabled={search.page <= 1}
-                                onClick={() => {
-                                    void setSearch({ page: Math.max(1, search.page - 1) });
-                                }}
+                                onClick={handlePreviousPageClick}
                             >
                                 이전
                             </Button>
@@ -136,9 +146,7 @@ export function PostsPage() {
                                 type="button"
                                 variant="outline"
                                 disabled={search.page >= postsData.totalPages}
-                                onClick={() => {
-                                    void setSearch({ page: Math.min(postsData.totalPages, search.page + 1) });
-                                }}
+                                onClick={handleNextPageClick}
                             >
                                 다음
                             </Button>

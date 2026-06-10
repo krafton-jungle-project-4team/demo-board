@@ -35,9 +35,14 @@
 - shadcn/ui CLI 대상은 `packages/ui`다.
 - `packages/ui/src/components`의 shadcn/ui 컴포넌트는 직접 수정하지 않는다.
 - `packages/ui/components.json`은 shadcn CLI 설정으로 유지한다.
-- 앱은 `@nmm/ui/components`에서 필요한 컴포넌트를 import하고, 앱별 조합은 feature/page 코드에서 처리한다.
+- 앱은 `@nmm/ui/components`에서 필요한 UI primitive를 import하고, 앱별 조합은 feature/page 코드에서 처리한다.
 - `cn`은 `packages/ui/src/lib/utils.ts`에만 두며 앱 코드에서 import하지 않는다.
 - web의 CSS entry는 `@nmm/ui/styles/globals.css`와 UI 패키지 Tailwind source만 연결한다.
+- `packages/ui/src/styles/globals.css`는 shadcn 기본 scaffold만 유지한다.
+- 색상 변경은 shadcn이 제공하는 `tailwind.baseColor` 범주를 `packages/ui/components.json`에서 고르는 방식만 허용한다.
+- 앱별 CSS 파일, 직접 CSS selector, 직접 theme token 추가/수정은 금지한다.
+- `section`, `main`, `form`, `h1`, `p`, `div` 같은 의미/레이아웃 태그와 Tailwind layout utility는 허용한다.
+- 버튼, 입력, 카드, 표, 선택 UI 같은 primitive는 `@nmm/ui/components`를 우선 사용한다.
 
 ## Frontend 구조
 
@@ -49,6 +54,9 @@
 - 조회 error는 가장 가까운 ErrorBoundary가 잡고, 영역별 대체 UI가 필요하면 더 좁은 boundary를 둔다.
 - 현재는 루트 라우트 범위의 넓은 `AppErrorBoundary`만 둔다.
 - mutation pending은 이벤트 UI에서 직접 다루고, mutation error UX는 이후 요구사항이 생기면 정한다.
+- JSX 안에서는 익명 함수식을 직접 만들지 않는다. prop과 render-function children은 이름 있는 함수로 전달한다.
+- JSX 밖의 `map`, `useMemo` 같은 순수 계산 콜백은 인라인으로 둘 수 있다.
+- 성공/실패/이벤트처럼 특정 상황의 동작을 담는 콜백은 가능하면 `handle*` 이름의 함수로 분리한다.
 
 ## API 계약
 

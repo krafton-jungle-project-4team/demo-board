@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useState, type ChangeEvent, type FormEvent } from "react";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label } from "@nmm/ui/components";
 import { useCompleteSignUpMutation } from "@/features/auth";
 
@@ -8,22 +8,25 @@ export function CompleteSignUpPage() {
     const [name, setName] = useState("");
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const completeSignUpMutation = useCompleteSignUpMutation({
-        onSuccess: () => {
-            void navigate({ to: "/posts" });
-        }
+        onSuccess: handleCompleteSignUpSuccess
     });
 
-    function submitSignUp(event: FormEvent<HTMLFormElement>) {
+    function handleCompleteSignUpSuccess() {
+        void navigate({ to: "/posts" });
+    }
+
+    function handleCompleteSignUpError() {
+        setErrorMessage("가입 완료 처리에 실패했습니다.");
+    }
+
+    function handleNameChange(event: ChangeEvent<HTMLInputElement>) {
+        setName(event.target.value);
+    }
+
+    function handleSignUpSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setErrorMessage(null);
-        completeSignUpMutation.mutate(
-            { name },
-            {
-                onError: () => {
-                    setErrorMessage("가입 완료 처리에 실패했습니다.");
-                }
-            }
-        );
+        completeSignUpMutation.mutate({ name }, { onError: handleCompleteSignUpError });
     }
 
     return (
@@ -34,18 +37,10 @@ export function CompleteSignUpPage() {
                     <CardDescription>게시판에서 사용할 이름을 입력합니다.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form className="grid gap-4" onSubmit={submitSignUp}>
+                    <form className="grid gap-4" onSubmit={handleSignUpSubmit}>
                         <div className="grid gap-2">
                             <Label htmlFor="signup-name">이름</Label>
-                            <Input
-                                id="signup-name"
-                                required
-                                minLength={1}
-                                value={name}
-                                onChange={(event) => {
-                                    setName(event.target.value);
-                                }}
-                            />
+                            <Input id="signup-name" required minLength={1} value={name} onChange={handleNameChange} />
                         </div>
                         {errorMessage ? <p className="text-sm text-destructive">{errorMessage}</p> : null}
                         <Button type="submit" disabled={completeSignUpMutation.isPending || name.trim().length === 0}>

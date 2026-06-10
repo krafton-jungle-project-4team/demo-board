@@ -80,28 +80,55 @@ function EditablePostEditPage({ post }: EditablePostEditPageProps) {
     );
     const [values, setValues] = useState<CreatePostRequest>(initialValues);
     const updateMutation = useUpdatePostMutation({
-        onSuccess: (updatedPost) => {
-            void queryClient.invalidateQueries({ queryKey: postQueryKeys.listPrefix });
-            void queryClient.invalidateQueries({ queryKey: postQueryKeys.detail(updatedPost.id) });
-            void navigate({
-                to: "/posts/$postId",
-                params: {
-                    postId: String(updatedPost.id)
-                }
-            });
-        }
+        onSuccess: handleUpdatePostSuccess
     });
     const deleteMutation = useDeletePostMutation({
-        onSuccess: () => {
-            void queryClient.invalidateQueries({ queryKey: postQueryKeys.listPrefix });
-            void queryClient.removeQueries({ queryKey: postQueryKeys.detail(post.id) });
-            void navigate({ to: "/posts" });
-        }
+        onSuccess: handleDeletePostSuccess
     });
 
-    useEffect(() => {
-        setValues(initialValues);
-    }, [initialValues]);
+    useEffect(
+        function syncValuesWithPost() {
+            setValues(initialValues);
+        },
+        [initialValues]
+    );
+
+    function handleUpdatePostSuccess(updatedPost: Post) {
+        void queryClient.invalidateQueries({ queryKey: postQueryKeys.listPrefix });
+        void queryClient.invalidateQueries({ queryKey: postQueryKeys.detail(updatedPost.id) });
+        void navigate({
+            to: "/posts/$postId",
+            params: {
+                postId: String(updatedPost.id)
+            }
+        });
+    }
+
+    function handleDeletePostSuccess() {
+        void queryClient.invalidateQueries({ queryKey: postQueryKeys.listPrefix });
+        void queryClient.removeQueries({ queryKey: postQueryKeys.detail(post.id) });
+        void navigate({ to: "/posts" });
+    }
+
+    function handleDeleteClick() {
+        deleteMutation.mutate(post.id);
+    }
+
+    function handleCancel() {
+        void navigate({
+            to: "/posts/$postId",
+            params: {
+                postId: String(post.id)
+            }
+        });
+    }
+
+    function handleSubmit() {
+        updateMutation.mutate({
+            id: post.id,
+            data: values
+        });
+    }
 
     return (
         <section className="mx-auto grid w-full max-w-3xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
@@ -117,9 +144,7 @@ function EditablePostEditPage({ post }: EditablePostEditPageProps) {
                         type="button"
                         variant="outline"
                         disabled={deleteMutation.isPending || updateMutation.isPending}
-                        onClick={() => {
-                            deleteMutation.mutate(post.id);
-                        }}
+                        onClick={handleDeleteClick}
                     >
                         <Trash2 />
                         삭제
@@ -133,20 +158,8 @@ function EditablePostEditPage({ post }: EditablePostEditPageProps) {
             <PostForm
                 values={values}
                 isPending={updateMutation.isPending}
-                onCancel={() => {
-                    void navigate({
-                        to: "/posts/$postId",
-                        params: {
-                            postId: String(post.id)
-                        }
-                    });
-                }}
-                onSubmit={() => {
-                    updateMutation.mutate({
-                        id: post.id,
-                        data: values
-                    });
-                }}
+                onCancel={handleCancel}
+                onSubmit={handleSubmit}
                 onValuesChange={setValues}
             />
         </section>

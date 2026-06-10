@@ -96,6 +96,18 @@ export default [
             "react-hooks/rules-of-hooks": "error",
             "react-hooks/exhaustive-deps": "error",
 
+            "no-restricted-syntax": [
+                "error",
+                {
+                    selector: "JSXExpressionContainer > ArrowFunctionExpression",
+                    message: "JSX 안에 익명 화살표 함수를 직접 만들지 말고 이름 있는 함수로 전달하세요."
+                },
+                {
+                    selector: "JSXExpressionContainer > FunctionExpression",
+                    message: "JSX 안에 익명 함수를 직접 만들지 말고 이름 있는 함수로 전달하세요."
+                }
+            ],
+
             // Web은 API를 HTTP로 호출하고, shadcn 내부 유틸은 UI 패키지 안에 둔다.
             "no-restricted-imports": restrictImports([
                 "@nmm/api-server",
