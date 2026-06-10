@@ -11,6 +11,7 @@ import {
     postQueryKeys,
     useDeletePostMutation,
     usePostDetailQuery,
+    usePostTagsQuery,
     useUpdatePostMutation
 } from "@/features/posts";
 
@@ -69,6 +70,7 @@ type EditablePostEditPageProps = {
 function EditablePostEditPage({ post }: EditablePostEditPageProps) {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const tagsQuery = usePostTagsQuery();
     const initialValues = useMemo<CreatePostRequest>(
         () => ({
             title: post.title,
@@ -158,6 +160,7 @@ function EditablePostEditPage({ post }: EditablePostEditPageProps) {
                 </div>
             </div>
             <PostForm
+                availableTags={tagsQuery.data ?? []}
                 values={values}
                 isPending={updateMutation.isPending}
                 onCancel={handleCancel}

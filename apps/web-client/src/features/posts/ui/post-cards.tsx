@@ -3,6 +3,7 @@ import { Pencil } from "lucide-react";
 import { Button, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@nmm/ui/components";
 import type { Post, User } from "@nmm/shared";
 import { canManagePost } from "../model/post-permissions";
+import { PostTagBadges } from "./post-tag-badges";
 
 type PostCardsProps = {
     currentUser: User | null | undefined;
@@ -62,7 +63,10 @@ function PostCardContent({ post }: PostCardProps) {
                 <CardDescription>{post.excerpt}</CardDescription>
             </CardHeader>
             <CardContent>
-                <p className="text-muted-foreground line-clamp-3 text-sm">{post.content}</p>
+                <div className="grid gap-3">
+                    <p className="text-muted-foreground line-clamp-3 text-sm">{post.content}</p>
+                    <PostTagBadges tags={post.tags} />
+                </div>
             </CardContent>
         </>
     );

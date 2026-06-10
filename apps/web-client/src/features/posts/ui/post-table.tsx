@@ -3,6 +3,7 @@ import { Pencil } from "lucide-react";
 import { Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@nmm/ui/components";
 import type { Post, User } from "@nmm/shared";
 import { canManagePost } from "../model/post-permissions";
+import { PostTagBadges } from "./post-tag-badges";
 
 type PostTableProps = {
     currentUser: User | null | undefined;
@@ -106,6 +107,7 @@ function PostSummaryCells({ post }: PostTableRowProps) {
                         {post.title}
                     </Link>
                     <p className="text-muted-foreground line-clamp-1 text-sm">{post.excerpt}</p>
+                    <PostTagBadges tags={post.tags} />
                 </div>
             </TableCell>
             <TableCell className="hidden md:table-cell">{post.authorName}</TableCell>

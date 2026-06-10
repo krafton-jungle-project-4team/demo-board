@@ -3,7 +3,14 @@ import { LayoutGrid, List, Plus, Search } from "lucide-react";
 import type { ChangeEvent, FormEvent } from "react";
 import { Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@nmm/ui/components";
 import { useCurrentUserQuery } from "@/features/auth";
-import { PostCards, PostTable, postSortValues, usePostListQuery, usePostSearch } from "@/features/posts";
+import {
+    PostCards,
+    PostTable,
+    postSortValues,
+    usePostListQuery,
+    usePostSearch,
+    usePostTagsQuery
+} from "@/features/posts";
 
 const sortLabels = {
     "created-desc": "최신순",
@@ -14,8 +21,10 @@ const sortLabels = {
 export function PostsPage() {
     const { queryDraft, search, setQueryDraft, setSearch, submitQueryDraft, params } = usePostSearch();
     const currentUser = useCurrentUserQuery().data;
+    const tagsQuery = usePostTagsQuery();
     const postsQuery = usePostListQuery(params);
     const postsData = postsQuery.data;
+    const selectedTagValue = search.tagId ? String(search.tagId) : "all";
 
     function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -29,6 +38,13 @@ export function PostsPage() {
     function handleSortChange(sort: string) {
         void setSearch({
             sort: sort as (typeof postSortValues)[number],
+            page: 1
+        });
+    }
+
+    function handleTagChange(tagId: string) {
+        void setSearch({
+            tagId: tagId === "all" ? null : Number(tagId),
             page: 1
         });
     }
@@ -76,7 +92,7 @@ export function PostsPage() {
                 </Button>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_160px_auto]">
+            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_160px_160px_auto]">
                 <form className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]" onSubmit={handleSearchSubmit}>
                     <div className="relative">
                         <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
@@ -95,6 +111,19 @@ export function PostsPage() {
                         {postSortValues.map((sort) => (
                             <SelectItem key={sort} value={sort}>
                                 {sortLabels[sort]}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <Select value={selectedTagValue} onValueChange={handleTagChange}>
+                    <SelectTrigger>
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">전체 태그</SelectItem>
+                        {(tagsQuery.data ?? []).map((tag) => (
+                            <SelectItem key={tag.id} value={String(tag.id)}>
+                                {tag.name}
                             </SelectItem>
                         ))}
                     </SelectContent>

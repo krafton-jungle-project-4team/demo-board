@@ -4,7 +4,7 @@ import { postSearchParsers, toFindPostsParams } from "../model/post-search";
 
 export function usePostSearch() {
     const [search, setSearch] = useQueryStates(postSearchParsers);
-    const { page, q, sort, view } = search;
+    const { page, q, sort, tagId, view } = search;
     const [queryDraft, setQueryDraft] = useState(q);
 
     useEffect(() => {
@@ -20,7 +20,7 @@ export function usePostSearch() {
         }
     }, [page, q, queryDraft, setSearch]);
 
-    const params = useMemo(() => toFindPostsParams({ page, q, sort, view }), [page, q, sort, view]);
+    const params = useMemo(() => toFindPostsParams({ page, q, sort, tagId, view }), [page, q, sort, tagId, view]);
 
     return {
         queryDraft,

@@ -3,7 +3,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@nmm/ui/components";
 import type { CreatePostRequest, CreatePostResponse } from "@nmm/shared";
-import { PostForm, postQueryKeys, useCreatePostMutation } from "@/features/posts";
+import { PostForm, postQueryKeys, useCreatePostMutation, usePostTagsQuery } from "@/features/posts";
 import { useState } from "react";
 
 const emptyPost: CreatePostRequest = {
@@ -16,6 +16,7 @@ const emptyPost: CreatePostRequest = {
 export function PostCreatePage() {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const tagsQuery = usePostTagsQuery();
     const [values, setValues] = useState<CreatePostRequest>(emptyPost);
     const createMutation = useCreatePostMutation({
         onSuccess: handleCreatePostSuccess
@@ -56,6 +57,7 @@ export function PostCreatePage() {
                 </div>
             </div>
             <PostForm
+                availableTags={tagsQuery.data ?? []}
                 values={values}
                 isPending={createMutation.isPending}
                 onCancel={handleCancel}

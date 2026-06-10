@@ -51,6 +51,7 @@ const parseAsBase64UrlString = createParser({
 
 export const postSearchParsers = {
     q: parseAsBase64UrlString.withDefault(""),
+    tagId: parseAsPositiveInteger,
     page: parseAsPositiveInteger.withDefault(1),
     sort: parseAsStringEnum([...postSortValues]).withDefault("created-desc"),
     view: parseAsStringEnum([...postViewValues]).withDefault("table")
@@ -65,6 +66,7 @@ export type PostSearchState = inferParserType<typeof postSearchParsers>;
 export function toFindPostsParams(search: PostSearchState): PostListParams {
     return {
         q: search.q || undefined,
+        tagId: search.tagId ?? undefined,
         page: search.page,
         pageSize: 10,
         sort: search.sort,
