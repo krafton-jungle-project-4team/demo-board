@@ -1,4 +1,4 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { Inject, Injectable, Logger } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { authErrors } from "../auth-errors";
@@ -14,12 +14,16 @@ export type AuthRequestContext = {
 
 @Injectable()
 export class AuthQueryService {
+    private readonly logger = new Logger(AuthQueryService.name);
+
     constructor(
         @Inject(BETTER_AUTH) private readonly auth: BetterAuth,
         @InjectRepository(UserEntity) private readonly users: Repository<UserEntity>
     ) {}
 
     async requireAuthClaims(context: AuthRequestContext): Promise<AuthClaims> {
+        this.logger.debug("requireAuthClaims called");
+
         const claims = this.toAuthClaims(await this.requireSession(context));
 
         this.assertAllowedClaims(claims, context);
@@ -27,6 +31,8 @@ export class AuthQueryService {
     }
 
     async findUserRecord(claims: AuthClaims): Promise<UserRecord> {
+        this.logger.debug("findUserRecord called");
+
         const user = await this.findUser(claims.userId);
 
         if (!user) {

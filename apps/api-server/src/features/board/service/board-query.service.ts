@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import type { Comment, CommentListResponse, ListPostsQuery, Post, PostListResponse, PostTag } from "@nmm/shared";
 import { In, Repository } from "typeorm";
@@ -9,6 +9,8 @@ import { CommentEntity, PostEntity, PostTagEntity, PostTagLinkEntity } from "../
 
 @Injectable()
 export class BoardQueryService {
+    private readonly logger = new Logger(BoardQueryService.name);
+
     constructor(
         @InjectRepository(PostEntity) private readonly posts: Repository<PostEntity>,
         @InjectRepository(PostTagEntity) private readonly tags: Repository<PostTagEntity>,
@@ -18,6 +20,8 @@ export class BoardQueryService {
     ) {}
 
     async findTags(): Promise<PostTag[]> {
+        this.logger.debug("findTags called");
+
         const tagEntities = await this.tags.find();
         const tags = tagEntities.map((tag) => tag.toPostTag());
 
@@ -25,6 +29,8 @@ export class BoardQueryService {
     }
 
     async findPosts(query: ListPostsQuery): Promise<PostListResponse> {
+        this.logger.debug("findPosts called");
+
         const users = await this.users.find();
         const posts = await this.posts.find();
         const keyword = query.q.trim().toLowerCase();
@@ -91,6 +97,8 @@ export class BoardQueryService {
     }
 
     async findPost(id: number): Promise<Post> {
+        this.logger.debug("findPost called");
+
         const users = await this.users.find();
         const post = await this.posts.findOneBy({ id });
 
@@ -111,6 +119,8 @@ export class BoardQueryService {
     }
 
     async findComment(postId: number, commentId: number): Promise<Comment> {
+        this.logger.debug("findComment called");
+
         const users = await this.users.find();
         const post = await this.posts.findOneBy({ id: postId });
 
@@ -136,6 +146,8 @@ export class BoardQueryService {
     }
 
     async findComments(postId: number): Promise<CommentListResponse> {
+        this.logger.debug("findComments called");
+
         const users = await this.users.find();
         const post = await this.posts.findOneBy({ id: postId });
 

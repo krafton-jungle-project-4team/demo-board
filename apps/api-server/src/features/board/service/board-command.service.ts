@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
 import {
     type CreateCommentRequest,
@@ -19,6 +19,8 @@ import { CommentEntity, PostEntity, PostTagEntity, PostTagLinkEntity } from "../
 
 @Injectable()
 export class BoardCommandService {
+    private readonly logger = new Logger(BoardCommandService.name);
+
     constructor(
         @InjectDataSource() private readonly dataSource: DataSource,
         @InjectRepository(PostEntity) private readonly posts: Repository<PostEntity>,
@@ -27,6 +29,8 @@ export class BoardCommandService {
     ) {}
 
     async createPost(request: CreatePostRequest, claims: AuthClaims): Promise<CreatePostResponse> {
+        this.logger.debug("createPost called");
+
         const tags = await this.resolveTags(request.tagIds);
         const postId = await this.insertPostWithTags(request, claims, tags);
 
@@ -34,6 +38,8 @@ export class BoardCommandService {
     }
 
     async updatePost(id: number, request: UpdatePostRequest, claims: AuthClaims): Promise<UpdatePostResponse> {
+        this.logger.debug("updatePost called");
+
         const post = await this.findExistingPost(id);
 
         this.assertOwner(post, claims);
@@ -50,6 +56,8 @@ export class BoardCommandService {
     }
 
     async deletePost(id: number, claims: AuthClaims): Promise<DeletePostResponse> {
+        this.logger.debug("deletePost called");
+
         const post = await this.findExistingPost(id);
         const postId = Number(post.id);
 
@@ -64,6 +72,8 @@ export class BoardCommandService {
         request: CreateCommentRequest,
         claims: AuthClaims
     ): Promise<CreateCommentResponse> {
+        this.logger.debug("createComment called");
+
         await this.findExistingPost(postId);
         const now = new Date();
         const savedComment = await this.comments.save(
@@ -86,6 +96,8 @@ export class BoardCommandService {
         request: UpdateCommentRequest,
         claims: AuthClaims
     ): Promise<UpdateCommentResponse> {
+        this.logger.debug("updateComment called");
+
         await this.findExistingPost(postId);
 
         const comment = await this.findExistingComment(postId, commentId);
@@ -101,6 +113,8 @@ export class BoardCommandService {
     }
 
     async deleteComment(postId: number, commentId: number, claims: AuthClaims): Promise<DeleteCommentResponse> {
+        this.logger.debug("deleteComment called");
+
         await this.findExistingPost(postId);
 
         const comment = await this.findExistingComment(postId, commentId);

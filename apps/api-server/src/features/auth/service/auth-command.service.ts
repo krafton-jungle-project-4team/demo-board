@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import type {
     CompleteSignUpRequest,
@@ -18,12 +18,16 @@ type AuthUserProfile = {
 
 @Injectable()
 export class AuthCommandService {
+    private readonly logger = new Logger(AuthCommandService.name);
+
     constructor(
         @InjectRepository(UserEntity) private readonly users: Repository<UserEntity>,
         @InjectRepository(SessionEntity) private readonly sessions: Repository<SessionEntity>
     ) {}
 
     async completeSignUp(request: CompleteSignUpRequest, claims: AuthClaims): Promise<CompleteSignUpResponse> {
+        this.logger.debug("completeSignUp called");
+
         await this.updateUserProfile(claims.userId, {
             name: request.name,
             status: "ACTIVE"
@@ -34,6 +38,8 @@ export class AuthCommandService {
     }
 
     async updateCurrentUser(request: UpdateCurrentUserRequest, claims: AuthClaims): Promise<UpdateCurrentUserResponse> {
+        this.logger.debug("updateCurrentUser called");
+
         await this.updateUserProfile(claims.userId, {
             name: request.name,
             status: claims.status
