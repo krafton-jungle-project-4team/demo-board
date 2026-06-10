@@ -85,6 +85,7 @@
 - env 값은 기본값 없이 `apps/api-server/.env`에서 읽어 `serverEnv` 전역 객체로 생성한다.
 - Docker Compose는 `npm run dev:api`의 `--env-file apps/api-server/.env`로 env 값을 주입한다.
 - 필요한 env 키는 `apps/api-server/.env.example`에 둔다.
+- Web env 파일은 `apps/web-client/.env`로 두고 필요한 키는 `apps/web-client/.env.example`에 둔다.
 - API 서버 DB 스키마는 `apps/api-server/database/init-db.sql`에 둔다.
 - API 서버 더미 데이터는 `apps/api-server/database/dummy-data.sql`에 둔다.
 - TypeORM `synchronize`는 사용하지 않는다.
