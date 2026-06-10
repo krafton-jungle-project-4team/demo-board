@@ -1,5 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { CompleteSignUpRequest, UpdateCurrentUserRequest, UpdateCurrentUserResponse, User } from "@nmm/shared";
+import type {
+    CompleteSignUpRequest,
+    CompleteSignUpResponse,
+    UpdateCurrentUserRequest,
+    UpdateCurrentUserResponse,
+    User
+} from "@nmm/shared";
 import { ApiClientError } from "@/shared/api/http-client";
 import { completeSignUp, getCurrentUser, logout, updateCurrentUser } from "./auth-api";
 
@@ -14,14 +20,14 @@ export function useCurrentUserQuery() {
     });
 }
 
-export function useCompleteSignUpMutation(options?: { onSuccess?: () => void }) {
+export function useCompleteSignUpMutation(options?: { onSuccess?: (response: CompleteSignUpResponse) => void }) {
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: (data: CompleteSignUpRequest) => completeSignUp(data),
-        onSuccess: () => {
+        onSuccess: (response) => {
             void queryClient.invalidateQueries({ queryKey: authQueryKeys.currentUser });
-            options?.onSuccess?.();
+            options?.onSuccess?.(response);
         }
     });
 }

@@ -6,7 +6,13 @@ import {
     DeleteCommentResponseSchema,
     ResourceIdSchema,
     UpdateCommentRequestSchema,
-    UpdateCommentResponseSchema
+    UpdateCommentResponseSchema,
+    type CommentListResponse,
+    type CreateCommentRequest,
+    type CreateCommentResponse,
+    type DeleteCommentResponse,
+    type UpdateCommentRequest,
+    type UpdateCommentResponse
 } from "@nmm/shared";
 import { ActiveAccountGuard, CurrentAuth, type AuthClaims } from "../../auth";
 import { BoardCommandService } from "../service/board-command.service";
@@ -20,19 +26,24 @@ export class CommentsController {
     ) {}
 
     @Get()
-    async findComments(@Param("postId") postId: string) {
-        const response = await this.boardQueryService.findComments(ResourceIdSchema.parse(postId));
+    async findComments(@Param("postId") postId: string): Promise<CommentListResponse> {
+        const response: CommentListResponse = await this.boardQueryService.findComments(ResourceIdSchema.parse(postId));
 
         return CommentListResponseSchema.parse(response);
     }
 
     @Post()
     @UseGuards(ActiveAccountGuard)
-    async createComment(@Param("postId") postId: string, @Body() body: unknown, @CurrentAuth() claims: AuthClaims) {
+    async createComment(
+        @Param("postId") postId: string,
+        @Body() body: unknown,
+        @CurrentAuth() claims: AuthClaims
+    ): Promise<CreateCommentResponse> {
         const parsedPostId = ResourceIdSchema.parse(postId);
-        const response = await this.boardCommandService.createComment(
+        const request: CreateCommentRequest = CreateCommentRequestSchema.parse(body);
+        const response: CreateCommentResponse = await this.boardCommandService.createComment(
             parsedPostId,
-            CreateCommentRequestSchema.parse(body),
+            request,
             claims
         );
 
@@ -46,13 +57,14 @@ export class CommentsController {
         @Param("commentId") commentId: string,
         @Body() body: unknown,
         @CurrentAuth() claims: AuthClaims
-    ) {
+    ): Promise<UpdateCommentResponse> {
         const parsedPostId = ResourceIdSchema.parse(postId);
         const parsedCommentId = ResourceIdSchema.parse(commentId);
-        const response = await this.boardCommandService.updateComment(
+        const request: UpdateCommentRequest = UpdateCommentRequestSchema.parse(body);
+        const response: UpdateCommentResponse = await this.boardCommandService.updateComment(
             parsedPostId,
             parsedCommentId,
-            UpdateCommentRequestSchema.parse(body),
+            request,
             claims
         );
 
@@ -65,8 +77,8 @@ export class CommentsController {
         @Param("postId") postId: string,
         @Param("commentId") commentId: string,
         @CurrentAuth() claims: AuthClaims
-    ) {
-        const response = await this.boardCommandService.deleteComment(
+    ): Promise<DeleteCommentResponse> {
+        const response: DeleteCommentResponse = await this.boardCommandService.deleteComment(
             ResourceIdSchema.parse(postId),
             ResourceIdSchema.parse(commentId),
             claims

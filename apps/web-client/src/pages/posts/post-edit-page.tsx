@@ -124,9 +124,11 @@ function EditablePostEditPage({ post }: EditablePostEditPageProps) {
     }
 
     function handleSubmit() {
+        const request: CreatePostRequest = values;
+
         updateMutation.mutate({
             id: post.id,
-            data: values
+            data: request
         });
     }
 

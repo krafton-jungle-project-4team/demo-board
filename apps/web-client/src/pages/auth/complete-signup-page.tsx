@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label } from "@nmm/ui/components";
+import type { CompleteSignUpRequest } from "@nmm/shared";
 import { useCompleteSignUpMutation } from "@/features/auth";
 
 export function CompleteSignUpPage() {
@@ -26,7 +27,9 @@ export function CompleteSignUpPage() {
     function handleSignUpSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setErrorMessage(null);
-        completeSignUpMutation.mutate({ name }, { onError: handleCompleteSignUpError });
+        const request: CompleteSignUpRequest = { name };
+
+        completeSignUpMutation.mutate(request, { onError: handleCompleteSignUpError });
     }
 
     return (

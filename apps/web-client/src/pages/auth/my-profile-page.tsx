@@ -1,6 +1,7 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label } from "@nmm/ui/components";
+import type { UpdateCurrentUserRequest } from "@nmm/shared";
 import {
     signInWithGitHub,
     useCurrentUserQuery,
@@ -55,7 +56,9 @@ export function MyProfilePage() {
     function handleProfileSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setMessage(null);
-        updateCurrentUserMutation.mutate({ name }, { onError: handleUpdateCurrentUserError });
+        const request: UpdateCurrentUserRequest = { name };
+
+        updateCurrentUserMutation.mutate(request, { onError: handleUpdateCurrentUserError });
     }
 
     if (currentUserQuery.isPending) {

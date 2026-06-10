@@ -2,6 +2,7 @@ import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import type {
     CreatePostRequest,
     CreatePostResponse,
+    DeletePostResponse,
     PostListResponse,
     UpdatePostRequest,
     UpdatePostResponse
@@ -52,7 +53,7 @@ export function useUpdatePostMutation(options?: { onSuccess?: (response: UpdateP
     });
 }
 
-export function useDeletePostMutation(options?: { onSuccess?: () => void }) {
+export function useDeletePostMutation(options?: { onSuccess?: (response: DeletePostResponse) => void }) {
     return useMutation({
         mutationFn: (id: RouteResourceId) => deletePost(id),
         onSuccess: options?.onSuccess

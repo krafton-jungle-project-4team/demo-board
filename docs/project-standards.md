@@ -66,6 +66,8 @@
 - Web은 shared Zod schema로 표준 응답 envelope를 파싱하는 수동 typed HTTP 함수를 쓴다.
 - OpenAPI/Orval/generated client는 기본 API 공유 방식으로 쓰지 않는다.
 - Web feature 코드는 API 객체 형식 원본으로 shared contract를 우선 사용한다.
+- API server controller와 Web HTTP 함수는 request/response contract type을 명시하고, schema는 경계 검증에 쓴다.
+- 전처리가 필요한 값은 raw 인자와 전처리된 변수를 분리해서 명명한다.
 - TanStack Query hook은 feature 코드에서 직접 작성한다.
 - API 계약이 바뀌면 shared contract, API 서버 controller 파싱, Web HTTP 함수를 같은 작업 단위로 갱신한다.
 - JSON 성공 응답은 `{ requestId, data }`, JSON 에러 응답은 `{ requestId, error: { code, message } }`를 쓴다.

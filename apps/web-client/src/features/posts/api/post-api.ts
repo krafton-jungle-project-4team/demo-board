@@ -13,11 +13,21 @@ import {
     UpdateCommentResponseSchema,
     UpdatePostRequestSchema,
     UpdatePostResponseSchema,
+    type CommentListResponse,
     type CreateCommentRequest,
+    type CreateCommentResponse,
     type CreatePostRequest,
+    type CreatePostResponse,
+    type DeleteCommentResponse,
+    type DeletePostResponse,
     type ListPostsQuery,
+    type Post,
+    type PostListResponse,
+    type PostTag,
     type ResourceId,
     type UpdateCommentRequest,
+    type UpdateCommentResponse,
+    type UpdatePostResponse,
     type UpdatePostRequest
 } from "@nmm/shared";
 import { z } from "zod";
@@ -26,72 +36,95 @@ import { requestApiData } from "@/shared/api/http-client";
 export type PostListParams = Partial<ListPostsQuery>;
 export type RouteResourceId = ResourceId | string;
 
-function toRouteId(id: RouteResourceId) {
-    return String(id);
+function toPathId(id: RouteResourceId) {
+    return encodeURIComponent(String(id));
 }
 
-export function findPosts(params: PostListParams, signal?: AbortSignal) {
+export function findPosts(params: PostListParams, signal?: AbortSignal): Promise<PostListResponse> {
     return requestApiData("posts", PostListResponseSchema, { searchParams: params, signal });
 }
 
-export function findPost(id: RouteResourceId, signal?: AbortSignal) {
-    return requestApiData(`posts/${encodeURIComponent(toRouteId(id))}`, PostSchema, { signal });
+export function findPost(rawPostId: RouteResourceId, signal?: AbortSignal): Promise<Post> {
+    const postId = toPathId(rawPostId);
+
+    return requestApiData(`posts/${postId}`, PostSchema, { signal });
 }
 
-export function createPost(request: CreatePostRequest) {
+export function createPost(request: CreatePostRequest): Promise<CreatePostResponse> {
+    const body: CreatePostRequest = CreatePostRequestSchema.parse(request);
+
     return requestApiData("posts", CreatePostResponseSchema, {
         method: "POST",
-        json: CreatePostRequestSchema.parse(request)
+        json: body
     });
 }
 
-export function updatePost(id: RouteResourceId, request: UpdatePostRequest) {
-    return requestApiData(`posts/${encodeURIComponent(toRouteId(id))}`, UpdatePostResponseSchema, {
+export function updatePost(rawPostId: RouteResourceId, request: UpdatePostRequest): Promise<UpdatePostResponse> {
+    const postId = toPathId(rawPostId);
+    const body: UpdatePostRequest = UpdatePostRequestSchema.parse(request);
+
+    return requestApiData(`posts/${postId}`, UpdatePostResponseSchema, {
         method: "PATCH",
-        json: UpdatePostRequestSchema.parse(request)
+        json: body
     });
 }
 
-export function deletePost(id: RouteResourceId) {
-    return requestApiData(`posts/${encodeURIComponent(toRouteId(id))}`, DeletePostResponseSchema, {
+export function deletePost(rawPostId: RouteResourceId): Promise<DeletePostResponse> {
+    const postId = toPathId(rawPostId);
+
+    return requestApiData(`posts/${postId}`, DeletePostResponseSchema, {
         method: "DELETE"
     });
 }
 
-export function findPostTags(signal?: AbortSignal) {
+export function findPostTags(signal?: AbortSignal): Promise<PostTag[]> {
     return requestApiData("post-tags", z.array(PostTagSchema), { signal });
 }
 
-export function findComments(postId: RouteResourceId, signal?: AbortSignal) {
-    return requestApiData(`posts/${encodeURIComponent(toRouteId(postId))}/comments`, CommentListResponseSchema, {
+export function findComments(rawPostId: RouteResourceId, signal?: AbortSignal): Promise<CommentListResponse> {
+    const postId = toPathId(rawPostId);
+
+    return requestApiData(`posts/${postId}/comments`, CommentListResponseSchema, {
         signal
     });
 }
 
-export function createComment(postId: RouteResourceId, request: CreateCommentRequest) {
-    return requestApiData(`posts/${encodeURIComponent(toRouteId(postId))}/comments`, CreateCommentResponseSchema, {
+export function createComment(
+    rawPostId: RouteResourceId,
+    request: CreateCommentRequest
+): Promise<CreateCommentResponse> {
+    const postId = toPathId(rawPostId);
+    const body: CreateCommentRequest = CreateCommentRequestSchema.parse(request);
+
+    return requestApiData(`posts/${postId}/comments`, CreateCommentResponseSchema, {
         method: "POST",
-        json: CreateCommentRequestSchema.parse(request)
+        json: body
     });
 }
 
-export function updateComment(postId: RouteResourceId, commentId: RouteResourceId, request: UpdateCommentRequest) {
-    return requestApiData(
-        `posts/${encodeURIComponent(toRouteId(postId))}/comments/${encodeURIComponent(toRouteId(commentId))}`,
-        UpdateCommentResponseSchema,
-        {
-            method: "PATCH",
-            json: UpdateCommentRequestSchema.parse(request)
-        }
-    );
+export function updateComment(
+    rawPostId: RouteResourceId,
+    rawCommentId: RouteResourceId,
+    request: UpdateCommentRequest
+): Promise<UpdateCommentResponse> {
+    const postId = toPathId(rawPostId);
+    const commentId = toPathId(rawCommentId);
+    const body: UpdateCommentRequest = UpdateCommentRequestSchema.parse(request);
+
+    return requestApiData(`posts/${postId}/comments/${commentId}`, UpdateCommentResponseSchema, {
+        method: "PATCH",
+        json: body
+    });
 }
 
-export function deleteComment(postId: RouteResourceId, commentId: RouteResourceId) {
-    return requestApiData(
-        `posts/${encodeURIComponent(toRouteId(postId))}/comments/${encodeURIComponent(toRouteId(commentId))}`,
-        DeleteCommentResponseSchema,
-        {
-            method: "DELETE"
-        }
-    );
+export function deleteComment(
+    rawPostId: RouteResourceId,
+    rawCommentId: RouteResourceId
+): Promise<DeleteCommentResponse> {
+    const postId = toPathId(rawPostId);
+    const commentId = toPathId(rawCommentId);
+
+    return requestApiData(`posts/${postId}/comments/${commentId}`, DeleteCommentResponseSchema, {
+        method: "DELETE"
+    });
 }

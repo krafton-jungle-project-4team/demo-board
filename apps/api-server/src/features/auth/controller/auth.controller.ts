@@ -5,6 +5,10 @@ import {
     UpdateCurrentUserRequestSchema,
     UpdateCurrentUserResponseSchema,
     UserSchema,
+    type CompleteSignUpRequest,
+    type CompleteSignUpResponse,
+    type UpdateCurrentUserRequest,
+    type UpdateCurrentUserResponse,
     type User
 } from "@nmm/shared";
 import type { AuthClaims } from "../auth.model";
@@ -24,8 +28,9 @@ export class AuthController {
     @Post("signup/complete")
     @HttpCode(200)
     @UseGuards(SessionUserGuard)
-    async completeSignUp(@Body() body: unknown, @CurrentAuth() claims: AuthClaims) {
-        const response = await this.authCommandService.completeSignUp(CompleteSignUpRequestSchema.parse(body), claims);
+    async completeSignUp(@Body() body: unknown, @CurrentAuth() claims: AuthClaims): Promise<CompleteSignUpResponse> {
+        const request: CompleteSignUpRequest = CompleteSignUpRequestSchema.parse(body);
+        const response: CompleteSignUpResponse = await this.authCommandService.completeSignUp(request, claims);
 
         return CompleteSignUpResponseSchema.parse(response);
     }
@@ -40,11 +45,9 @@ export class AuthController {
 
     @Patch("me")
     @UseGuards(ActiveAccountGuard)
-    async updateMe(@Body() body: unknown, @CurrentAuth() claims: AuthClaims) {
-        const response = await this.authCommandService.updateCurrentUser(
-            UpdateCurrentUserRequestSchema.parse(body),
-            claims
-        );
+    async updateMe(@Body() body: unknown, @CurrentAuth() claims: AuthClaims): Promise<UpdateCurrentUserResponse> {
+        const request: UpdateCurrentUserRequest = UpdateCurrentUserRequestSchema.parse(body);
+        const response: UpdateCurrentUserResponse = await this.authCommandService.updateCurrentUser(request, claims);
 
         return UpdateCurrentUserResponseSchema.parse(response);
     }

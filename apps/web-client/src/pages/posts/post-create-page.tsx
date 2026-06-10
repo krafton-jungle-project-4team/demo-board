@@ -36,7 +36,9 @@ export function PostCreatePage() {
     }
 
     function handleSubmit() {
-        createMutation.mutate(values);
+        const request: CreatePostRequest = values;
+
+        createMutation.mutate(request);
     }
 
     return (
