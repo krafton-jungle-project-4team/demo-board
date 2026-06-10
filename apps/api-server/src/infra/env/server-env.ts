@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type { DatabaseEnv } from "../database";
 import type { AuthEnv, GitHubOAuthEnv } from "../../features/auth/auth.env";
 import { loadServerEnv } from "./env-file";
@@ -19,69 +20,59 @@ loadServerEnv();
 
 export const serverEnv: ServerEnv = createServerEnv();
 
+const RequiredStringSchema = z.string().min(1);
+const NumberEnvSchema = RequiredStringSchema.transform(Number).pipe(z.number().finite());
+const BooleanEnvSchema = z.stringbool({ truthy: ["true"], falsy: ["false"], case: "sensitive" });
+
+const ServerEnvSchema = z.object({
+    PORT: NumberEnvSchema,
+    NODE_ENV: RequiredStringSchema,
+    NMM_WEB_ORIGIN: RequiredStringSchema,
+    NMM_DB_HOST: RequiredStringSchema,
+    NMM_DB_PORT: NumberEnvSchema,
+    NMM_DB_USERNAME: RequiredStringSchema,
+    NMM_DB_PASSWORD: RequiredStringSchema,
+    NMM_DB_DATABASE: RequiredStringSchema,
+    NMM_DB_LOGGING: BooleanEnvSchema,
+    NMM_DB_MANUAL_INITIALIZATION: BooleanEnvSchema,
+    NMM_AUTH_SECRET: RequiredStringSchema,
+    NMM_AUTH_SIGNUP_REDIRECT_PATH: RequiredStringSchema,
+    NMM_AUTH_ERROR_REDIRECT_PATH: RequiredStringSchema,
+    NMM_AUTH_COOKIE_SECURE: BooleanEnvSchema,
+    NMM_API_ORIGIN: RequiredStringSchema,
+    NMM_OAUTH_GITHUB_CLIENT_ID: RequiredStringSchema,
+    NMM_OAUTH_GITHUB_CLIENT_SECRET: RequiredStringSchema
+});
+
 function createServerEnv(): ServerEnv {
-    const nodeEnv = readStringEnv("NODE_ENV");
+    const env = ServerEnvSchema.parse(process.env);
 
     return {
         app: {
-            port: readNumberEnv("PORT"),
-            webOrigin: readStringEnv("NMM_WEB_ORIGIN"),
-            nodeEnv
+            port: env.PORT,
+            webOrigin: env.NMM_WEB_ORIGIN,
+            nodeEnv: env.NODE_ENV
         },
         database: {
-            host: readStringEnv("NMM_DB_HOST"),
-            port: readNumberEnv("NMM_DB_PORT"),
-            username: readStringEnv("NMM_DB_USERNAME"),
-            password: readStringEnv("NMM_DB_PASSWORD"),
-            database: readStringEnv("NMM_DB_DATABASE"),
-            logging: readBooleanEnv("NMM_DB_LOGGING"),
-            manualInitialization: readBooleanEnv("NMM_DB_MANUAL_INITIALIZATION")
+            host: env.NMM_DB_HOST,
+            port: env.NMM_DB_PORT,
+            username: env.NMM_DB_USERNAME,
+            password: env.NMM_DB_PASSWORD,
+            database: env.NMM_DB_DATABASE,
+            logging: env.NMM_DB_LOGGING,
+            manualInitialization: env.NMM_DB_MANUAL_INITIALIZATION
         },
         auth: {
-            secret: readStringEnv("NMM_AUTH_SECRET"),
-            webOrigin: readStringEnv("NMM_WEB_ORIGIN"),
-            signupRedirectPath: readStringEnv("NMM_AUTH_SIGNUP_REDIRECT_PATH"),
-            errorRedirectPath: readStringEnv("NMM_AUTH_ERROR_REDIRECT_PATH"),
-            sessionCookieSecure: readBooleanEnv("NMM_AUTH_COOKIE_SECURE")
+            secret: env.NMM_AUTH_SECRET,
+            webOrigin: env.NMM_WEB_ORIGIN,
+            signupRedirectPath: env.NMM_AUTH_SIGNUP_REDIRECT_PATH,
+            errorRedirectPath: env.NMM_AUTH_ERROR_REDIRECT_PATH,
+            sessionCookieSecure: env.NMM_AUTH_COOKIE_SECURE
         },
         githubOAuth: {
-            apiOrigin: readStringEnv("NMM_API_ORIGIN"),
-            clientId: readStringEnv("NMM_OAUTH_GITHUB_CLIENT_ID"),
-            clientSecret: readStringEnv("NMM_OAUTH_GITHUB_CLIENT_SECRET")
+            apiOrigin: env.NMM_API_ORIGIN,
+            clientId: env.NMM_OAUTH_GITHUB_CLIENT_ID,
+            clientSecret: env.NMM_OAUTH_GITHUB_CLIENT_SECRET
         }
     };
-}
-
-function readStringEnv(key: string) {
-    const value = process.env[key];
-
-    if (!value) {
-        throw new Error(`Required environment variable is missing: ${key}`);
-    }
-
-    return value;
-}
-
-function readBooleanEnv(key: string) {
-    const value = readStringEnv(key);
-
-    if (value === "true") {
-        return true;
-    }
-
-    if (value === "false") {
-        return false;
-    }
-
-    throw new Error(`Boolean environment variable is invalid: ${key}`);
-}
-
-function readNumberEnv(key: string) {
-    const parsedValue = Number(readStringEnv(key));
-
-    if (!Number.isFinite(parsedValue)) {
-        throw new Error(`Number environment variable is invalid: ${key}`);
-    }
-
-    return parsedValue;
 }

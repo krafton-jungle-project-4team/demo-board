@@ -1,5 +1,6 @@
 import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
+import { NativeLogger } from "nestjs-pino";
 import { serverEnv } from "./infra/env";
 import { ApiExceptionFilter, ApiResponseInterceptor } from "./infra/http";
 import { AppModule } from "./app.module";
@@ -7,9 +8,11 @@ import { BETTER_AUTH, type BetterAuth } from "./features/auth";
 
 async function bootstrap() {
     const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-        bodyParser: false
+        bodyParser: false,
+        bufferLogs: true
     });
 
+    app.useLogger(app.get(NativeLogger));
     app.enableCors({
         origin: serverEnv.app.webOrigin,
         credentials: true

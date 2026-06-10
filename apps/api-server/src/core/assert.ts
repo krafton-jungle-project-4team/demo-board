@@ -1,5 +1,9 @@
+import { Logger } from "@nestjs/common";
+
 type AssertLevel = "debug" | "warn" | "error";
 type AssertName = "ASSERT_VERIFY" | "ASSERT_WARN" | "ASSERT_THROW" | "ASSERT_MUST";
+
+const logger = new Logger("Assert");
 
 export function ASSERT_VERIFY(condition: unknown, description: string) {
     if (condition) {
@@ -40,14 +44,14 @@ export function ASSERT_MUST(condition: unknown, description: string): asserts co
 function writeAssertLog(level: AssertLevel, assertName: AssertName, description: string) {
     const logMessage = `[${assertName}] ${description}`;
     if (level === "debug") {
-        console.debug(logMessage);
+        logger.debug(logMessage);
         return;
     }
 
     if (level === "warn") {
-        console.warn(logMessage);
+        logger.warn(logMessage);
         return;
     }
 
-    console.error(logMessage);
+    logger.error(logMessage);
 }

@@ -28,6 +28,7 @@ export function getRequestId(request: ApiRequest, response?: ApiResponse) {
     const existingRequestId = request.requestId;
 
     if (existingRequestId) {
+        request.requestId = existingRequestId;
         response?.setHeader("x-request-id", existingRequestId);
 
         return existingRequestId;
