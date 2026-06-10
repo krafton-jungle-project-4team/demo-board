@@ -8,8 +8,12 @@ export const authClient = createAuthClient({
 export function signInWithGitHub(callbackURL: string) {
     return authClient.signIn.social({
         provider: "github",
-        callbackURL,
-        newUserCallbackURL: "/auth/complete-signup",
-        errorCallbackURL: "/auth/error"
+        callbackURL: createWebURL(callbackURL),
+        newUserCallbackURL: createWebURL("/auth/complete-signup"),
+        errorCallbackURL: createWebURL("/auth/error")
     });
+}
+
+function createWebURL(path: string) {
+    return new URL(path, window.location.origin).toString();
 }
