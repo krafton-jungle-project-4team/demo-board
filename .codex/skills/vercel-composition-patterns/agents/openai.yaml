@@ -1,0 +1,4 @@
+interface:
+  display_name: "Vercel Composition Patterns"
+  short_description: "Review React composition patterns"
+  default_prompt: "Use $vercel-composition-patterns to review this component API for composition issues."

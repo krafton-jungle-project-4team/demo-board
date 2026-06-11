@@ -1,0 +1,4 @@
+interface:
+  display_name: "Vercel CLI With Tokens"
+  short_description: "Use Vercel CLI token auth safely"
+  default_prompt: "Use $vercel-cli-with-tokens to deploy this project with Vercel token authentication."

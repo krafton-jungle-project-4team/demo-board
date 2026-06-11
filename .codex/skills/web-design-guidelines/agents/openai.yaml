@@ -1,0 +1,4 @@
+interface:
+  display_name: "Web Design Guidelines"
+  short_description: "Review web UI accessibility and UX"
+  default_prompt: "Use $web-design-guidelines to review this UI for accessibility, UX, and performance issues."

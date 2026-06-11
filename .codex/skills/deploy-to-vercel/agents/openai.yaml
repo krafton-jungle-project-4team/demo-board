@@ -1,0 +1,4 @@
+interface:
+  display_name: "Deploy to Vercel"
+  short_description: "Deploy projects to Vercel safely"
+  default_prompt: "Use $deploy-to-vercel to create a Vercel preview deployment for this app."

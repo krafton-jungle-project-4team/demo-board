@@ -1,0 +1,4 @@
+interface:
+  display_name: "Writing Guidelines"
+  short_description: "Review docs against writing rules"
+  default_prompt: "Use $writing-guidelines to review this documentation for style, structure, and clarity."
