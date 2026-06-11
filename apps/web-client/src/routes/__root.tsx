@@ -8,6 +8,7 @@ import { Header } from "@/app/root/header";
 import { RouteErrorFallback } from "@/app/root/route-error-fallback";
 import { RoutePending } from "@/app/root/route-pending";
 
+// 앱 전역 레이아웃과 공통 provider를 감싸는 루트 라우트다.
 export const Route = createRootRoute({
     component: RootLayout
 });
@@ -19,6 +20,8 @@ function RootLayout() {
                 <div className="min-h-svh">
                     <Header />
                     <main>
+                        {/* QueryErrorResetBoundary 컴포넌트를 사용하면 해당 컴포넌트의 경계 안에서 발생한 모든 쿼리 오류를 초기화 한다.
+                            suspense 또는 throwOnError를 사용할 때 필요하다. */}
                         <QueryErrorResetBoundary>
                             <RootRouteBoundary />
                         </QueryErrorResetBoundary>
