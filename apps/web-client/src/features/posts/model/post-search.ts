@@ -5,7 +5,7 @@ import type { PostListParams } from "../api/post-api";
 export const postSortValues = ["created-desc", "created-asc", "title-asc"] as const;
 const postViewValues = ["table", "card"] as const;
 
-const parseAsPositiveInteger = createParser({
+const parseAsNumberId = createParser({
     parse: (value) => {
         const parsed = Number(value);
 
@@ -16,8 +16,8 @@ const parseAsPositiveInteger = createParser({
 
 export const postSearchParsers = {
     q: parseAsString.withDefault(""),
-    tagId: parseAsPositiveInteger,
-    page: parseAsPositiveInteger.withDefault(1),
+    tagId: parseAsNumberId,
+    page: parseAsNumberId.withDefault(1),
     sort: parseAsStringEnum([...postSortValues]).withDefault("created-desc"),
     view: parseAsStringEnum([...postViewValues]).withDefault("table")
 };
