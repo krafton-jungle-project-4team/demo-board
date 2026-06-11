@@ -75,7 +75,10 @@ export function useCreatePostMutation(options?: { onSuccess?: (response: CreateP
     return useMutation({
         mutationFn: (data: CreatePostRequest) => createPost(data),
         onSuccess: (response) => {
-            void queryClient.invalidateQueries({ queryKey: postQueryKeys.listPrefix });
+            void queryClient.invalidateQueries({
+                queryKey: postQueryKeys.listPrefix,
+                refetchType: "none"
+            });
             options?.onSuccess?.(response);
         }
     });
@@ -87,8 +90,14 @@ export function useUpdatePostMutation(options?: { onSuccess?: (response: UpdateP
     return useMutation({
         mutationFn: ({ id, data }: { id: RouteResourceId; data: UpdatePostRequest }) => updatePost(id, data),
         onSuccess: (response) => {
-            void queryClient.invalidateQueries({ queryKey: postQueryKeys.listPrefix });
-            void queryClient.invalidateQueries({ queryKey: postQueryKeys.detail(response.postId) });
+            void queryClient.invalidateQueries({
+                queryKey: postQueryKeys.listPrefix,
+                refetchType: "none"
+            });
+            void queryClient.invalidateQueries({
+                queryKey: postQueryKeys.detail(response.postId),
+                refetchType: "none"
+            });
             options?.onSuccess?.(response);
         }
     });
@@ -100,7 +109,10 @@ export function useDeletePostMutation(options?: { onSuccess?: (response: DeleteP
     return useMutation({
         mutationFn: (id: RouteResourceId) => deletePost(id),
         onSuccess: (response) => {
-            void queryClient.invalidateQueries({ queryKey: postQueryKeys.listPrefix });
+            void queryClient.invalidateQueries({
+                queryKey: postQueryKeys.listPrefix,
+                refetchType: "none"
+            });
             queryClient.removeQueries({ queryKey: postQueryKeys.detail(response.postId) });
             queryClient.removeQueries({ queryKey: postQueryKeys.comments(response.postId) });
             options?.onSuccess?.(response);
