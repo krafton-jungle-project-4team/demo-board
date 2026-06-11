@@ -9,6 +9,10 @@ import {
     useUpdateCurrentUserMutation
 } from "@/features/auth";
 
+function handleSignInClick() {
+    void signInWithGitHub("/me");
+}
+
 export function MyProfilePage() {
     const navigate = useNavigate();
     const currentUserQuery = useCurrentUserQuery();
@@ -39,10 +43,6 @@ export function MyProfilePage() {
 
     function handleLogoutSuccess() {
         void navigate({ to: "/posts" });
-    }
-
-    function handleSignInClick() {
-        void signInWithGitHub("/me");
     }
 
     function handleLogoutClick() {

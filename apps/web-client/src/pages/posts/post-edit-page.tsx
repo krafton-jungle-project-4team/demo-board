@@ -1,14 +1,12 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@nmm/ui/components";
 import type { CreatePostRequest, Post, UpdatePostResponse } from "@nmm/shared";
 import { useCurrentUserQuery } from "@/features/auth";
 import {
     PostForm,
     canManagePost,
-    postQueryKeys,
     useDeletePostMutation,
     usePostDetailQuery,
     usePostTagsQuery,
@@ -31,7 +29,7 @@ export function PostEditPage({ postId }: PostEditPageProps) {
         return <PostEditForbidden postId={post.id} />;
     }
 
-    return <EditablePostEditPage post={post} />;
+    return <EditablePostEditPage key={post.id} post={post} />;
 }
 
 function PostEditPermissionPending() {
@@ -69,7 +67,6 @@ type EditablePostEditPageProps = {
 
 function EditablePostEditPage({ post }: EditablePostEditPageProps) {
     const navigate = useNavigate();
-    const queryClient = useQueryClient();
     const tagsQuery = usePostTagsQuery();
     const initialValues = useMemo<CreatePostRequest>(
         () => ({
@@ -88,16 +85,7 @@ function EditablePostEditPage({ post }: EditablePostEditPageProps) {
         onSuccess: handleDeletePostSuccess
     });
 
-    useEffect(
-        function syncValuesWithPost() {
-            setValues(initialValues);
-        },
-        [initialValues]
-    );
-
     function handleUpdatePostSuccess(response: UpdatePostResponse) {
-        void queryClient.invalidateQueries({ queryKey: postQueryKeys.listPrefix });
-        void queryClient.invalidateQueries({ queryKey: postQueryKeys.detail(response.postId) });
         void navigate({
             to: "/posts/$postId",
             params: {
@@ -107,8 +95,6 @@ function EditablePostEditPage({ post }: EditablePostEditPageProps) {
     }
 
     function handleDeletePostSuccess() {
-        void queryClient.invalidateQueries({ queryKey: postQueryKeys.listPrefix });
-        void queryClient.removeQueries({ queryKey: postQueryKeys.detail(post.id) });
         void navigate({ to: "/posts" });
     }
 

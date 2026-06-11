@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { LayoutGrid, List, Plus, Search } from "lucide-react";
-import type { ChangeEvent, FormEvent } from "react";
+import type { FormEvent } from "react";
 import { Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@nmm/ui/components";
 import { useCurrentUserQuery } from "@/features/auth";
 import {
@@ -19,7 +19,7 @@ const sortLabels = {
 } as const;
 
 export function PostsPage() {
-    const { queryDraft, search, setQueryDraft, setSearch, submitQueryDraft, params } = usePostSearch();
+    const { search, setSearch, submitQuery, params } = usePostSearch();
     const currentUser = useCurrentUserQuery().data;
     const tagsQuery = usePostTagsQuery();
     const postsQuery = usePostListQuery(params);
@@ -28,11 +28,10 @@ export function PostsPage() {
 
     function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
-        submitQueryDraft();
-    }
+        const formData = new FormData(event.currentTarget);
+        const query = String(formData.get("q") ?? "");
 
-    function handleQueryChange(event: ChangeEvent<HTMLInputElement>) {
-        setQueryDraft(event.target.value);
+        submitQuery(query);
     }
 
     function handleSortChange(sort: string) {
@@ -96,7 +95,7 @@ export function PostsPage() {
                 <form className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]" onSubmit={handleSearchSubmit}>
                     <div className="relative">
                         <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-                        <Input className="pl-9" placeholder="검색어" value={queryDraft} onChange={handleQueryChange} />
+                        <Input key={search.q} name="q" className="pl-9" placeholder="검색어" defaultValue={search.q} />
                     </div>
                     <Button type="submit" variant="outline">
                         <Search />

@@ -1,11 +1,11 @@
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components";
 import { signInWithGitHub } from "@/features/auth";
 
-export function AuthErrorPage() {
-    function handleRetrySignInClick() {
-        void signInWithGitHub("/posts");
-    }
+function handleRetrySignInClick() {
+    void signInWithGitHub("/posts");
+}
 
+export function AuthErrorPage() {
     return (
         <section className="mx-auto grid min-h-[calc(100svh-3.5rem)] w-full max-w-md content-center px-4 py-10 sm:px-6">
             <Card>

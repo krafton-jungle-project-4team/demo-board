@@ -1,9 +1,8 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@nmm/ui/components";
 import type { CreatePostRequest, CreatePostResponse } from "@nmm/shared";
-import { PostForm, postQueryKeys, useCreatePostMutation, usePostTagsQuery } from "@/features/posts";
+import { PostForm, useCreatePostMutation, usePostTagsQuery } from "@/features/posts";
 import { useState } from "react";
 
 const emptyPost: CreatePostRequest = {
@@ -15,7 +14,6 @@ const emptyPost: CreatePostRequest = {
 
 export function PostCreatePage() {
     const navigate = useNavigate();
-    const queryClient = useQueryClient();
     const tagsQuery = usePostTagsQuery();
     const [values, setValues] = useState<CreatePostRequest>(emptyPost);
     const createMutation = useCreatePostMutation({
@@ -23,7 +21,6 @@ export function PostCreatePage() {
     });
 
     function handleCreatePostSuccess(response: CreatePostResponse) {
-        void queryClient.invalidateQueries({ queryKey: postQueryKeys.listPrefix });
         void navigate({
             to: "/posts/$postId",
             params: {

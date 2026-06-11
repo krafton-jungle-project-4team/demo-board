@@ -1,11 +1,9 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { Check, Pencil, Send, Trash2, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { Button, Textarea } from "@nmm/ui/components";
 import type { Comment, User } from "@nmm/shared";
 import {
-    postQueryKeys,
     useCommentsQuery,
     useCreateCommentMutation,
     useDeleteCommentMutation,
@@ -49,7 +47,6 @@ export function PostComments({ currentUser, postId }: PostCommentsProps) {
 }
 
 function CommentComposer({ currentUser, postId }: PostCommentsProps) {
-    const queryClient = useQueryClient();
     const [content, setContent] = useState("");
     const createCommentMutation = useCreateCommentMutation({
         onSuccess: handleCreateCommentSuccess
@@ -59,7 +56,6 @@ function CommentComposer({ currentUser, postId }: PostCommentsProps) {
 
     function handleCreateCommentSuccess() {
         setContent("");
-        void queryClient.invalidateQueries({ queryKey: postQueryKeys.comments(postId) });
     }
 
     function handleContentChange(event: ChangeEvent<HTMLTextAreaElement>) {
@@ -118,9 +114,7 @@ type PostCommentItemProps = {
 };
 
 function PostCommentItem({ comment, currentUser, postId }: PostCommentItemProps) {
-    const queryClient = useQueryClient();
-    const [isEditing, setIsEditing] = useState(false);
-    const [content, setContent] = useState(comment.content);
+    const [editingContent, setEditingContent] = useState<string | null>(null);
     const updateCommentMutation = useUpdateCommentMutation({
         onSuccess: handleCommentMutationSuccess
     });
@@ -129,25 +123,23 @@ function PostCommentItem({ comment, currentUser, postId }: PostCommentItemProps)
     });
     const canManageComment =
         currentUser?.status === "ACTIVE" && (currentUser.role === "ADMIN" || currentUser.id === comment.authorId);
-    const trimmedContent = content.trim();
+    const trimmedContent = editingContent?.trim() ?? "";
+    const isEditing = editingContent !== null;
 
     function handleCommentMutationSuccess() {
-        setIsEditing(false);
-        void queryClient.invalidateQueries({ queryKey: postQueryKeys.comments(postId) });
+        setEditingContent(null);
     }
 
     function handleEditClick() {
-        setContent(comment.content);
-        setIsEditing(true);
+        setEditingContent(comment.content);
     }
 
     function handleCancelClick() {
-        setContent(comment.content);
-        setIsEditing(false);
+        setEditingContent(null);
     }
 
     function handleContentChange(event: ChangeEvent<HTMLTextAreaElement>) {
-        setContent(event.target.value);
+        setEditingContent(event.target.value);
     }
 
     function handleUpdateSubmit(event: FormEvent<HTMLFormElement>) {
@@ -179,7 +171,7 @@ function PostCommentItem({ comment, currentUser, postId }: PostCommentItemProps)
                 <Textarea
                     required
                     minLength={1}
-                    value={content}
+                    value={editingContent ?? ""}
                     disabled={updateCommentMutation.isPending}
                     onChange={handleContentChange}
                 />

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import type {
     CommentListResponse,
     CreateCommentRequest,
@@ -29,7 +29,7 @@ import {
     type RouteResourceId
 } from "./post-api";
 
-export const postQueryKeys = {
+const postQueryKeys = {
     tags: ["post-tags"] as const,
     listPrefix: ["posts", "list"] as const,
     list: (params: PostListParams) => [...postQueryKeys.listPrefix, params] as const,
@@ -70,35 +70,60 @@ export function useCommentsQuery(id: RouteResourceId) {
 }
 
 export function useCreatePostMutation(options?: { onSuccess?: (response: CreatePostResponse) => void }) {
+    const queryClient = useQueryClient();
+
     return useMutation({
         mutationFn: (data: CreatePostRequest) => createPost(data),
-        onSuccess: options?.onSuccess
+        onSuccess: (response) => {
+            void queryClient.invalidateQueries({ queryKey: postQueryKeys.listPrefix });
+            options?.onSuccess?.(response);
+        }
     });
 }
 
 export function useUpdatePostMutation(options?: { onSuccess?: (response: UpdatePostResponse) => void }) {
+    const queryClient = useQueryClient();
+
     return useMutation({
         mutationFn: ({ id, data }: { id: RouteResourceId; data: UpdatePostRequest }) => updatePost(id, data),
-        onSuccess: options?.onSuccess
+        onSuccess: (response) => {
+            void queryClient.invalidateQueries({ queryKey: postQueryKeys.listPrefix });
+            void queryClient.invalidateQueries({ queryKey: postQueryKeys.detail(response.postId) });
+            options?.onSuccess?.(response);
+        }
     });
 }
 
 export function useDeletePostMutation(options?: { onSuccess?: (response: DeletePostResponse) => void }) {
+    const queryClient = useQueryClient();
+
     return useMutation({
         mutationFn: (id: RouteResourceId) => deletePost(id),
-        onSuccess: options?.onSuccess
+        onSuccess: (response) => {
+            void queryClient.invalidateQueries({ queryKey: postQueryKeys.listPrefix });
+            queryClient.removeQueries({ queryKey: postQueryKeys.detail(response.postId) });
+            queryClient.removeQueries({ queryKey: postQueryKeys.comments(response.postId) });
+            options?.onSuccess?.(response);
+        }
     });
 }
 
 export function useCreateCommentMutation(options?: { onSuccess?: (response: CreateCommentResponse) => void }) {
+    const queryClient = useQueryClient();
+
     return useMutation({
         mutationFn: ({ postId, data }: { postId: RouteResourceId; data: CreateCommentRequest }) =>
             createComment(postId, data),
-        onSuccess: options?.onSuccess
+        onSuccess: (response, variables) => {
+            void queryClient.invalidateQueries({ queryKey: postQueryKeys.comments(variables.postId) });
+            options?.onSuccess?.(response);
+        }
     });
 }
 
 export function useUpdateCommentMutation(options?: { onSuccess?: (response: UpdateCommentResponse) => void }) {
+    const queryClient = useQueryClient();
+
     return useMutation({
         mutationFn: ({
             postId,
@@ -109,14 +134,22 @@ export function useUpdateCommentMutation(options?: { onSuccess?: (response: Upda
             commentId: RouteResourceId;
             data: UpdateCommentRequest;
         }) => updateComment(postId, commentId, data),
-        onSuccess: options?.onSuccess
+        onSuccess: (response, variables) => {
+            void queryClient.invalidateQueries({ queryKey: postQueryKeys.comments(variables.postId) });
+            options?.onSuccess?.(response);
+        }
     });
 }
 
 export function useDeleteCommentMutation(options?: { onSuccess?: (response: DeleteCommentResponse) => void }) {
+    const queryClient = useQueryClient();
+
     return useMutation({
         mutationFn: ({ postId, commentId }: { postId: RouteResourceId; commentId: RouteResourceId }) =>
             deleteComment(postId, commentId),
-        onSuccess: options?.onSuccess
+        onSuccess: (response, variables) => {
+            void queryClient.invalidateQueries({ queryKey: postQueryKeys.comments(variables.postId) });
+            options?.onSuccess?.(response);
+        }
     });
 }

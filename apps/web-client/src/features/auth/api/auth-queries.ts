@@ -9,7 +9,7 @@ import type {
 import { ApiClientError } from "@/shared/api/http-client";
 import { completeSignUp, getCurrentUser, logout, updateCurrentUser } from "./auth-api";
 
-export const authQueryKeys = {
+const authQueryKeys = {
     currentUser: ["auth", "current-user"] as const
 };
 
