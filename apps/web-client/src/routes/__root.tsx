@@ -1,5 +1,5 @@
 import { Outlet, createRootRoute } from "@tanstack/react-router";
-import { QueryErrorResetBoundary } from "@tanstack/react-query";
+import { QueryErrorResetBoundary, useQueryErrorResetBoundary } from "@tanstack/react-query";
 import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
 import { Suspense } from "react";
 import { AppErrorBoundary } from "@/app/providers/app-error-boundary";
@@ -19,7 +19,9 @@ function RootLayout() {
                 <div className="min-h-svh">
                     <Header />
                     <main>
-                        <QueryErrorResetBoundary>{renderQueryErrorResetBoundary}</QueryErrorResetBoundary>
+                        <QueryErrorResetBoundary>
+                            <RootRouteBoundary />
+                        </QueryErrorResetBoundary>
                     </main>
                 </div>
                 {/* 필요해지면 TanStack Router Devtools를 도입할 수 있지만, 현재는 필요성이 없다. */}
@@ -28,11 +30,9 @@ function RootLayout() {
     );
 }
 
-type QueryErrorResetBoundaryRenderProps = {
-    reset: () => void;
-};
+function RootRouteBoundary() {
+    const { reset } = useQueryErrorResetBoundary();
 
-function renderQueryErrorResetBoundary({ reset }: QueryErrorResetBoundaryRenderProps) {
     return (
         <AppErrorBoundary onReset={reset} fallback={renderRouteErrorFallback}>
             <Suspense fallback={<RoutePending />}>
