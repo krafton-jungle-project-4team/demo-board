@@ -15,6 +15,13 @@
 - `apps/api-server`는 `@nmm/shared`만 workspace import로 사용하고 web 코드를 import하지 않는다.
 - `packages/shared`는 앱, React, Nest, Node 런타임, DB를 import하지 않는다.
 
+## UI 작업 규칙
+
+- 작은 UI나 HTML tag를 직접 작성하기 전에 `@nmm/ui/components` 또는 shadcn/ui primitive로 대체 가능한지 먼저 확인한다.
+- 대체 가능한 primitive가 있으면 raw HTML 대신 `@nmm/ui/components`를 사용한다.
+- 필요한 primitive가 없고 재사용 가치가 있으면 feature/page에 임시 조합을 만들기 전에 `packages/ui`에 추가할지 먼저 검토한다.
+- `section`, `main`, `form`, `h1`, `p`, `div` 같은 의미/레이아웃 태그는 shadcn 대체 가능성을 확인한 뒤에만 직접 사용한다.
+
 ## AI 작업 기록
 
 - AI가 수행한 구체적이고 의미 있는 작업은 `docs/ai/` 아래에 기록한다.

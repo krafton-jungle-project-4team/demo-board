@@ -5,9 +5,9 @@ import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
 import { Suspense } from "react";
 import { AppErrorBoundary } from "@/app/providers/app-error-boundary";
 import { QueryProvider } from "@/app/providers/query-provider";
-import { Header } from "@/app/ui/header";
-import { RouteErrorFallback } from "@/app/ui/route-error-fallback";
-import { RoutePending } from "@/app/ui/route-pending";
+import { Header } from "@/app/root/header";
+import { RouteErrorFallback } from "@/app/root/route-error-fallback";
+import { RoutePending } from "@/app/root/route-pending";
 
 export const Route = createRootRoute({
     component: RootLayout

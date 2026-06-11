@@ -36,10 +36,17 @@
 
 ## UI
 
+- `packages/ui`는 앱 독립 reusable UI primitive 패키지다.
+- `packages/ui`에는 shadcn 기반 primitive와 직접 작성한 primitive를 둘 수 있다.
 - shadcn/ui CLI 대상은 `packages/ui`다.
-- `packages/ui/src/components`의 shadcn/ui 컴포넌트는 직접 수정하지 않는다.
 - `packages/ui/components.json`은 shadcn CLI 설정으로 유지한다.
+- `packages/ui/src/components`는 앱 라우팅, feature, API, 도메인 코드를 import하지 않는다.
 - 앱은 `@nmm/ui/components`에서 필요한 UI primitive를 import하고, 앱별 조합은 feature/page 코드에서 처리한다.
+- 작은 버튼, 링크형 액션, 상태 배지, fallback 패널도 `@nmm/ui/components` primitive를 우선 사용한다.
+- HTML tag를 직접 작성하기 전에 `@nmm/ui/components` 또는 shadcn/ui primitive로 대체 가능한지 확인한다.
+- 대체 가능한 primitive가 있으면 raw HTML 대신 `@nmm/ui/components`를 사용한다.
+- 필요한 primitive가 없고 재사용 가치가 있으면 feature/page에 임시 조합을 만들기 전에 `packages/ui`에 추가할지 검토한다.
+- 일반 본문 링크, 의미 태그, 단순 레이아웃은 shadcn 대체 가능성을 확인한 뒤 직접 HTML과 Tailwind utility를 사용할 수 있다.
 - `cn`은 `packages/ui/src/lib/utils.ts`에만 두며 앱 코드에서 import하지 않는다.
 - web의 CSS entry는 `@nmm/ui/styles/globals.css`와 UI 패키지 Tailwind source만 연결한다.
 - `packages/ui/src/styles/globals.css`는 shadcn 기본 scaffold만 유지한다.
@@ -50,9 +57,13 @@
 
 ## Frontend 구조
 
+- `app`은 앱 시작, 전역 provider, root route 전용 코드만 담당한다.
+- `app/providers`는 전역 provider만 둔다.
+- `app/root`는 `routes/__root.tsx`에 붙는 header, route fallback, pending 같은 root route 전용 UI만 둔다.
 - `routes`는 TanStack Router 파일 라우팅과 search 검증 연결만 담당한다.
 - `pages`는 라우트에 붙는 화면 조립 단위다.
 - `features/<domain>`은 `api`, `model`, `hooks`, `ui`, `lib`, `index.ts` 구조를 우선 사용한다.
+- `features/<domain>/ui`는 해당 feature 전용 UI 조합만 둔다.
 - feature `index.ts`는 page에서 써도 되는 공개 API만 export한다.
 - 조회 pending은 Suspense fallback에 위임한다.
 - 조회 error는 가장 가까운 ErrorBoundary가 잡고, 영역별 대체 UI가 필요하면 더 좁은 boundary를 둔다.
