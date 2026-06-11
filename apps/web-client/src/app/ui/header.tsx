@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { signInWithGitHub, useCurrentUserQuery } from "@/features/auth";
+import { hasCompleteActiveProfile, signInWithGitHub, useCurrentUserQuery } from "@/features/auth";
 
 function handleSignInClick() {
     void signInWithGitHub("/posts");
@@ -27,7 +27,7 @@ export function Header() {
                     </Link>
                     {currentUserQuery.isPending ? (
                         <span className="rounded-lg px-3 py-2 text-sm text-muted-foreground">확인 중</span>
-                    ) : currentUser?.status === "ACTIVE" && currentUser.name ? (
+                    ) : hasCompleteActiveProfile(currentUser) ? (
                         <Link
                             to="/me"
                             className="rounded-lg px-3 py-2 text-sm text-muted-foreground hover:text-foreground"

@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { Button, Textarea } from "@nmm/ui/components";
 import type { Comment, User } from "@nmm/shared";
+import { isActiveUser } from "@/features/auth";
 import {
     useCommentsQuery,
     useCreateCommentMutation,
@@ -10,6 +11,7 @@ import {
     useUpdateCommentMutation
 } from "../api/post-queries";
 import type { RouteResourceId } from "../api/post-api";
+import { canManageComment } from "../model/post-permissions";
 
 type PostCommentsProps = {
     currentUser: User | null | undefined;
@@ -51,7 +53,7 @@ function CommentComposer({ currentUser, postId }: PostCommentsProps) {
     const createCommentMutation = useCreateCommentMutation({
         onSuccess: handleCreateCommentSuccess
     });
-    const canCreateComment = currentUser?.status === "ACTIVE";
+    const canCreateComment = isActiveUser(currentUser);
     const trimmedContent = content.trim();
 
     function handleCreateCommentSuccess() {
@@ -121,8 +123,7 @@ function PostCommentItem({ comment, currentUser, postId }: PostCommentItemProps)
     const deleteCommentMutation = useDeleteCommentMutation({
         onSuccess: handleCommentMutationSuccess
     });
-    const canManageComment =
-        currentUser?.status === "ACTIVE" && (currentUser.role === "ADMIN" || currentUser.id === comment.authorId);
+    const canManageCurrentComment = canManageComment(currentUser, comment);
     const trimmedContent = editingContent?.trim() ?? "";
     const isEditing = editingContent !== null;
 
@@ -201,7 +202,7 @@ function PostCommentItem({ comment, currentUser, postId }: PostCommentItemProps)
                     <span className="text-sm font-medium">{comment.authorName}</span>
                     <span className="text-xs text-muted-foreground">{formatCommentDate(comment.createdAt)}</span>
                 </div>
-                {canManageComment ? (
+                {canManageCurrentComment ? (
                     <div className="flex gap-1">
                         <Button
                             type="button"

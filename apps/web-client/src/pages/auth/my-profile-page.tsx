@@ -3,6 +3,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label } from "@nmm/ui/components";
 import type { UpdateCurrentUserRequest } from "@nmm/shared";
 import {
+    hasCompleteActiveProfile,
     signInWithGitHub,
     useCurrentUserQuery,
     useLogoutMutation,
@@ -87,7 +88,7 @@ export function MyProfilePage() {
         );
     }
 
-    if (currentUser.status !== "ACTIVE" || !currentUser.name) {
+    if (!hasCompleteActiveProfile(currentUser)) {
         return (
             <section className="mx-auto grid min-h-[calc(100svh-3.5rem)] w-full max-w-md content-center px-4 py-10 sm:px-6">
                 <Card>
