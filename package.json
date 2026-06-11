@@ -12,6 +12,7 @@
         "dev:api": "docker compose --env-file apps/api-server/.env up --build api-server",
         "dev:db": "docker compose --env-file apps/api-server/.env up -d postgres",
         "dev:db:stop": "docker compose --env-file apps/api-server/.env stop postgres",
+        "preview:web": "npm run build -w @nmm/shared && npm run build:profile -w @nmm/web-client && npm run preview -w @nmm/web-client",
         "build": "npm run build -w @nmm/shared && npm run build -w @nmm/web-client && npm run build -w @nmm/api-server",
         "build:web": "npm run build -w @nmm/shared && npm run build -w @nmm/web-client",
         "build:api": "npm run build -w @nmm/shared && npm run build -w @nmm/api-server",

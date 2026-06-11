@@ -5,8 +5,10 @@
     "type": "module",
     "scripts": {
         "dev": "vite --host 0.0.0.0 --port 5173",
+        "preview": "vite preview --host 0.0.0.0 --port 4173",
         "prebuild": "npm run routes:generate",
         "build": "tsc -p tsconfig.app.json --noEmit && vite build",
+        "build:profile": "npm run routes:generate && tsc -p tsconfig.app.json --noEmit && vite build --mode profile",
         "routes:generate": "tsr generate",
         "typecheck": "tsc -p tsconfig.app.json --noEmit"
     },

@@ -19,6 +19,7 @@
 - 최적화보다 실행 순서와 대상이 바로 보이는 명령을 우선한다.
 - `npm run dev`와 `npm run dev:all`은 웹과 API 서버를 함께 실행한다.
 - `npm run dev:web`은 웹 개발 서버만 실행한다.
+- React DevTools로 production 조건 렌더링과 Profiler를 확인할 때는 `npm run preview:web`을 사용한다.
 - `npm run dev:api`는 API 서버만 실행하며 Postgres를 자동으로 시작하지 않는다.
 - 로컬 Postgres는 `npm run dev:db`로 백그라운드 시작하고 `npm run dev:db:stop`으로 중지한다.
 
