@@ -1,17 +1,18 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left.mjs";
+import Trash2 from "lucide-react/dist/esm/icons/trash-2.mjs";
 import type { Post, PostTag, UpdatePostResponse } from "@nmm/shared";
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components";
-import { useCurrentUserQuery } from "@/features/auth";
+import { Button } from "@nmm/ui/components/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components/card";
+import { useCurrentUserQuery } from "@/features/auth/api/auth-queries";
 import {
-    PostForm,
-    type PostFormValues,
-    canManagePost,
     useDeletePostMutation,
     usePostDetailQuery,
     usePostTagsQuery,
     useUpdatePostMutation
-} from "@/features/posts";
+} from "@/features/posts/api/post-queries";
+import { canManagePost } from "@/features/posts/model/post-permissions";
+import { PostForm, type PostFormValues } from "@/features/posts/ui/post-form";
 
 const EMPTY_POST_TAGS: PostTag[] = [];
 

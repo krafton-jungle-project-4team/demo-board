@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { postSearchSchema } from "@/features/posts";
+import { postSearchSchema } from "@/features/posts/model/post-search";
 import { PostsPage } from "@/pages/posts/posts-page";
 
 export const Route = createFileRoute("/posts")({

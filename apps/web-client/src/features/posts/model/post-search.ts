@@ -6,6 +6,7 @@ export const postSortValues = ["created-desc", "created-asc", "title-asc"] as co
 export type PostSortValue = (typeof postSortValues)[number];
 
 const postViewValues = ["table", "card"] as const;
+const postSortValueSet = new Set<string>(postSortValues);
 const ALL_POST_TAG_SELECT_VALUE = "all";
 const DEFAULT_POST_SORT: PostSortValue = "created-desc";
 const DEFAULT_POST_VIEW = "table";
@@ -37,7 +38,7 @@ export const postSearchSchema = createStandardSchemaV1(postSearchParsers, {
 export type PostSearchState = inferParserType<typeof postSearchParsers>;
 
 export function parsePostSortSelectValue(value: string): PostSortValue | null {
-    return postSortValues.find((sort) => sort === value) ?? null;
+    return postSortValueSet.has(value) ? (value as PostSortValue) : null;
 }
 
 export function toPostTagSelectValue(tagId: number | null): string {

@@ -1,10 +1,16 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowLeft, Pencil } from "lucide-react";
 import type { ReactNode } from "react";
-import { Badge, Button, Separator } from "@nmm/ui/components";
+import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left.mjs";
+import Pencil from "lucide-react/dist/esm/icons/pencil.mjs";
 import type { Post, User } from "@nmm/shared";
-import { useCurrentUserQuery } from "@/features/auth";
-import { PostComments, PostTagBadges, canManagePost, usePostDetailQuery } from "@/features/posts";
+import { Badge } from "@nmm/ui/components/badge";
+import { Button } from "@nmm/ui/components/button";
+import { Separator } from "@nmm/ui/components/separator";
+import { useCurrentUserQuery } from "@/features/auth/api/auth-queries";
+import { usePostDetailQuery } from "@/features/posts/api/post-queries";
+import { canManagePost } from "@/features/posts/model/post-permissions";
+import { PostComments } from "@/features/posts/ui/post-comments";
+import { PostTagBadges } from "@/features/posts/ui/post-tag-badges";
 
 type PostDetailPageProps = {
     postId: string;

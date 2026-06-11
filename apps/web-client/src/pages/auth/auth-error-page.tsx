@@ -1,5 +1,6 @@
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components";
-import { signInWithGitHub } from "@/features/auth";
+import { Button } from "@nmm/ui/components/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components/card";
+import { signInWithGitHub } from "@/features/auth/api/auth-client";
 
 function handleRetrySignInClick() {
     void signInWithGitHub("/posts");

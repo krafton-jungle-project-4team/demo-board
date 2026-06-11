@@ -1,20 +1,19 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Check, Pencil, Send, Trash2, X } from "lucide-react";
 import { useState } from "react";
+import Check from "lucide-react/dist/esm/icons/check.mjs";
+import Pencil from "lucide-react/dist/esm/icons/pencil.mjs";
+import Send from "lucide-react/dist/esm/icons/send.mjs";
+import Trash2 from "lucide-react/dist/esm/icons/trash-2.mjs";
+import X from "lucide-react/dist/esm/icons/x.mjs";
 import { useController, useForm, type Control, type UseFormSetError } from "react-hook-form";
 import { CreateCommentRequestSchema, type Comment, type CreateCommentRequest, type User } from "@nmm/shared";
-import {
-    Badge,
-    Button,
-    Card,
-    CardContent,
-    Field,
-    FieldError,
-    FieldLabel,
-    Separator,
-    Textarea
-} from "@nmm/ui/components";
-import { isActiveUser } from "@/features/auth";
+import { Badge } from "@nmm/ui/components/badge";
+import { Button } from "@nmm/ui/components/button";
+import { Card, CardContent } from "@nmm/ui/components/card";
+import { Field, FieldError, FieldLabel } from "@nmm/ui/components/field";
+import { Separator } from "@nmm/ui/components/separator";
+import { Textarea } from "@nmm/ui/components/textarea";
+import { isActiveUser } from "@/features/auth/model/user-status";
 import {
     useCommentsQuery,
     useCreateCommentMutation,
@@ -311,7 +310,7 @@ function CommentContentField({ control, id, label, disabled, placeholder }: Comm
                 aria-invalid={fieldState.invalid}
                 disabled={disabled}
             />
-            <FieldError errors={[fieldState.error]} />
+            <FieldError>{fieldState.error?.message}</FieldError>
         </Field>
     );
 }

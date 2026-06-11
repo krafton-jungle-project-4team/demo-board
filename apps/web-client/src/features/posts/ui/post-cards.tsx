@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import { Pencil } from "lucide-react";
-import { Button, Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@nmm/ui/components";
+import Pencil from "lucide-react/dist/esm/icons/pencil.mjs";
 import type { Post, User } from "@nmm/shared";
+import { Button } from "@nmm/ui/components/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@nmm/ui/components/card";
 import { canManagePost } from "../model/post-permissions";
 import { PostTagBadges } from "./post-tag-badges";
 

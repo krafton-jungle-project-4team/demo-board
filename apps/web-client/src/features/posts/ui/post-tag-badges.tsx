@@ -1,5 +1,5 @@
-import { Badge } from "@nmm/ui/components";
 import type { PostTag } from "@nmm/shared";
+import { Badge } from "@nmm/ui/components/badge";
 
 type PostTagBadgesProps = {
     tags: PostTag[];

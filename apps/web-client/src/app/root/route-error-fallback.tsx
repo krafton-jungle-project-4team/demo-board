@@ -1,4 +1,5 @@
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components";
+import { Button } from "@nmm/ui/components/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components/card";
 
 type RouteErrorFallbackProps = {
     error: Error;

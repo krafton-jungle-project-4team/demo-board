@@ -1,4 +1,4 @@
-import { Card, CardContent } from "@nmm/ui/components";
+import { Card, CardContent } from "@nmm/ui/components/card";
 
 export function RoutePending() {
     return (

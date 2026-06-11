@@ -1,5 +1,5 @@
 import type { Comment, Post, User } from "@nmm/shared";
-import { isActiveUser } from "@/features/auth";
+import { isActiveUser } from "@/features/auth/model/user-status";
 
 export function canManagePost(user: User | null | undefined, post: Pick<Post, "authorId">) {
     return isActiveUser(user) && (user.role === "ADMIN" || user.id === post.authorId);

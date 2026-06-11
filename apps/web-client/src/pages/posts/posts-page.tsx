@@ -1,30 +1,28 @@
 import { Link } from "@tanstack/react-router";
-import { LayoutGrid, List, Plus, Search } from "lucide-react";
 import type { FormEvent } from "react";
+import LayoutGrid from "lucide-react/dist/esm/icons/layout-grid.mjs";
+import List from "lucide-react/dist/esm/icons/list.mjs";
+import Plus from "lucide-react/dist/esm/icons/plus.mjs";
+import Search from "lucide-react/dist/esm/icons/search.mjs";
+import type { PostTag } from "@nmm/shared";
+import { Badge } from "@nmm/ui/components/badge";
+import { Button } from "@nmm/ui/components/button";
+import { Card, CardContent } from "@nmm/ui/components/card";
+import { Input } from "@nmm/ui/components/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@nmm/ui/components/select";
+import { useCurrentUserQuery } from "@/features/auth/api/auth-queries";
+import { usePostListQuery, usePostTagsQuery } from "@/features/posts/api/post-queries";
+import { usePostSearch } from "@/features/posts/hooks/use-post-search";
 import {
-    Badge,
-    Button,
-    Card,
-    CardContent,
-    Input,
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue
-} from "@nmm/ui/components";
-import { useCurrentUserQuery } from "@/features/auth";
-import {
-    PostCards,
-    PostTable,
     parsePostSortSelectValue,
     parsePostTagSelectValue,
     postSortValues,
-    toPostTagSelectValue,
-    usePostListQuery,
-    usePostSearch,
-    usePostTagsQuery
-} from "@/features/posts";
+    toPostTagSelectValue
+} from "@/features/posts/model/post-search";
+import { PostCards } from "@/features/posts/ui/post-cards";
+import { PostTable } from "@/features/posts/ui/post-table";
+
+const EMPTY_POST_TAGS: PostTag[] = [];
 
 const sortLabels = {
     "created-desc": "최신순",
@@ -37,6 +35,7 @@ export function PostsPage() {
     const currentUser = useCurrentUserQuery().data;
     const tagsQuery = usePostTagsQuery();
     const postsQuery = usePostListQuery(params);
+    const tags = tagsQuery.data ?? EMPTY_POST_TAGS;
     const postsData = postsQuery.data;
     const currentPage = postsData?.page ?? search.page;
     const selectedTagValue = toPostTagSelectValue(search.tagId);
@@ -147,7 +146,7 @@ export function PostsPage() {
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">전체 태그</SelectItem>
-                        {(tagsQuery.data ?? []).map((tag) => (
+                        {tags.map((tag) => (
                             <SelectItem key={tag.id} value={String(tag.id)}>
                                 {tag.name}
                             </SelectItem>

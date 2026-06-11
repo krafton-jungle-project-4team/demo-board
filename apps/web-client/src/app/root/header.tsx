@@ -1,6 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { Badge, Button } from "@nmm/ui/components";
-import { hasCompleteActiveProfile, signInWithGitHub, useCurrentUserQuery } from "@/features/auth";
+import { Badge } from "@nmm/ui/components/badge";
+import { Button } from "@nmm/ui/components/button";
+import { signInWithGitHub } from "@/features/auth/api/auth-client";
+import { useCurrentUserQuery } from "@/features/auth/api/auth-queries";
+import { hasCompleteActiveProfile } from "@/features/auth/model/user-status";
 
 function handleSignInClick() {
     void signInWithGitHub("/posts");

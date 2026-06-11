@@ -1,8 +1,9 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft } from "lucide-react";
+import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left.mjs";
 import type { CreatePostResponse, PostTag } from "@nmm/shared";
-import { Button } from "@nmm/ui/components";
-import { PostForm, type PostFormValues, useCreatePostMutation, usePostTagsQuery } from "@/features/posts";
+import { Button } from "@nmm/ui/components/button";
+import { useCreatePostMutation, usePostTagsQuery } from "@/features/posts/api/post-queries";
+import { PostForm, type PostFormValues } from "@/features/posts/ui/post-form";
 
 const emptyPostFormValues: PostFormValues = {
     title: "",

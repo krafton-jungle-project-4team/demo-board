@@ -2,17 +2,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMemo } from "react";
 import { useController, useForm, type Control, type Resolver } from "react-hook-form";
 import { CreatePostRequestSchema, type CreatePostRequest, type PostTag } from "@nmm/shared";
-import {
-    Button,
-    Field,
-    FieldError,
-    FieldGroup,
-    FieldLabel,
-    FieldLegend,
-    FieldSet,
-    Input,
-    Textarea
-} from "@nmm/ui/components";
+import { Button } from "@nmm/ui/components/button";
+import { Field, FieldError, FieldGroup, FieldLabel, FieldLegend, FieldSet } from "@nmm/ui/components/field";
+import { Input } from "@nmm/ui/components/input";
+import { Textarea } from "@nmm/ui/components/textarea";
 
 export type PostFormValues = CreatePostRequest;
 const postFormResolver = zodResolver(CreatePostRequestSchema) as Resolver<PostFormValues>;
@@ -73,7 +66,7 @@ function PostTitleField({ control, disabled }: PostFieldProps) {
         <Field data-invalid={fieldState.invalid}>
             <FieldLabel htmlFor="post-title">제목</FieldLabel>
             <Input {...field} id="post-title" required aria-invalid={fieldState.invalid} disabled={disabled} />
-            <FieldError errors={[fieldState.error]} />
+            <FieldError>{fieldState.error?.message}</FieldError>
         </Field>
     );
 }
@@ -88,7 +81,7 @@ function PostExcerptField({ control, disabled }: PostFieldProps) {
         <Field data-invalid={fieldState.invalid}>
             <FieldLabel htmlFor="post-excerpt">요약</FieldLabel>
             <Input {...field} id="post-excerpt" required aria-invalid={fieldState.invalid} disabled={disabled} />
-            <FieldError errors={[fieldState.error]} />
+            <FieldError>{fieldState.error?.message}</FieldError>
         </Field>
     );
 }
@@ -103,7 +96,7 @@ function PostContentField({ control, disabled }: PostFieldProps) {
         <Field data-invalid={fieldState.invalid}>
             <FieldLabel htmlFor="post-content">본문</FieldLabel>
             <Textarea {...field} id="post-content" required aria-invalid={fieldState.invalid} disabled={disabled} />
-            <FieldError errors={[fieldState.error]} />
+            <FieldError>{fieldState.error?.message}</FieldError>
         </Field>
     );
 }
@@ -143,7 +136,7 @@ function PostTagsField({ availableTags, control, disabled }: PostTagsFieldProps)
                     />
                 ))}
             </FieldGroup>
-            <FieldError errors={[fieldState.error]} />
+            <FieldError>{fieldState.error?.message}</FieldError>
         </FieldSet>
     );
 }

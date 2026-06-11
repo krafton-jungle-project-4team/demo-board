@@ -87,7 +87,7 @@ function SignUpNameField({ control, disabled }: SignUpNameFieldProps) {
                 aria-invalid={fieldState.invalid}
                 disabled={disabled}
             />
-            <FieldError errors={[fieldState.error]} />
+            <FieldError>{fieldState.error?.message}</FieldError>
         </Field>
     );
 }
