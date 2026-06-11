@@ -1,5 +1,4 @@
 import { Outlet, createRootRoute } from "@tanstack/react-router";
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { QueryErrorResetBoundary } from "@tanstack/react-query";
 import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
 import { Suspense } from "react";
@@ -23,7 +22,7 @@ function RootLayout() {
                         <QueryErrorResetBoundary>{renderQueryErrorResetBoundary}</QueryErrorResetBoundary>
                     </main>
                 </div>
-                {import.meta.env.DEV ? <TanStackRouterDevtools /> : null}
+                {/* 필요해지면 TanStack Router Devtools를 도입할 수 있지만, 현재는 필요성이 없다. */}
             </NuqsAdapter>
         </QueryProvider>
     );
