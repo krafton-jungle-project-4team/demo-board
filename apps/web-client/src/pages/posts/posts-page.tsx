@@ -17,7 +17,10 @@ import { useCurrentUserQuery } from "@/features/auth";
 import {
     PostCards,
     PostTable,
+    parsePostSortSelectValue,
+    parsePostTagSelectValue,
     postSortValues,
+    toPostTagSelectValue,
     usePostListQuery,
     usePostSearch,
     usePostTagsQuery
@@ -35,7 +38,8 @@ export function PostsPage() {
     const tagsQuery = usePostTagsQuery();
     const postsQuery = usePostListQuery(params);
     const postsData = postsQuery.data;
-    const selectedTagValue = search.tagId ? String(search.tagId) : "all";
+    const currentPage = postsData?.page ?? search.page;
+    const selectedTagValue = toPostTagSelectValue(search.tagId);
 
     function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -46,15 +50,27 @@ export function PostsPage() {
     }
 
     function handleSortChange(sort: string) {
+        const nextSort = parsePostSortSelectValue(sort);
+
+        if (nextSort === null) {
+            return;
+        }
+
         void setSearch({
-            sort: sort as (typeof postSortValues)[number],
+            sort: nextSort,
             page: 1
         });
     }
 
-    function handleTagChange(tagId: string) {
+    function handleTagChange(value: string) {
+        const tagId = parsePostTagSelectValue(value);
+
+        if (tagId === undefined) {
+            return;
+        }
+
         void setSearch({
-            tagId: tagId === "all" ? null : Number(tagId),
+            tagId,
             page: 1
         });
     }
@@ -74,7 +90,7 @@ export function PostsPage() {
     }
 
     function handlePreviousPageClick() {
-        void setSearch({ page: Math.max(1, search.page - 1) });
+        void setSearch({ page: Math.max(1, currentPage - 1) });
     }
 
     function handleNextPageClick() {
@@ -82,7 +98,7 @@ export function PostsPage() {
             return;
         }
 
-        void setSearch({ page: Math.min(postsData.totalPages, search.page + 1) });
+        void setSearch({ page: Math.min(postsData.totalPages, postsData.page + 1) });
     }
 
     return (
@@ -170,13 +186,13 @@ export function PostsPage() {
 
                     <div className="flex items-center justify-between gap-3">
                         <Badge variant="secondary">
-                            {search.page} / {postsData.totalPages}
+                            {currentPage} / {postsData.totalPages}
                         </Badge>
                         <div className="flex gap-2">
                             <Button
                                 type="button"
                                 variant="outline"
-                                disabled={search.page <= 1}
+                                disabled={currentPage <= 1}
                                 onClick={handlePreviousPageClick}
                             >
                                 이전
@@ -184,7 +200,7 @@ export function PostsPage() {
                             <Button
                                 type="button"
                                 variant="outline"
-                                disabled={search.page >= postsData.totalPages}
+                                disabled={currentPage >= postsData.totalPages}
                                 onClick={handleNextPageClick}
                             >
                                 다음

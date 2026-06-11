@@ -1,5 +1,5 @@
 import { Check, Pencil, Send, Trash2, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { Badge, Button, Card, CardContent, Separator, Textarea } from "@nmm/ui/components";
 import type { Comment, User } from "@nmm/shared";
@@ -20,11 +20,7 @@ type PostCommentsProps = {
 
 export function PostComments({ currentUser, postId }: PostCommentsProps) {
     const commentsQuery = useCommentsQuery(postId);
-    const comments = useMemo(() => {
-        const items = commentsQuery.data?.items ?? [];
-
-        return [...items].sort((left, right) => Date.parse(left.createdAt) - Date.parse(right.createdAt));
-    }, [commentsQuery.data?.items]);
+    const comments = commentsQuery.data?.items ?? [];
 
     return (
         <section className="grid gap-4">

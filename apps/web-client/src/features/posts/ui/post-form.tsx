@@ -1,14 +1,21 @@
 import { Button, Input, Label, Textarea } from "@nmm/ui/components";
-import type { CreatePostRequest, PostTag } from "@nmm/shared";
-import type { ChangeEvent, FormEvent, MouseEvent } from "react";
+import type { PostTag } from "@nmm/shared";
+import type { ChangeEvent, FormEvent } from "react";
+
+export type PostFormValues = {
+    title: string;
+    excerpt: string;
+    content: string;
+    tagIds: number[];
+};
 
 type PostFormProps = {
     availableTags: PostTag[];
-    values: CreatePostRequest;
+    values: PostFormValues;
     isPending: boolean;
     onCancel: () => void;
     onSubmit: () => void;
-    onValuesChange: (values: CreatePostRequest) => void;
+    onValuesChange: (values: PostFormValues) => void;
 };
 
 export function PostForm({ availableTags, values, isPending, onCancel, onSubmit, onValuesChange }: PostFormProps) {
@@ -38,8 +45,7 @@ export function PostForm({ availableTags, values, isPending, onCancel, onSubmit,
         });
     }
 
-    function handleTagClick(event: MouseEvent<HTMLButtonElement>) {
-        const tagId = Number(event.currentTarget.value);
+    function handleTagClick(tagId: number) {
         const hasTag = values.tagIds.includes(tagId);
         const tagIds = hasTag
             ? values.tagIds.filter((selectedTagId) => selectedTagId !== tagId)
@@ -70,17 +76,12 @@ export function PostForm({ availableTags, values, isPending, onCancel, onSubmit,
                     <legend className="text-sm leading-none font-medium">태그</legend>
                     <div className="flex flex-wrap gap-2">
                         {availableTags.map((tag) => (
-                            <Button
+                            <PostTagToggle
                                 key={tag.id}
-                                type="button"
-                                size="sm"
-                                value={tag.id}
-                                variant={values.tagIds.includes(tag.id) ? "secondary" : "outline"}
-                                aria-pressed={values.tagIds.includes(tag.id)}
-                                onClick={handleTagClick}
-                            >
-                                {tag.name}
-                            </Button>
+                                isSelected={values.tagIds.includes(tag.id)}
+                                tag={tag}
+                                onToggle={handleTagClick}
+                            />
                         ))}
                     </div>
                 </fieldset>
@@ -94,5 +95,29 @@ export function PostForm({ availableTags, values, isPending, onCancel, onSubmit,
                 </Button>
             </div>
         </form>
+    );
+}
+
+type PostTagToggleProps = {
+    isSelected: boolean;
+    tag: PostTag;
+    onToggle: (tagId: number) => void;
+};
+
+function PostTagToggle({ isSelected, tag, onToggle }: PostTagToggleProps) {
+    function handleClick() {
+        onToggle(tag.id);
+    }
+
+    return (
+        <Button
+            type="button"
+            size="sm"
+            variant={isSelected ? "secondary" : "outline"}
+            aria-pressed={isSelected}
+            onClick={handleClick}
+        >
+            {tag.name}
+        </Button>
     );
 }

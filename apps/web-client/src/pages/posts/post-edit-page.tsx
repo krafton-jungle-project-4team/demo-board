@@ -2,10 +2,11 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components";
-import type { CreatePostRequest, Post, UpdatePostResponse } from "@nmm/shared";
+import type { Post, UpdatePostResponse } from "@nmm/shared";
 import { useCurrentUserQuery } from "@/features/auth";
 import {
     PostForm,
+    type PostFormValues,
     canManagePost,
     useDeletePostMutation,
     usePostDetailQuery,
@@ -72,7 +73,7 @@ type EditablePostEditPageProps = {
 function EditablePostEditPage({ post }: EditablePostEditPageProps) {
     const navigate = useNavigate();
     const tagsQuery = usePostTagsQuery();
-    const initialValues = useMemo<CreatePostRequest>(
+    const initialValues = useMemo<PostFormValues>(
         () => ({
             title: post.title,
             excerpt: post.excerpt,
@@ -81,7 +82,7 @@ function EditablePostEditPage({ post }: EditablePostEditPageProps) {
         }),
         [post.content, post.excerpt, post.tags, post.title]
     );
-    const [values, setValues] = useState<CreatePostRequest>(initialValues);
+    const [values, setValues] = useState<PostFormValues>(initialValues);
     const updateMutation = useUpdatePostMutation({
         onSuccess: handleUpdatePostSuccess
     });
@@ -116,11 +117,9 @@ function EditablePostEditPage({ post }: EditablePostEditPageProps) {
     }
 
     function handleSubmit() {
-        const request: CreatePostRequest = values;
-
         updateMutation.mutate({
             id: post.id,
-            data: request
+            data: values
         });
     }
 

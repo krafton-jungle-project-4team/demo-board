@@ -8,9 +8,11 @@ export function usePostSearch() {
 
     const submitQuery = useCallback(
         (nextQuery: string) => {
-            if (nextQuery !== q || page !== 1) {
+            const query = nextQuery.trim();
+
+            if (query !== q || page !== 1) {
                 void setSearch({
-                    q: nextQuery,
+                    q: query,
                     page: 1
                 });
             }

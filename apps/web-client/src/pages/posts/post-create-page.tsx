@@ -1,11 +1,11 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@nmm/ui/components";
-import type { CreatePostRequest, CreatePostResponse } from "@nmm/shared";
-import { PostForm, useCreatePostMutation, usePostTagsQuery } from "@/features/posts";
+import type { CreatePostResponse } from "@nmm/shared";
+import { PostForm, type PostFormValues, useCreatePostMutation, usePostTagsQuery } from "@/features/posts";
 import { useState } from "react";
 
-const emptyPost: CreatePostRequest = {
+const emptyPostFormValues: PostFormValues = {
     title: "",
     excerpt: "",
     content: "",
@@ -15,7 +15,7 @@ const emptyPost: CreatePostRequest = {
 export function PostCreatePage() {
     const navigate = useNavigate();
     const tagsQuery = usePostTagsQuery();
-    const [values, setValues] = useState<CreatePostRequest>(emptyPost);
+    const [values, setValues] = useState<PostFormValues>(emptyPostFormValues);
     const createMutation = useCreatePostMutation({
         onSuccess: handleCreatePostSuccess
     });
@@ -34,9 +34,7 @@ export function PostCreatePage() {
     }
 
     function handleSubmit() {
-        const request: CreatePostRequest = values;
-
-        createMutation.mutate(request);
+        createMutation.mutate(values);
     }
 
     return (

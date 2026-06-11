@@ -3,6 +3,13 @@ import react from "@vitejs/plugin-react";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import tailwindcss from "@tailwindcss/vite";
 
+const apiProxy = {
+    "/api": {
+        target: "http://localhost:3000",
+        changeOrigin: true
+    }
+};
+
 export default defineConfig(({ mode }) => {
     const useReactProfiling = mode === "profile";
 
@@ -23,21 +30,11 @@ export default defineConfig(({ mode }) => {
         },
         server: {
             port: 5173,
-            proxy: {
-                "/api": {
-                    target: "http://localhost:3000",
-                    changeOrigin: true
-                }
-            }
+            proxy: apiProxy
         },
         preview: {
             port: 4173,
-            proxy: {
-                "/api": {
-                    target: "http://localhost:3000",
-                    changeOrigin: true
-                }
-            }
+            proxy: apiProxy
         }
     };
 });

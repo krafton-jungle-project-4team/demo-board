@@ -18,6 +18,7 @@ export default [
         // 설치 파일과 빌드 산출물은 검사하지 않는다.
         ignores: [
             "node_modules/**",
+            ".codex/**",
             "**/dist/**",
             "apps/web-client/src/routeTree.gen.ts",
             "apps/web-client/src/shared/api/generated/**"

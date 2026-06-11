@@ -155,7 +155,13 @@ export class BoardQueryService {
             throw boardErrors.postNotFound();
         }
 
-        const comments = await this.comments.findBy({ postId });
+        const comments = await this.comments.find({
+            where: { postId },
+            order: {
+                createdAt: "ASC",
+                id: "ASC"
+            }
+        });
         const items = comments.map((comment) => {
             const author = users.find((user) => user.id === comment.authorId);
             const authorName = author?.name.trim();
