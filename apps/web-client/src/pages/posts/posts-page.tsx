@@ -1,7 +1,18 @@
 import { Link } from "@tanstack/react-router";
 import { LayoutGrid, List, Plus, Search } from "lucide-react";
 import type { FormEvent } from "react";
-import { Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@nmm/ui/components";
+import {
+    Badge,
+    Button,
+    Card,
+    CardContent,
+    Input,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from "@nmm/ui/components";
 import { useCurrentUserQuery } from "@/features/auth";
 import {
     PostCards,
@@ -158,9 +169,9 @@ export function PostsPage() {
                     )}
 
                     <div className="flex items-center justify-between gap-3">
-                        <p className="text-muted-foreground text-sm">
+                        <Badge variant="secondary">
                             {search.page} / {postsData.totalPages}
-                        </p>
+                        </Badge>
                         <div className="flex gap-2">
                             <Button
                                 type="button"
@@ -182,7 +193,9 @@ export function PostsPage() {
                     </div>
                 </>
             ) : (
-                <p className="text-muted-foreground text-sm">불러오는 중</p>
+                <Card>
+                    <CardContent className="text-sm text-muted-foreground">불러오는 중</CardContent>
+                </Card>
             )}
         </section>
     );

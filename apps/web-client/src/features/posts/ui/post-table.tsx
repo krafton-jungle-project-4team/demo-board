@@ -1,6 +1,16 @@
 import { Link } from "@tanstack/react-router";
 import { Pencil } from "lucide-react";
-import { Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@nmm/ui/components";
+import {
+    Button,
+    Card,
+    CardContent,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow
+} from "@nmm/ui/components";
 import type { Post, User } from "@nmm/shared";
 import { canManagePost } from "../model/post-permissions";
 import { PostTagBadges } from "./post-tag-badges";
@@ -26,42 +36,46 @@ type ReadonlyPostTableProps = {
 
 function ReadonlyPostTable({ posts }: ReadonlyPostTableProps) {
     return (
-        <div className="rounded-lg border">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>제목</TableHead>
-                        <TableHead className="hidden md:table-cell">작성자</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {posts.map((post) => (
-                        <ReadonlyPostTableRow key={post.id} post={post} />
-                    ))}
-                </TableBody>
-            </Table>
-        </div>
+        <Card className="gap-0 py-0">
+            <CardContent className="p-0">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>제목</TableHead>
+                            <TableHead className="hidden md:table-cell">작성자</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {posts.map((post) => (
+                            <ReadonlyPostTableRow key={post.id} post={post} />
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
     );
 }
 
 function ManageablePostTable({ currentUser, posts }: PostTableProps) {
     return (
-        <div className="rounded-lg border">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>제목</TableHead>
-                        <TableHead className="hidden md:table-cell">작성자</TableHead>
-                        <TableHead className="w-20 text-right">작업</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {posts.map((post) => (
-                        <ManageablePostTableRow key={post.id} currentUser={currentUser} post={post} />
-                    ))}
-                </TableBody>
-            </Table>
-        </div>
+        <Card className="gap-0 py-0">
+            <CardContent className="p-0">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>제목</TableHead>
+                            <TableHead className="hidden md:table-cell">작성자</TableHead>
+                            <TableHead className="w-20 text-right">작업</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {posts.map((post) => (
+                            <ManageablePostTableRow key={post.id} currentUser={currentUser} post={post} />
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
     );
 }
 

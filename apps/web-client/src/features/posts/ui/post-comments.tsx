@@ -1,7 +1,7 @@
 import { Check, Pencil, Send, Trash2, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
-import { Button, Textarea } from "@nmm/ui/components";
+import { Badge, Button, Card, CardContent, Separator, Textarea } from "@nmm/ui/components";
 import type { Comment, User } from "@nmm/shared";
 import { isActiveUser } from "@/features/auth";
 import {
@@ -27,10 +27,11 @@ export function PostComments({ currentUser, postId }: PostCommentsProps) {
     }, [commentsQuery.data?.items]);
 
     return (
-        <section className="grid gap-4 border-t pt-6">
+        <section className="grid gap-4">
+            <Separator />
             <div className="flex items-center justify-between gap-3">
                 <h2 className="text-lg font-semibold tracking-normal">댓글</h2>
-                <span className="text-sm text-muted-foreground">{comments.length}</span>
+                <Badge variant="secondary">{comments.length}</Badge>
             </div>
 
             <CommentComposer currentUser={currentUser} postId={postId} />
@@ -39,9 +40,15 @@ export function PostComments({ currentUser, postId }: PostCommentsProps) {
                 {comments.map((comment) => (
                     <PostCommentItem key={comment.id} comment={comment} currentUser={currentUser} postId={postId} />
                 ))}
-                {commentsQuery.isPending ? <p className="text-sm text-muted-foreground">댓글 불러오는 중</p> : null}
+                {commentsQuery.isPending ? (
+                    <Card>
+                        <CardContent className="text-sm text-muted-foreground">댓글 불러오는 중</CardContent>
+                    </Card>
+                ) : null}
                 {!commentsQuery.isPending && comments.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">아직 댓글이 없습니다.</p>
+                    <Card>
+                        <CardContent className="text-sm text-muted-foreground">아직 댓글이 없습니다.</CardContent>
+                    </Card>
                 ) : null}
             </div>
         </section>
@@ -80,11 +87,21 @@ function CommentComposer({ currentUser, postId }: PostCommentsProps) {
     }
 
     if (currentUser === undefined) {
-        return <p className="text-sm text-muted-foreground">계정 확인 중</p>;
+        return (
+            <Card>
+                <CardContent className="text-sm text-muted-foreground">계정 확인 중</CardContent>
+            </Card>
+        );
     }
 
     if (!canCreateComment) {
-        return <p className="text-sm text-muted-foreground">활성 계정으로 로그인하면 댓글을 작성할 수 있습니다.</p>;
+        return (
+            <Card>
+                <CardContent className="text-sm text-muted-foreground">
+                    활성 계정으로 로그인하면 댓글을 작성할 수 있습니다.
+                </CardContent>
+            </Card>
+        );
     }
 
     return (
@@ -168,66 +185,72 @@ function PostCommentItem({ comment, currentUser, postId }: PostCommentItemProps)
 
     if (isEditing) {
         return (
-            <form className="grid gap-2 rounded-lg border p-3" onSubmit={handleUpdateSubmit}>
-                <Textarea
-                    required
-                    minLength={1}
-                    value={editingContent ?? ""}
-                    disabled={updateCommentMutation.isPending}
-                    onChange={handleContentChange}
-                />
-                <div className="flex justify-end gap-2">
-                    <Button
-                        type="button"
-                        variant="outline"
-                        disabled={updateCommentMutation.isPending}
-                        onClick={handleCancelClick}
-                    >
-                        <X />
-                        취소
-                    </Button>
-                    <Button type="submit" disabled={updateCommentMutation.isPending || !trimmedContent}>
-                        <Check />
-                        저장
-                    </Button>
-                </div>
-            </form>
+            <Card className="gap-0 py-0">
+                <form onSubmit={handleUpdateSubmit}>
+                    <CardContent className="grid gap-2 p-3">
+                        <Textarea
+                            required
+                            minLength={1}
+                            value={editingContent ?? ""}
+                            disabled={updateCommentMutation.isPending}
+                            onChange={handleContentChange}
+                        />
+                        <div className="flex justify-end gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                disabled={updateCommentMutation.isPending}
+                                onClick={handleCancelClick}
+                            >
+                                <X />
+                                취소
+                            </Button>
+                            <Button type="submit" disabled={updateCommentMutation.isPending || !trimmedContent}>
+                                <Check />
+                                저장
+                            </Button>
+                        </div>
+                    </CardContent>
+                </form>
+            </Card>
         );
     }
 
     return (
-        <article className="grid gap-2 rounded-lg border p-3">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                <div className="grid gap-1">
-                    <span className="text-sm font-medium">{comment.authorName}</span>
-                    <span className="text-xs text-muted-foreground">{formatCommentDate(comment.createdAt)}</span>
-                </div>
-                {canManageCurrentComment ? (
-                    <div className="flex gap-1">
-                        <Button
-                            type="button"
-                            size="icon-sm"
-                            variant="ghost"
-                            aria-label="댓글 수정"
-                            onClick={handleEditClick}
-                        >
-                            <Pencil />
-                        </Button>
-                        <Button
-                            type="button"
-                            size="icon-sm"
-                            variant="ghost"
-                            aria-label="댓글 삭제"
-                            disabled={deleteCommentMutation.isPending}
-                            onClick={handleDeleteClick}
-                        >
-                            <Trash2 />
-                        </Button>
+        <Card className="gap-0 py-0">
+            <CardContent className="grid gap-2 p-3">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="grid gap-1">
+                        <span className="text-sm font-medium">{comment.authorName}</span>
+                        <Badge variant="outline">{formatCommentDate(comment.createdAt)}</Badge>
                     </div>
-                ) : null}
-            </div>
-            <p className="whitespace-pre-wrap text-sm leading-6">{comment.content}</p>
-        </article>
+                    {canManageCurrentComment ? (
+                        <div className="flex gap-1">
+                            <Button
+                                type="button"
+                                size="icon-sm"
+                                variant="ghost"
+                                aria-label="댓글 수정"
+                                onClick={handleEditClick}
+                            >
+                                <Pencil />
+                            </Button>
+                            <Button
+                                type="button"
+                                size="icon-sm"
+                                variant="ghost"
+                                aria-label="댓글 삭제"
+                                disabled={deleteCommentMutation.isPending}
+                                onClick={handleDeleteClick}
+                            >
+                                <Trash2 />
+                            </Button>
+                        </div>
+                    ) : null}
+                </div>
+                <p className="whitespace-pre-wrap text-sm leading-6">{comment.content}</p>
+            </CardContent>
+        </Card>
     );
 }
 

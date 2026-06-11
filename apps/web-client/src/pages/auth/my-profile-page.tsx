@@ -1,6 +1,16 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label } from "@nmm/ui/components";
+import {
+    Badge,
+    Button,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+    Input,
+    Label
+} from "@nmm/ui/components";
 import type { UpdateCurrentUserRequest } from "@nmm/shared";
 import {
     hasCompleteActiveProfile,
@@ -9,6 +19,11 @@ import {
     useLogoutMutation,
     useUpdateCurrentUserMutation
 } from "@/features/auth";
+
+type ProfileMessage = {
+    text: string;
+    variant: "secondary" | "destructive";
+};
 
 function handleSignInClick() {
     void signInWithGitHub("/me");
@@ -19,7 +34,7 @@ export function MyProfilePage() {
     const currentUserQuery = useCurrentUserQuery();
     const currentUser = currentUserQuery.data;
     const [name, setName] = useState("");
-    const [message, setMessage] = useState<string | null>(null);
+    const [message, setMessage] = useState<ProfileMessage | null>(null);
     const updateCurrentUserMutation = useUpdateCurrentUserMutation({
         onSuccess: handleUpdateCurrentUserSuccess
     });
@@ -35,11 +50,17 @@ export function MyProfilePage() {
     );
 
     function handleUpdateCurrentUserSuccess() {
-        setMessage("저장되었습니다.");
+        setMessage({
+            text: "저장되었습니다.",
+            variant: "secondary"
+        });
     }
 
     function handleUpdateCurrentUserError() {
-        setMessage("저장에 실패했습니다.");
+        setMessage({
+            text: "저장에 실패했습니다.",
+            variant: "destructive"
+        });
     }
 
     function handleLogoutSuccess() {
@@ -64,8 +85,10 @@ export function MyProfilePage() {
 
     if (currentUserQuery.isPending) {
         return (
-            <section className="mx-auto w-full max-w-3xl px-4 py-6 text-sm text-muted-foreground sm:px-6 lg:px-8">
-                불러오는 중
+            <section className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 lg:px-8">
+                <Card>
+                    <CardContent className="text-sm text-muted-foreground">불러오는 중</CardContent>
+                </Card>
             </section>
         );
     }
@@ -123,7 +146,7 @@ export function MyProfilePage() {
                             <Label htmlFor="profile-name">이름</Label>
                             <Input id="profile-name" required value={name} onChange={handleNameChange} />
                         </div>
-                        {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
+                        {message ? <Badge variant={message.variant}>{message.text}</Badge> : null}
                         <div className="flex justify-end">
                             <Button
                                 type="submit"

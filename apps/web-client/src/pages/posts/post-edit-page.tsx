@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Button } from "@nmm/ui/components";
+import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components";
 import type { CreatePostRequest, Post, UpdatePostResponse } from "@nmm/shared";
 import { useCurrentUserQuery } from "@/features/auth";
 import {
@@ -34,8 +34,10 @@ export function PostEditPage({ postId }: PostEditPageProps) {
 
 function PostEditPermissionPending() {
     return (
-        <section className="mx-auto w-full max-w-3xl px-4 py-6 text-sm text-muted-foreground sm:px-6 lg:px-8">
-            권한 확인 중
+        <section className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 lg:px-8">
+            <Card>
+                <CardContent className="text-sm text-muted-foreground">권한 확인 중</CardContent>
+            </Card>
         </section>
     );
 }
@@ -53,10 +55,12 @@ function PostEditForbidden({ postId }: PostEditForbiddenProps) {
                     상세
                 </Link>
             </Button>
-            <div className="grid gap-2">
-                <h1 className="text-2xl font-semibold tracking-normal">수정 권한이 없습니다.</h1>
-                <p className="text-sm text-muted-foreground">작성자만 게시글을 수정하거나 삭제할 수 있습니다.</p>
-            </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle>수정 권한이 없습니다.</CardTitle>
+                    <CardDescription>작성자만 게시글을 수정하거나 삭제할 수 있습니다.</CardDescription>
+                </CardHeader>
+            </Card>
         </section>
     );
 }

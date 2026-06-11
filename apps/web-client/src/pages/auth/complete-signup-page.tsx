@@ -1,6 +1,16 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useState, type ChangeEvent, type FormEvent } from "react";
-import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input, Label } from "@nmm/ui/components";
+import {
+    Badge,
+    Button,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+    Input,
+    Label
+} from "@nmm/ui/components";
 import type { CompleteSignUpRequest } from "@nmm/shared";
 import { useCompleteSignUpMutation } from "@/features/auth";
 
@@ -45,7 +55,7 @@ export function CompleteSignUpPage() {
                             <Label htmlFor="signup-name">이름</Label>
                             <Input id="signup-name" required minLength={1} value={name} onChange={handleNameChange} />
                         </div>
-                        {errorMessage ? <p className="text-sm text-destructive">{errorMessage}</p> : null}
+                        {errorMessage ? <Badge variant="destructive">{errorMessage}</Badge> : null}
                         <Button type="submit" disabled={completeSignUpMutation.isPending || name.trim().length === 0}>
                             완료
                         </Button>

@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft, Pencil } from "lucide-react";
 import type { ReactNode } from "react";
-import { Button } from "@nmm/ui/components";
+import { Badge, Button, Separator } from "@nmm/ui/components";
 import type { Post, User } from "@nmm/shared";
 import { useCurrentUserQuery } from "@/features/auth";
 import { PostComments, PostTagBadges, canManagePost, usePostDetailQuery } from "@/features/posts";
@@ -65,15 +65,14 @@ function PostDetailLayout({ action, currentUser, post }: PostDetailLayoutProps) 
             </div>
 
             <div className="grid gap-3">
-                <span className="text-sm text-muted-foreground">{post.authorName}</span>
+                <Badge variant="secondary">{post.authorName}</Badge>
                 <h1 className="text-2xl font-semibold tracking-normal">{post.title}</h1>
                 <p className="text-muted-foreground">{post.excerpt}</p>
                 <PostTagBadges tags={post.tags} />
             </div>
 
-            <div className="border-t pt-6">
-                <p className="whitespace-pre-wrap text-sm leading-7">{post.content}</p>
-            </div>
+            <Separator />
+            <p className="whitespace-pre-wrap text-sm leading-7">{post.content}</p>
 
             <PostComments currentUser={currentUser} postId={post.id} />
         </article>
