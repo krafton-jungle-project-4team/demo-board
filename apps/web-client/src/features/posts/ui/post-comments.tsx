@@ -1,8 +1,19 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Check, Pencil, Send, Trash2, X } from "lucide-react";
 import { useState } from "react";
-import type { ChangeEvent, FormEvent } from "react";
-import { Badge, Button, Card, CardContent, Separator, Textarea } from "@nmm/ui/components";
-import type { Comment, User } from "@nmm/shared";
+import { useController, useForm, type Control, type UseFormSetError } from "react-hook-form";
+import { CreateCommentRequestSchema, type Comment, type CreateCommentRequest, type User } from "@nmm/shared";
+import {
+    Badge,
+    Button,
+    Card,
+    CardContent,
+    Field,
+    FieldError,
+    FieldLabel,
+    Separator,
+    Textarea
+} from "@nmm/ui/components";
 import { isActiveUser } from "@/features/auth";
 import {
     useCommentsQuery,
@@ -18,9 +29,15 @@ type PostCommentsProps = {
     postId: RouteResourceId;
 };
 
+const EMPTY_COMMENTS: Comment[] = [];
+const commentDateFormatter = new Intl.DateTimeFormat("ko-KR", {
+    dateStyle: "medium",
+    timeStyle: "short"
+});
+
 export function PostComments({ currentUser, postId }: PostCommentsProps) {
     const commentsQuery = useCommentsQuery(postId);
-    const comments = commentsQuery.data?.items ?? [];
+    const comments = commentsQuery.data?.items ?? EMPTY_COMMENTS;
 
     return (
         <section className="grid gap-4">
@@ -52,33 +69,33 @@ export function PostComments({ currentUser, postId }: PostCommentsProps) {
 }
 
 function CommentComposer({ currentUser, postId }: PostCommentsProps) {
-    const [content, setContent] = useState("");
+    const form = useForm<CreateCommentRequest>({
+        resolver: zodResolver(CreateCommentRequestSchema),
+        defaultValues: {
+            content: ""
+        },
+        mode: "onChange"
+    });
+    const contentValue = form.watch("content");
     const createCommentMutation = useCreateCommentMutation({
         onSuccess: handleCreateCommentSuccess
     });
     const canCreateComment = isActiveUser(currentUser);
-    const trimmedContent = content.trim();
 
     function handleCreateCommentSuccess() {
-        setContent("");
+        form.reset();
     }
 
-    function handleContentChange(event: ChangeEvent<HTMLTextAreaElement>) {
-        setContent(event.target.value);
-    }
+    function handleSubmit(values: CreateCommentRequest) {
+        const data = toTrimmedCommentData(values, form.setError);
 
-    function handleSubmit(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-
-        if (!trimmedContent) {
+        if (!data) {
             return;
         }
 
         createCommentMutation.mutate({
             postId,
-            data: {
-                content: trimmedContent
-            }
+            data
         });
     }
 
@@ -101,19 +118,18 @@ function CommentComposer({ currentUser, postId }: PostCommentsProps) {
     }
 
     return (
-        <form className="grid gap-2" onSubmit={handleSubmit}>
-            <Textarea
-                required
-                minLength={1}
+        <form className="grid gap-2" onSubmit={form.handleSubmit(handleSubmit)}>
+            <CommentContentField
+                control={form.control}
+                id="comment-content"
+                label="댓글"
                 placeholder="댓글"
-                value={content}
                 disabled={createCommentMutation.isPending}
-                onChange={handleContentChange}
             />
             <Button
                 type="submit"
                 className="justify-self-end"
-                disabled={createCommentMutation.isPending || !trimmedContent}
+                disabled={createCommentMutation.isPending || contentValue.trim().length === 0}
             >
                 <Send />
                 등록
@@ -129,7 +145,7 @@ type PostCommentItemProps = {
 };
 
 function PostCommentItem({ comment, currentUser, postId }: PostCommentItemProps) {
-    const [editingContent, setEditingContent] = useState<string | null>(null);
+    const [isEditing, setIsEditing] = useState(false);
     const updateCommentMutation = useUpdateCommentMutation({
         onSuccess: handleCommentMutationSuccess
     });
@@ -137,38 +153,24 @@ function PostCommentItem({ comment, currentUser, postId }: PostCommentItemProps)
         onSuccess: handleCommentMutationSuccess
     });
     const canManageCurrentComment = canManageComment(currentUser, comment);
-    const trimmedContent = editingContent?.trim() ?? "";
-    const isEditing = editingContent !== null;
 
     function handleCommentMutationSuccess() {
-        setEditingContent(null);
+        setIsEditing(false);
     }
 
     function handleEditClick() {
-        setEditingContent(comment.content);
+        setIsEditing(true);
     }
 
     function handleCancelClick() {
-        setEditingContent(null);
+        setIsEditing(false);
     }
 
-    function handleContentChange(event: ChangeEvent<HTMLTextAreaElement>) {
-        setEditingContent(event.target.value);
-    }
-
-    function handleUpdateSubmit(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-
-        if (!trimmedContent) {
-            return;
-        }
-
+    function handleUpdateSubmit(values: CreateCommentRequest) {
         updateCommentMutation.mutate({
             postId,
             commentId: comment.id,
-            data: {
-                content: trimmedContent
-            }
+            data: values
         });
     }
 
@@ -181,34 +183,12 @@ function PostCommentItem({ comment, currentUser, postId }: PostCommentItemProps)
 
     if (isEditing) {
         return (
-            <Card className="gap-0 py-0">
-                <form onSubmit={handleUpdateSubmit}>
-                    <CardContent className="grid gap-2 p-3">
-                        <Textarea
-                            required
-                            minLength={1}
-                            value={editingContent ?? ""}
-                            disabled={updateCommentMutation.isPending}
-                            onChange={handleContentChange}
-                        />
-                        <div className="flex justify-end gap-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                disabled={updateCommentMutation.isPending}
-                                onClick={handleCancelClick}
-                            >
-                                <X />
-                                취소
-                            </Button>
-                            <Button type="submit" disabled={updateCommentMutation.isPending || !trimmedContent}>
-                                <Check />
-                                저장
-                            </Button>
-                        </div>
-                    </CardContent>
-                </form>
-            </Card>
+            <PostCommentEditForm
+                comment={comment}
+                isPending={updateCommentMutation.isPending}
+                onCancel={handleCancelClick}
+                onSubmit={handleUpdateSubmit}
+            />
         );
     }
 
@@ -250,9 +230,109 @@ function PostCommentItem({ comment, currentUser, postId }: PostCommentItemProps)
     );
 }
 
-function formatCommentDate(value: string) {
-    return new Date(value).toLocaleString("ko-KR", {
-        dateStyle: "medium",
-        timeStyle: "short"
+type PostCommentEditFormProps = {
+    comment: Comment;
+    isPending: boolean;
+    onCancel: () => void;
+    onSubmit: (values: CreateCommentRequest) => void;
+};
+
+function PostCommentEditForm({ comment, isPending, onCancel, onSubmit }: PostCommentEditFormProps) {
+    const form = useForm<CreateCommentRequest>({
+        resolver: zodResolver(CreateCommentRequestSchema),
+        defaultValues: {
+            content: comment.content
+        },
+        mode: "onChange"
     });
+    const contentValue = form.watch("content");
+
+    function handleSubmit(values: CreateCommentRequest) {
+        const data = toTrimmedCommentData(values, form.setError);
+
+        if (!data) {
+            return;
+        }
+
+        onSubmit(data);
+    }
+
+    return (
+        <Card className="gap-0 py-0">
+            <form onSubmit={form.handleSubmit(handleSubmit)}>
+                <CardContent className="grid gap-2 p-3">
+                    <CommentContentField
+                        control={form.control}
+                        id="comment-edit-content"
+                        label="댓글 수정"
+                        disabled={isPending}
+                    />
+                    <div className="flex justify-end gap-2">
+                        <Button type="button" variant="outline" disabled={isPending} onClick={onCancel}>
+                            <X />
+                            취소
+                        </Button>
+                        <Button type="submit" disabled={isPending || contentValue.trim().length === 0}>
+                            <Check />
+                            저장
+                        </Button>
+                    </div>
+                </CardContent>
+            </form>
+        </Card>
+    );
+}
+
+type CommentContentFieldProps = {
+    control: Control<CreateCommentRequest>;
+    id: string;
+    label: string;
+    disabled: boolean;
+    placeholder?: string;
+};
+
+function CommentContentField({ control, id, label, disabled, placeholder }: CommentContentFieldProps) {
+    const { field, fieldState } = useController({
+        control,
+        name: "content"
+    });
+
+    return (
+        <Field data-invalid={fieldState.invalid}>
+            <FieldLabel htmlFor={id} className="sr-only">
+                {label}
+            </FieldLabel>
+            <Textarea
+                {...field}
+                id={id}
+                required
+                minLength={1}
+                placeholder={placeholder}
+                aria-invalid={fieldState.invalid}
+                disabled={disabled}
+            />
+            <FieldError errors={[fieldState.error]} />
+        </Field>
+    );
+}
+
+function toTrimmedCommentData(
+    values: CreateCommentRequest,
+    setError: UseFormSetError<CreateCommentRequest>
+): CreateCommentRequest | null {
+    const content = values.content.trim();
+
+    if (!content) {
+        setError("content", {
+            type: "manual",
+            message: "댓글을 입력해 주세요."
+        });
+        return null;
+    }
+
+    return { content };
+}
+
+function formatCommentDate(value: string) {
+    return commentDateFormatter.format(new Date(value));
 }

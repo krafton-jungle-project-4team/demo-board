@@ -1,8 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import type { Post, PostTag, UpdatePostResponse } from "@nmm/shared";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components";
-import type { Post, UpdatePostResponse } from "@nmm/shared";
 import { useCurrentUserQuery } from "@/features/auth";
 import {
     PostForm,
@@ -13,6 +12,8 @@ import {
     usePostTagsQuery,
     useUpdatePostMutation
 } from "@/features/posts";
+
+const EMPTY_POST_TAGS: PostTag[] = [];
 
 type PostEditPageProps = {
     postId: string;
@@ -73,16 +74,8 @@ type EditablePostEditPageProps = {
 function EditablePostEditPage({ post }: EditablePostEditPageProps) {
     const navigate = useNavigate();
     const tagsQuery = usePostTagsQuery();
-    const initialValues = useMemo<PostFormValues>(
-        () => ({
-            title: post.title,
-            excerpt: post.excerpt,
-            content: post.content,
-            tagIds: post.tags.map((tag) => tag.id)
-        }),
-        [post.content, post.excerpt, post.tags, post.title]
-    );
-    const [values, setValues] = useState<PostFormValues>(initialValues);
+    const availableTags = tagsQuery.data ?? EMPTY_POST_TAGS;
+    const defaultValues = toPostFormValues(post);
     const updateMutation = useUpdatePostMutation({
         onSuccess: handleUpdatePostSuccess
     });
@@ -116,7 +109,7 @@ function EditablePostEditPage({ post }: EditablePostEditPageProps) {
         });
     }
 
-    function handleSubmit() {
+    function handleSubmit(values: PostFormValues) {
         updateMutation.mutate({
             id: post.id,
             data: values
@@ -149,13 +142,21 @@ function EditablePostEditPage({ post }: EditablePostEditPageProps) {
                 </div>
             </div>
             <PostForm
-                availableTags={tagsQuery.data ?? []}
-                values={values}
+                availableTags={availableTags}
+                defaultValues={defaultValues}
                 isPending={updateMutation.isPending}
                 onCancel={handleCancel}
                 onSubmit={handleSubmit}
-                onValuesChange={setValues}
             />
         </section>
     );
+}
+
+function toPostFormValues(post: Post): PostFormValues {
+    return {
+        title: post.title,
+        excerpt: post.excerpt,
+        content: post.content,
+        tagIds: post.tags.map((tag) => tag.id)
+    };
 }

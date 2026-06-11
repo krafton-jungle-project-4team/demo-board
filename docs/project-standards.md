@@ -43,6 +43,7 @@
 - `packages/ui/components.json`은 shadcn CLI 설정으로 유지한다.
 - `packages/ui/src/components`는 앱 라우팅, feature, API, 도메인 코드를 import하지 않는다.
 - 앱은 `@nmm/ui/components`에서 필요한 UI primitive를 import하고, 앱별 조합은 feature/page 코드에서 처리한다.
+- 폼 UI는 shadcn/ui Field와 React Hook Form, shared Zod contract resolver를 우선 사용한다.
 - 작은 버튼, 링크형 액션, 상태 배지, fallback 패널도 `@nmm/ui/components` primitive를 우선 사용한다.
 - HTML tag를 직접 작성하기 전에 `@nmm/ui/components` 또는 shadcn/ui primitive로 대체 가능한지 확인한다.
 - 대체 가능한 primitive가 있으면 raw HTML 대신 `@nmm/ui/components`를 사용한다.

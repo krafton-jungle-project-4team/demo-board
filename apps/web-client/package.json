@@ -13,11 +13,11 @@
         "typecheck": "tsc -p tsconfig.app.json --noEmit"
     },
     "dependencies": {
+        "@hookform/resolvers": "^5.4.0",
         "@nmm/shared": "file:../../packages/shared",
         "@nmm/ui": "file:../../packages/ui",
         "@tanstack/react-query": "^5.101.0",
         "@tanstack/react-router": "^1.170.15",
-        "@tanstack/react-router-devtools": "^1.167.0",
         "@vitejs/plugin-react": "latest",
         "better-auth": "^1.6.15",
         "ky": "^2.0.2",
@@ -25,6 +25,7 @@
         "nuqs": "^2.8.9",
         "react": "latest",
         "react-dom": "latest",
+        "react-hook-form": "^7.78.0",
         "typescript": "latest",
         "vite": "latest"
     },

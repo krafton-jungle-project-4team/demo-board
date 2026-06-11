@@ -4,6 +4,7 @@ export * from "./components/button";
 export * from "./components/button-variants";
 export * from "./components/card";
 export * from "./components/dialog";
+export * from "./components/field";
 export * from "./components/input";
 export * from "./components/label";
 export * from "./components/select";

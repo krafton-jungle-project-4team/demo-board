@@ -1,9 +1,8 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
+import type { CreatePostResponse, PostTag } from "@nmm/shared";
 import { Button } from "@nmm/ui/components";
-import type { CreatePostResponse } from "@nmm/shared";
 import { PostForm, type PostFormValues, useCreatePostMutation, usePostTagsQuery } from "@/features/posts";
-import { useState } from "react";
 
 const emptyPostFormValues: PostFormValues = {
     title: "",
@@ -11,11 +10,12 @@ const emptyPostFormValues: PostFormValues = {
     content: "",
     tagIds: []
 };
+const EMPTY_POST_TAGS: PostTag[] = [];
 
 export function PostCreatePage() {
     const navigate = useNavigate();
     const tagsQuery = usePostTagsQuery();
-    const [values, setValues] = useState<PostFormValues>(emptyPostFormValues);
+    const availableTags = tagsQuery.data ?? EMPTY_POST_TAGS;
     const createMutation = useCreatePostMutation({
         onSuccess: handleCreatePostSuccess
     });
@@ -33,7 +33,7 @@ export function PostCreatePage() {
         void navigate({ to: "/posts" });
     }
 
-    function handleSubmit() {
+    function handleSubmit(values: PostFormValues) {
         createMutation.mutate(values);
     }
 
@@ -52,12 +52,11 @@ export function PostCreatePage() {
                 </div>
             </div>
             <PostForm
-                availableTags={tagsQuery.data ?? []}
-                values={values}
+                availableTags={availableTags}
+                defaultValues={emptyPostFormValues}
                 isPending={createMutation.isPending}
                 onCancel={handleCancel}
                 onSubmit={handleSubmit}
-                onValuesChange={setValues}
             />
         </section>
     );

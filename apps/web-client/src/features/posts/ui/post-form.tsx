@@ -1,110 +1,161 @@
-import { Button, Input, Label, Textarea } from "@nmm/ui/components";
-import type { PostTag } from "@nmm/shared";
-import type { ChangeEvent, FormEvent } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMemo } from "react";
+import { useController, useForm, type Control, type Resolver } from "react-hook-form";
+import { CreatePostRequestSchema, type CreatePostRequest, type PostTag } from "@nmm/shared";
+import {
+    Button,
+    Field,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+    FieldLegend,
+    FieldSet,
+    Input,
+    Textarea
+} from "@nmm/ui/components";
 
-export type PostFormValues = {
-    title: string;
-    excerpt: string;
-    content: string;
-    tagIds: number[];
-};
+export type PostFormValues = CreatePostRequest;
+const postFormResolver = zodResolver(CreatePostRequestSchema) as Resolver<PostFormValues>;
 
 type PostFormProps = {
     availableTags: PostTag[];
-    values: PostFormValues;
+    defaultValues: PostFormValues;
     isPending: boolean;
     onCancel: () => void;
-    onSubmit: () => void;
-    onValuesChange: (values: PostFormValues) => void;
+    onSubmit: (values: PostFormValues) => void;
 };
 
-export function PostForm({ availableTags, values, isPending, onCancel, onSubmit, onValuesChange }: PostFormProps) {
-    function handleSubmit(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-        onSubmit();
-    }
+export function PostForm({ availableTags, defaultValues, isPending, onCancel, onSubmit }: PostFormProps) {
+    const form = useForm<PostFormValues>({
+        resolver: postFormResolver,
+        defaultValues,
+        mode: "onChange"
+    });
 
-    function handleTitleChange(event: ChangeEvent<HTMLInputElement>) {
-        onValuesChange({
-            ...values,
-            title: event.target.value
-        });
-    }
-
-    function handleExcerptChange(event: ChangeEvent<HTMLInputElement>) {
-        onValuesChange({
-            ...values,
-            excerpt: event.target.value
-        });
-    }
-
-    function handleContentChange(event: ChangeEvent<HTMLTextAreaElement>) {
-        onValuesChange({
-            ...values,
-            content: event.target.value
-        });
-    }
-
-    function handleTagClick(tagId: number) {
-        const hasTag = values.tagIds.includes(tagId);
-        const tagIds = hasTag
-            ? values.tagIds.filter((selectedTagId) => selectedTagId !== tagId)
-            : [...values.tagIds, tagId];
-
-        onValuesChange({
-            ...values,
-            tagIds
-        });
+    function handleValidSubmit(values: PostFormValues) {
+        onSubmit(values);
     }
 
     return (
-        <form className="grid gap-4" onSubmit={handleSubmit}>
-            <div className="grid gap-2">
-                <Label htmlFor="post-title">제목</Label>
-                <Input id="post-title" required value={values.title} onChange={handleTitleChange} />
-            </div>
-            <div className="grid gap-2">
-                <Label htmlFor="post-excerpt">요약</Label>
-                <Input id="post-excerpt" required value={values.excerpt} onChange={handleExcerptChange} />
-            </div>
-            <div className="grid gap-2">
-                <Label htmlFor="post-content">본문</Label>
-                <Textarea id="post-content" required value={values.content} onChange={handleContentChange} />
-            </div>
-            {availableTags.length > 0 ? (
-                <fieldset className="grid gap-2">
-                    <legend className="text-sm leading-none font-medium">태그</legend>
-                    <div className="flex flex-wrap gap-2">
-                        {availableTags.map((tag) => (
-                            <PostTagToggle
-                                key={tag.id}
-                                isSelected={values.tagIds.includes(tag.id)}
-                                tag={tag}
-                                onToggle={handleTagClick}
-                            />
-                        ))}
-                    </div>
-                </fieldset>
-            ) : null}
-            <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={onCancel}>
-                    취소
-                </Button>
-                <Button type="submit" disabled={isPending}>
-                    저장
-                </Button>
-            </div>
+        <form className="grid gap-4" onSubmit={form.handleSubmit(handleValidSubmit)}>
+            <FieldGroup>
+                <PostTitleField control={form.control} disabled={isPending} />
+                <PostExcerptField control={form.control} disabled={isPending} />
+                <PostContentField control={form.control} disabled={isPending} />
+                {availableTags.length > 0 ? (
+                    <PostTagsField control={form.control} availableTags={availableTags} disabled={isPending} />
+                ) : null}
+                <Field orientation="horizontal" className="justify-end gap-2">
+                    <Button type="button" variant="outline" disabled={isPending} onClick={onCancel}>
+                        취소
+                    </Button>
+                    <Button type="submit" disabled={isPending}>
+                        저장
+                    </Button>
+                </Field>
+            </FieldGroup>
         </form>
+    );
+}
+
+type PostFieldProps = {
+    control: Control<PostFormValues>;
+    disabled: boolean;
+};
+
+function PostTitleField({ control, disabled }: PostFieldProps) {
+    const { field, fieldState } = useController({
+        control,
+        name: "title"
+    });
+
+    return (
+        <Field data-invalid={fieldState.invalid}>
+            <FieldLabel htmlFor="post-title">제목</FieldLabel>
+            <Input {...field} id="post-title" required aria-invalid={fieldState.invalid} disabled={disabled} />
+            <FieldError errors={[fieldState.error]} />
+        </Field>
+    );
+}
+
+function PostExcerptField({ control, disabled }: PostFieldProps) {
+    const { field, fieldState } = useController({
+        control,
+        name: "excerpt"
+    });
+
+    return (
+        <Field data-invalid={fieldState.invalid}>
+            <FieldLabel htmlFor="post-excerpt">요약</FieldLabel>
+            <Input {...field} id="post-excerpt" required aria-invalid={fieldState.invalid} disabled={disabled} />
+            <FieldError errors={[fieldState.error]} />
+        </Field>
+    );
+}
+
+function PostContentField({ control, disabled }: PostFieldProps) {
+    const { field, fieldState } = useController({
+        control,
+        name: "content"
+    });
+
+    return (
+        <Field data-invalid={fieldState.invalid}>
+            <FieldLabel htmlFor="post-content">본문</FieldLabel>
+            <Textarea {...field} id="post-content" required aria-invalid={fieldState.invalid} disabled={disabled} />
+            <FieldError errors={[fieldState.error]} />
+        </Field>
+    );
+}
+
+type PostTagsFieldProps = PostFieldProps & {
+    availableTags: PostTag[];
+};
+
+function PostTagsField({ availableTags, control, disabled }: PostTagsFieldProps) {
+    const { field, fieldState } = useController({
+        control,
+        name: "tagIds"
+    });
+    const selectedTagIds = field.value;
+    const selectedTagIdSet = useMemo(() => new Set(selectedTagIds), [selectedTagIds]);
+
+    function handleTagClick(tagId: number) {
+        const hasTag = selectedTagIdSet.has(tagId);
+        const tagIds = hasTag
+            ? selectedTagIds.filter((selectedTagId) => selectedTagId !== tagId)
+            : [...selectedTagIds, tagId];
+
+        field.onChange(tagIds);
+    }
+
+    return (
+        <FieldSet>
+            <FieldLegend variant="label">태그</FieldLegend>
+            <FieldGroup className="flex-row flex-wrap gap-2">
+                {availableTags.map((tag) => (
+                    <PostTagToggle
+                        key={tag.id}
+                        isSelected={selectedTagIdSet.has(tag.id)}
+                        disabled={disabled}
+                        tag={tag}
+                        onToggle={handleTagClick}
+                    />
+                ))}
+            </FieldGroup>
+            <FieldError errors={[fieldState.error]} />
+        </FieldSet>
     );
 }
 
 type PostTagToggleProps = {
     isSelected: boolean;
+    disabled: boolean;
     tag: PostTag;
     onToggle: (tagId: number) => void;
 };
 
-function PostTagToggle({ isSelected, tag, onToggle }: PostTagToggleProps) {
+function PostTagToggle({ isSelected, disabled, tag, onToggle }: PostTagToggleProps) {
     function handleClick() {
         onToggle(tag.id);
     }
@@ -115,6 +166,7 @@ function PostTagToggle({ isSelected, tag, onToggle }: PostTagToggleProps) {
             size="sm"
             variant={isSelected ? "secondary" : "outline"}
             aria-pressed={isSelected}
+            disabled={disabled}
             onClick={handleClick}
         >
             {tag.name}

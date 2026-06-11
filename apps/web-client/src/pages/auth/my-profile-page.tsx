@@ -1,87 +1,31 @@
-import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import {
-    Badge,
-    Button,
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-    Input,
-    Label
-} from "@nmm/ui/components";
-import type { UpdateCurrentUserRequest } from "@nmm/shared";
-import {
-    hasCompleteActiveProfile,
-    signInWithGitHub,
-    useCurrentUserQuery,
-    useLogoutMutation,
-    useUpdateCurrentUserMutation
-} from "@/features/auth";
+import { useController, useForm, type Control } from "react-hook-form";
+import { UpdateCurrentUserRequestSchema, type UpdateCurrentUserRequest, type User } from "@nmm/shared";
+import { Badge } from "@nmm/ui/components/badge";
+import { Button } from "@nmm/ui/components/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components/card";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@nmm/ui/components/field";
+import { Input } from "@nmm/ui/components/input";
+import { signInWithGitHub } from "@/features/auth/api/auth-client";
+import { useCurrentUserQuery, useLogoutMutation, useUpdateCurrentUserMutation } from "@/features/auth/api/auth-queries";
+import { hasCompleteActiveProfile } from "@/features/auth/model/user-status";
 
 type ProfileMessage = {
     text: string;
     variant: "secondary" | "destructive";
 };
 
+type CompleteActiveProfileUser = User & { name: string; status: "ACTIVE" };
+
 function handleSignInClick() {
     void signInWithGitHub("/me");
 }
 
 export function MyProfilePage() {
-    const navigate = useNavigate();
     const currentUserQuery = useCurrentUserQuery();
     const currentUser = currentUserQuery.data;
-    const [name, setName] = useState("");
-    const [message, setMessage] = useState<ProfileMessage | null>(null);
-    const updateCurrentUserMutation = useUpdateCurrentUserMutation({
-        onSuccess: handleUpdateCurrentUserSuccess
-    });
-    const logoutMutation = useLogoutMutation({
-        onSuccess: handleLogoutSuccess
-    });
-
-    useEffect(
-        function syncNameWithCurrentUser() {
-            setName(currentUser?.name ?? "");
-        },
-        [currentUser?.name]
-    );
-
-    function handleUpdateCurrentUserSuccess() {
-        setMessage({
-            text: "저장되었습니다.",
-            variant: "secondary"
-        });
-    }
-
-    function handleUpdateCurrentUserError() {
-        setMessage({
-            text: "저장에 실패했습니다.",
-            variant: "destructive"
-        });
-    }
-
-    function handleLogoutSuccess() {
-        void navigate({ to: "/posts" });
-    }
-
-    function handleLogoutClick() {
-        logoutMutation.mutate();
-    }
-
-    function handleNameChange(event: ChangeEvent<HTMLInputElement>) {
-        setName(event.target.value);
-    }
-
-    function handleProfileSubmit(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-        setMessage(null);
-        const request: UpdateCurrentUserRequest = { name };
-
-        updateCurrentUserMutation.mutate(request, { onError: handleUpdateCurrentUserError });
-    }
 
     if (currentUserQuery.isPending) {
         return (
@@ -129,6 +73,63 @@ export function MyProfilePage() {
         );
     }
 
+    const activeUser: CompleteActiveProfileUser = currentUser;
+
+    return <ActiveProfilePage currentUser={activeUser} />;
+}
+
+type ActiveProfilePageProps = {
+    currentUser: CompleteActiveProfileUser;
+};
+
+function ActiveProfilePage({ currentUser }: ActiveProfilePageProps) {
+    const navigate = useNavigate();
+    const [message, setMessage] = useState<ProfileMessage | null>(null);
+    const form = useForm<UpdateCurrentUserRequest>({
+        resolver: zodResolver(UpdateCurrentUserRequestSchema),
+        defaultValues: {
+            name: currentUser.name
+        },
+        mode: "onChange"
+    });
+    const nameValue = form.watch("name");
+    const updateCurrentUserMutation = useUpdateCurrentUserMutation({
+        onSuccess: handleUpdateCurrentUserSuccess
+    });
+    const logoutMutation = useLogoutMutation({
+        onSuccess: handleLogoutSuccess
+    });
+    const hasProfileChange = nameValue.trim() !== currentUser.name;
+
+    function handleUpdateCurrentUserSuccess() {
+        setMessage({
+            text: "저장되었습니다.",
+            variant: "secondary"
+        });
+        form.reset({ name: nameValue.trim() });
+    }
+
+    function handleUpdateCurrentUserError() {
+        setMessage({
+            text: "저장에 실패했습니다.",
+            variant: "destructive"
+        });
+    }
+
+    function handleLogoutSuccess() {
+        void navigate({ to: "/posts" });
+    }
+
+    function handleLogoutClick() {
+        logoutMutation.mutate();
+    }
+
+    function handleProfileSubmit(request: UpdateCurrentUserRequest) {
+        setMessage(null);
+
+        updateCurrentUserMutation.mutate(request, { onError: handleUpdateCurrentUserError });
+    }
+
     return (
         <section className="mx-auto grid w-full max-w-3xl gap-6 px-4 py-6 sm:px-6 lg:px-8">
             <div className="grid gap-1">
@@ -141,19 +142,18 @@ export function MyProfilePage() {
                     <CardDescription>{currentUser.role}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form className="grid gap-4" onSubmit={handleProfileSubmit}>
-                        <div className="grid gap-2">
-                            <Label htmlFor="profile-name">이름</Label>
-                            <Input id="profile-name" required value={name} onChange={handleNameChange} />
-                        </div>
+                    <form className="grid gap-4" onSubmit={form.handleSubmit(handleProfileSubmit)}>
+                        <FieldGroup>
+                            <ProfileNameField control={form.control} disabled={updateCurrentUserMutation.isPending} />
+                        </FieldGroup>
                         {message ? <Badge variant={message.variant}>{message.text}</Badge> : null}
                         <div className="flex justify-end">
                             <Button
                                 type="submit"
                                 disabled={
                                     updateCurrentUserMutation.isPending ||
-                                    name.trim().length === 0 ||
-                                    name === currentUser.name
+                                    nameValue.trim().length === 0 ||
+                                    !hasProfileChange
                                 }
                             >
                                 저장
@@ -168,5 +168,25 @@ export function MyProfilePage() {
                 </Button>
             </div>
         </section>
+    );
+}
+
+type ProfileNameFieldProps = {
+    control: Control<UpdateCurrentUserRequest>;
+    disabled: boolean;
+};
+
+function ProfileNameField({ control, disabled }: ProfileNameFieldProps) {
+    const { field, fieldState } = useController({
+        control,
+        name: "name"
+    });
+
+    return (
+        <Field data-invalid={fieldState.invalid}>
+            <FieldLabel htmlFor="profile-name">이름</FieldLabel>
+            <Input {...field} id="profile-name" required aria-invalid={fieldState.invalid} disabled={disabled} />
+            <FieldError>{fieldState.error?.message}</FieldError>
+        </Field>
     );
 }
