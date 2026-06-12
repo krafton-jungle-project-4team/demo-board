@@ -1,30 +1,30 @@
 import { mutationOptions, queryOptions } from "@tanstack/react-query";
-import { addPostTag, createTag, getPostTags, getTags } from "./post-api";
+import { addPostTag, createPostTag, getPostTags, getPostTagsByPostId } from "./post-api";
 
 type AddPostTagMutationVariables = {
     postId: number;
-    tagId: number;
+    postTagId: number;
 };
 
 export const postQueryKeys = {
-    tags: ["tags"] as const,
-    postTags: (postId: number) => ["posts", postId, "tags"] as const
+    postTags: ["posts", "tags"] as const,
+    postTagsByPostId: (postId: number) => ["posts", postId, "tags"] as const
 };
 
-export const tagsQueryOptions = queryOptions({
-    queryKey: postQueryKeys.tags,
-    queryFn: getTags
+export const postTagsQueryOptions = queryOptions({
+    queryKey: postQueryKeys.postTags,
+    queryFn: getPostTags
 });
 
-export function postTagsQueryOptions(postId: number) {
+export function postTagsByPostIdQueryOptions(postId: number) {
     return queryOptions({
-        queryKey: postQueryKeys.postTags(postId),
-        queryFn: () => getPostTags(postId)
+        queryKey: postQueryKeys.postTagsByPostId(postId),
+        queryFn: () => getPostTagsByPostId(postId)
     });
 }
 
-export const createTagMutationOptions = mutationOptions({
-    mutationFn: createTag
+export const createPostTagMutationOptions = mutationOptions({
+    mutationFn: createPostTag
 });
 
 export const addPostTagMutationOptions = mutationOptions({
@@ -33,6 +33,6 @@ export const addPostTagMutationOptions = mutationOptions({
 
 function addPostTagByVariables(variables: AddPostTagMutationVariables) {
     return addPostTag(variables.postId, {
-        tagId: variables.tagId
+        postTagId: variables.postTagId
     });
 }

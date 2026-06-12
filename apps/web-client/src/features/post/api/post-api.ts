@@ -1,28 +1,28 @@
 import {
     AddPostTagResponseSchema,
-    CreateTagResponseSchema,
-    TagListResponseSchema,
+    CreatePostTagResponseSchema,
+    PostTagListResponseSchema,
     type AddPostTagRequest,
     type AddPostTagResponse,
-    type CreateTagRequest,
-    type CreateTagResponse,
-    type TagResponse
+    type CreatePostTagRequest,
+    type CreatePostTagResponse,
+    type PostTagResponse
 } from "@nmm/shared";
 import { requestApiData } from "@/shared/api/http-client";
 
-export function getTags(): Promise<TagResponse[]> {
-    return requestApiData("tags", TagListResponseSchema);
+export function getPostTags(): Promise<PostTagResponse[]> {
+    return requestApiData("posts/tags", PostTagListResponseSchema);
 }
 
-export function createTag(request: CreateTagRequest): Promise<CreateTagResponse> {
-    return requestApiData("tags", CreateTagResponseSchema, {
+export function createPostTag(request: CreatePostTagRequest): Promise<CreatePostTagResponse> {
+    return requestApiData("posts/tags", CreatePostTagResponseSchema, {
         method: "post",
         json: request
     });
 }
 
-export function getPostTags(postId: number): Promise<TagResponse[]> {
-    return requestApiData(`posts/${postId}/tags`, TagListResponseSchema);
+export function getPostTagsByPostId(postId: number): Promise<PostTagResponse[]> {
+    return requestApiData(`posts/${postId}/tags`, PostTagListResponseSchema);
 }
 
 export function addPostTag(postId: number, request: AddPostTagRequest): Promise<AddPostTagResponse> {

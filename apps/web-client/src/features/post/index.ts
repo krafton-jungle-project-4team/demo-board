@@ -1,8 +1,8 @@
 export {
     addPostTagMutationOptions,
-    createTagMutationOptions,
+    createPostTagMutationOptions,
     postQueryKeys,
-    postTagsQueryOptions,
-    tagsQueryOptions
+    postTagsByPostIdQueryOptions,
+    postTagsQueryOptions
 } from "./api/post-queries";
-export { TagBadge, type TagBadgeProps } from "./ui/tag-badge";
+export { PostTagBadge, type PostTagBadgeProps } from "./ui/post-tag-badge";

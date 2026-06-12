@@ -1,70 +1,118 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import type { AddPostTagRequest, AddPostTagResponse } from "@nmm/shared";
+import {
+    CreatePostTagResponseSchema,
+    type AddPostTagRequest,
+    type AddPostTagResponse,
+    type CreatePostTagRequest,
+    type CreatePostTagResponse
+} from "@nmm/shared";
 import { Repository } from "typeorm";
-import { PostTagEntity, TagEntity } from "../database";
-import { createTagNotFoundError } from "../post.errors";
+import { PostTagAssignmentEntity, PostTagEntity } from "../database";
+import { createPostTagNotFoundError } from "../post.errors";
 import { isUniqueConstraintError } from "./query-error";
 
 @Injectable()
 export class PostTagCommandService {
     constructor(
         @InjectRepository(PostTagEntity) private readonly postTags: Repository<PostTagEntity>,
-        @InjectRepository(TagEntity) private readonly tags: Repository<TagEntity>
+        @InjectRepository(PostTagAssignmentEntity)
+        private readonly postTagAssignments: Repository<PostTagAssignmentEntity>
     ) {}
 
-    async addPostTag(postId: number, request: AddPostTagRequest): Promise<AddPostTagResponse> {
-        await this.assertTagExists(request.tagId);
-        // TODO: 게시글 도메인이 추가되면 postId 존재 여부를 검증한다.
-        // TODO: 마이그레이션 정책이 정해지면 post_tags.tag_id FK를 추가한다.
-        const existingPostTag = await this.findPostTag(postId, request.tagId);
+    async createPostTag(request: CreatePostTagRequest): Promise<CreatePostTagResponse> {
+        const normalizedName = PostTagEntity.normalizeName(request.name);
+        const existingPostTag = await this.findPostTagByNormalizedName(normalizedName);
 
         if (existingPostTag) {
-            return existingPostTag.toAddPostTagResponse();
+            return this.toCreatePostTagResponse(existingPostTag);
         }
 
         try {
-            const postTag = await this.postTags.save(
-                PostTagEntity.from({
-                    postId,
-                    tagId: request.tagId
-                })
-            );
+            const postTag = await this.postTags.save(PostTagEntity.fromName(request.name));
 
-            return postTag.toAddPostTagResponse();
+            return this.toCreatePostTagResponse(postTag);
         } catch (error) {
             if (!isUniqueConstraintError(error)) {
                 throw error;
             }
 
-            const postTag = await this.findPostTag(postId, request.tagId);
+            const postTag = await this.findPostTagByNormalizedName(normalizedName);
 
             if (!postTag) {
                 throw error;
             }
 
-            return postTag.toAddPostTagResponse();
+            return this.toCreatePostTagResponse(postTag);
         }
     }
 
-    private async assertTagExists(tagId: number) {
-        const tag = await this.tags.findOne({
+    async addPostTag(postId: number, request: AddPostTagRequest): Promise<AddPostTagResponse> {
+        await this.assertPostTagExists(request.postTagId);
+        // TODO: 게시글 도메인이 추가되면 postId 존재 여부를 검증한다.
+        // TODO: 마이그레이션 정책이 정해지면 post_tag_assignments.post_tag_id FK를 추가한다.
+        const existingAssignment = await this.findPostTagAssignment(postId, request.postTagId);
+
+        if (existingAssignment) {
+            return existingAssignment.toAddPostTagResponse();
+        }
+
+        try {
+            const assignment = await this.postTagAssignments.save(
+                PostTagAssignmentEntity.from({
+                    postId,
+                    postTagId: request.postTagId
+                })
+            );
+
+            return assignment.toAddPostTagResponse();
+        } catch (error) {
+            if (!isUniqueConstraintError(error)) {
+                throw error;
+            }
+
+            const assignment = await this.findPostTagAssignment(postId, request.postTagId);
+
+            if (!assignment) {
+                throw error;
+            }
+
+            return assignment.toAddPostTagResponse();
+        }
+    }
+
+    private async assertPostTagExists(postTagId: number) {
+        const postTag = await this.postTags.findOne({
             where: {
-                id: tagId
+                id: postTagId
             }
         });
 
-        if (!tag) {
-            throw createTagNotFoundError();
+        if (!postTag) {
+            throw createPostTagNotFoundError();
         }
     }
 
-    private findPostTag(postId: number, tagId: number) {
+    private findPostTagByNormalizedName(normalizedName: string) {
         return this.postTags.findOne({
             where: {
-                postId,
-                tagId
+                normalizedName
             }
+        });
+    }
+
+    private findPostTagAssignment(postId: number, postTagId: number) {
+        return this.postTagAssignments.findOne({
+            where: {
+                postId,
+                postTagId
+            }
+        });
+    }
+
+    private toCreatePostTagResponse(postTag: PostTagEntity): CreatePostTagResponse {
+        return CreatePostTagResponseSchema.parse({
+            id: Number(postTag.id)
         });
     }
 }

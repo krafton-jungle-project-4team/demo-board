@@ -1,23 +1,34 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import type { TagResponse } from "@nmm/shared";
+import type { PostTagResponse } from "@nmm/shared";
 import { Repository } from "typeorm";
-import { PostTagEntity, TagEntity } from "../database";
+import { PostTagAssignmentEntity, PostTagEntity } from "../database";
 
 @Injectable()
 export class PostTagQueryService {
-    constructor(@InjectRepository(TagEntity) private readonly tags: Repository<TagEntity>) {}
+    constructor(@InjectRepository(PostTagEntity) private readonly postTags: Repository<PostTagEntity>) {}
 
-    async getPostTags(postId: number): Promise<TagResponse[]> {
+    async getPostTags(): Promise<PostTagResponse[]> {
+        const postTags = await this.postTags.find({
+            order: {
+                normalizedName: "ASC",
+                id: "ASC"
+            }
+        });
+
+        return postTags.map((postTag) => postTag.toPostTagResponse());
+    }
+
+    async getPostTagsByPostId(postId: number): Promise<PostTagResponse[]> {
         // TODO: 게시글 도메인이 추가되면 postId 존재 여부를 검증한다.
-        const tags = await this.tags
-            .createQueryBuilder("tag")
-            .innerJoin(PostTagEntity, "postTag", "postTag.tag_id = tag.id")
-            .where("postTag.post_id = :postId", { postId })
-            .orderBy("tag.normalized_name", "ASC")
-            .addOrderBy("tag.id", "ASC")
+        const postTags = await this.postTags
+            .createQueryBuilder("postTag")
+            .innerJoin(PostTagAssignmentEntity, "assignment", "assignment.post_tag_id = postTag.id")
+            .where("assignment.post_id = :postId", { postId })
+            .orderBy("postTag.normalized_name", "ASC")
+            .addOrderBy("postTag.id", "ASC")
             .getMany();
 
-        return tags.map((tag) => tag.toTagResponse());
+        return postTags.map((postTag) => postTag.toPostTagResponse());
     }
 }

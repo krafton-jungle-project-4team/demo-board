@@ -1,30 +1,30 @@
 import { z } from "zod";
 
-export const TagIdSchema = z.number().int().positive();
-export const TagNameSchema = z.string().trim().min(1).max(30);
+export const PostTagIdSchema = z.number().int().positive();
+export const PostTagNameSchema = z.string().trim().min(1).max(30);
 
-export const TagResponseSchema = z.object({
-    id: TagIdSchema,
-    name: TagNameSchema
+export const PostTagResponseSchema = z.object({
+    id: PostTagIdSchema,
+    name: PostTagNameSchema
 });
 
-export type TagResponse = z.infer<typeof TagResponseSchema>;
+export type PostTagResponse = z.infer<typeof PostTagResponseSchema>;
 
-export const TagListResponseSchema = z.array(TagResponseSchema);
+export const PostTagListResponseSchema = z.array(PostTagResponseSchema);
 
-export type TagListResponse = z.infer<typeof TagListResponseSchema>;
+export type PostTagListResponse = z.infer<typeof PostTagListResponseSchema>;
 
-export const CreateTagRequestSchema = z.object({
-    name: TagNameSchema
+export const CreatePostTagRequestSchema = z.object({
+    name: PostTagNameSchema
 });
 
-export type CreateTagRequest = z.infer<typeof CreateTagRequestSchema>;
+export type CreatePostTagRequest = z.infer<typeof CreatePostTagRequestSchema>;
 
-export const CreateTagResponseSchema = z.object({
-    id: TagIdSchema
+export const CreatePostTagResponseSchema = z.object({
+    id: PostTagIdSchema
 });
 
-export type CreateTagResponse = z.infer<typeof CreateTagResponseSchema>;
+export type CreatePostTagResponse = z.infer<typeof CreatePostTagResponseSchema>;
 
 export const PostIdParamsSchema = z.object({
     postId: z.coerce.number().int().positive()
@@ -33,7 +33,7 @@ export const PostIdParamsSchema = z.object({
 export type PostIdParams = z.infer<typeof PostIdParamsSchema>;
 
 export const AddPostTagRequestSchema = z.object({
-    tagId: TagIdSchema
+    postTagId: PostTagIdSchema
 });
 
 export type AddPostTagRequest = z.infer<typeof AddPostTagRequestSchema>;
@@ -41,7 +41,7 @@ export type AddPostTagRequest = z.infer<typeof AddPostTagRequestSchema>;
 export const AddPostTagResponseSchema = z.object({
     id: z.number().int().positive(),
     postId: z.number().int().positive(),
-    tagId: TagIdSchema
+    postTagId: PostTagIdSchema
 });
 
 export type AddPostTagResponse = z.infer<typeof AddPostTagResponseSchema>;
