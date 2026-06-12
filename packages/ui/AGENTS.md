@@ -9,6 +9,7 @@
 
 - React primitive component.
 - shadcn/Radix/lucide/cva/clsx/tailwind-merge 유틸.
+- `@base-ui/react`는 공식 shadcn Combobox 구현을 따르기 위한 예외로 허용한다.
 - `#lib/*` 같은 package 내부 import.
 
 ## 금지

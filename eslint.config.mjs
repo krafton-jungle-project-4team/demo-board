@@ -21,7 +21,9 @@ export default [
             ".codex/**",
             "**/dist/**",
             "apps/web-client/src/routeTree.gen.ts",
-            "apps/web-client/src/shared/api/generated/**"
+            "apps/web-client/src/shared/api/generated/**",
+            "packages/ui/src/components/**",
+            "packages/ui/src/hooks/use-mobile.ts"
         ]
     },
 
