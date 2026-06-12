@@ -4,6 +4,7 @@ import { DatabaseModule } from "./infra/database";
 import { getRequestId } from "./infra/http";
 import { ExampleModule } from "./features/example";
 import { HealthModule } from "./features/health";
+import { PostQueryModule } from "./features/post-query";
 
 @Module({
     imports: [
@@ -21,6 +22,7 @@ import { HealthModule } from "./features/health";
         }),
         DatabaseModule,
         ExampleModule,
+        PostQueryModule,
         HealthModule
     ]
 })
