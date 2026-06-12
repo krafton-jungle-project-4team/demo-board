@@ -37,6 +37,8 @@
 
 ## 스킬
 
+- shadcn 공식 예시의 import/path는 이 앱 구조에 맞게 `@nmm/ui/components`로 해석한다.
+- `shadcn` skill과 충돌하면 이 파일의 앱 경계, import, UI, 검증 규칙을 우선한다.
 - React/UI 코드는 `toss-frontend-fundamentals`, `vercel-react-best-practices`를 적용한다.
 - Component API 설계에는 `vercel-composition-patterns`를 적용한다.
 - UX/accessibility review에는 `web-design-guidelines`를 적용한다.
