@@ -4,6 +4,6 @@ export type DatabaseEnv = {
     username: string;
     password: string;
     database: string;
+    synchronize: boolean;
     logging: boolean;
-    manualInitialization: boolean;
 };

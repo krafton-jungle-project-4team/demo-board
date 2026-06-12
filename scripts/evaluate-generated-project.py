@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""Score a generated starter project against the guide rubric.
+"""Score this template project with static structure checks.
 
-This is a static helper. Runtime checks such as npm run verify, API curls, and
-two-run stability still need to be recorded in docs/project-generator-guide.
+This helper does not replace npm run verify or runtime smoke checks.
 """
 
 from __future__ import annotations
@@ -136,8 +135,12 @@ BASE_CHECKS: list[Check] = [
     ("workspace packages/shared", 2, dir_exists("packages/shared")),
     ("workspace packages/ui", 2, dir_exists("packages/ui")),
     ("docs/ai exists", 1, dir_exists("docs/ai")),
-    ("docs/generation exists", 1, dir_exists("docs/generation")),
     (".codex/skills exists", 1, dir_exists(".codex/skills")),
+    ("root AGENTS", 2, file_exists("AGENTS.md")),
+    ("web AGENTS", 2, file_exists("apps/web-client/AGENTS.md")),
+    ("api AGENTS", 2, file_exists("apps/api-server/AGENTS.md")),
+    ("shared AGENTS", 2, file_exists("packages/shared/AGENTS.md")),
+    ("ui AGENTS", 2, file_exists("packages/ui/AGENTS.md")),
     ("root verify script", 3, package_has_script("package.json", "verify")),
     ("root dev:api script", 2, package_has_script("package.json", "dev:api")),
     ("root dev:db script", 2, package_has_script("package.json", "dev:db")),
@@ -147,33 +150,24 @@ BASE_CHECKS: list[Check] = [
     ("compose file", 2, file_exists("compose.yml")),
     ("api env example", 1, file_exists("apps/api-server/.env.example")),
     ("web env example", 1, file_exists("apps/web-client/.env.example")),
-    ("api init sql", 3, file_exists("apps/api-server/database/init-db.sql")),
-    ("api dummy sql", 2, file_exists("apps/api-server/database/dummy-data.sql")),
-    ("typeorm synchronize false", 4, any_text_contains("apps/api-server/src/**/*.ts", "synchronize: false")),
     ("api core dir", 1, dir_exists("apps/api-server/src/core")),
     ("api infra env", 1, dir_exists("apps/api-server/src/infra/env")),
     ("api infra http", 2, dir_exists("apps/api-server/src/infra/http")),
     ("api infra database", 1, dir_exists("apps/api-server/src/infra/database")),
-    ("auth feature", 3, dir_exists("apps/api-server/src/features/auth")),
-    ("board feature", 3, dir_exists("apps/api-server/src/features/board")),
+    ("api example feature", 3, dir_exists("apps/api-server/src/features/example")),
+    ("api example controller", 2, file_exists("apps/api-server/src/features/example/controller/example.controller.ts")),
+    ("api example service", 2, file_exists("apps/api-server/src/features/example/service/example-query.service.ts")),
+    ("api example entity", 3, file_exists("apps/api-server/src/features/example/database/example-item.entity.ts")),
+    (
+        "api example repository backed",
+        4,
+        any_text_contains("apps/api-server/src/features/example/service/**/*.ts", "InjectRepository"),
+    ),
     ("health feature", 1, dir_exists("apps/api-server/src/features/health")),
-    ("auth query service", 2, file_exists("apps/api-server/src/features/auth/service/auth-query.service.ts")),
-    ("auth command service", 2, file_exists("apps/api-server/src/features/auth/service/auth-command.service.ts")),
-    ("auth repository backed", 3, any_text_contains("apps/api-server/src/features/auth/service/**/*.ts", "InjectRepository")),
-    ("board repository backed", 5, any_text_contains("apps/api-server/src/features/board/service/**/*.ts", "InjectRepository")),
-    ("board transaction/data source", 2, any_text_contains("apps/api-server/src/features/board/service/**/*.ts", "DataSource")),
-    ("no board store file", 3, no_path_matches("apps/api-server/src/features/board/service/*store*")),
-    ("no in-memory board arrays", 3, no_text_contains("apps/api-server/src/features/board/service/**/*.ts", "Post[] =")),
-    ("no in-memory auth users array", 2, no_text_contains("apps/api-server/src/features/auth/service/**/*.ts", "UserRecord[]")),
-    ("no in-memory auth users map", 2, no_text_contains("apps/api-server/src/features/auth/service/**/*.ts", "new Map")),
-    ("auth claims", 4, any_text_contains("apps/api-server/src/features/auth/**/*.ts", "AuthClaims")),
-    ("current auth decorator", 2, any_text_contains("apps/api-server/src/features/auth/**/*.ts", "CurrentAuth")),
-    ("active account guard", 2, any_text_contains("apps/api-server/src/features/auth/**/*.ts", "ActiveAccountGuard")),
     ("api response requestId", 3, any_text_contains("apps/api-server/src/infra/http/**/*.ts", "requestId")),
     ("domain error", 2, any_text_contains("apps/api-server/src/**/*.ts", "DomainError")),
     ("shared api contract", 3, file_exists("packages/shared/src/contracts/api.contract.ts")),
-    ("shared auth contract", 3, file_exists("packages/shared/src/contracts/auth.contract.ts")),
-    ("shared post contract", 3, file_exists("packages/shared/src/contracts/post.contract.ts")),
+    ("shared example contract", 3, file_exists("packages/shared/src/contracts/example.contract.ts")),
     ("shared zod dependency", 2, package_has_dependency("packages/shared/package.json", "zod")),
     ("shared tsup dependency", 1, package_has_dependency("packages/shared/package.json", "tsup")),
     ("ui components export", 2, file_exists("packages/ui/src/components.ts")),
@@ -187,8 +181,11 @@ BASE_CHECKS: list[Check] = [
     ("web root ui", 1, dir_exists("apps/web-client/src/app/root")),
     ("web routes", 2, dir_exists("apps/web-client/src/routes")),
     ("web pages", 2, dir_exists("apps/web-client/src/pages")),
-    ("web features auth", 2, dir_exists("apps/web-client/src/features/auth")),
-    ("web features posts", 2, dir_exists("apps/web-client/src/features/posts")),
+    ("web example feature api", 2, dir_exists("apps/web-client/src/features/example/api")),
+    ("web example feature model", 1, dir_exists("apps/web-client/src/features/example/model")),
+    ("web example feature hooks", 1, dir_exists("apps/web-client/src/features/example/hooks")),
+    ("web example feature ui", 1, dir_exists("apps/web-client/src/features/example/ui")),
+    ("web example feature lib", 1, dir_exists("apps/web-client/src/features/example/lib")),
     ("web typed http client", 3, file_exists("apps/web-client/src/shared/api/http-client.ts")),
     ("web client env", 1, file_exists("apps/web-client/src/shared/env/client-env.ts")),
     ("tanstack router dependency", 2, package_has_dependency("apps/web-client/package.json", "@tanstack/react-router")),
@@ -199,53 +196,18 @@ BASE_CHECKS: list[Check] = [
     ("api typeorm dependency", 2, package_has_dependency("apps/api-server/package.json", "typeorm")),
     ("api postgres dependency", 1, package_has_dependency("apps/api-server/package.json", "pg")),
     ("api pino dependency", 1, package_has_dependency("apps/api-server/package.json", "nestjs-pino")),
-    ("generation commands log", 2, file_exists("docs/generation/commands.md")),
-    ("generation result log", 2, file_exists("docs/generation/result.md")),
 ]
 
 
 HARNESS_CHECKS: list[Check] = [
-    ("root AGENTS", 2, file_exists("AGENTS.md")),
-    ("web AGENTS", 2, file_exists("apps/web-client/AGENTS.md")),
-    ("api AGENTS", 2, file_exists("apps/api-server/AGENTS.md")),
-    ("shared AGENTS", 2, file_exists("packages/shared/AGENTS.md")),
-    ("ui AGENTS", 2, file_exists("packages/ui/AGENTS.md")),
-    ("docs AGENTS", 1, file_exists("docs/AGENTS.md")),
-    ("skills AGENTS", 1, file_exists(".codex/skills/AGENTS.md")),
-    ("prompt log", 2, file_exists("docs/generation/prompt.md")),
-    ("skill usage log", 4, file_exists("docs/generation/skill-usage.md")),
-    ("feature prompt log", 3, file_exists("docs/generation/feature-prompt.md")),
-    ("feature prompt is simple", 5, feature_prompt_is_simple("docs/generation/feature-prompt.md")),
-    ("feature task result", 4, file_exists("docs/generation/feature-task-result.md")),
-    ("feature task verify recorded", 2, file_text_contains("docs/generation/feature-task-result.md", "npm run verify")),
-    ("feature task is implemented", 3, file_text_not_contains("docs/generation/feature-task-result.md", "not implemented")),
-    ("toss skill usage recorded", 2, text_contains("docs/generation/skill-usage.md", "toss-frontend-fundamentals")),
-    ("vercel react skill usage recorded", 2, text_contains("docs/generation/skill-usage.md", "vercel-react-best-practices")),
-    ("writing skill usage recorded", 1, text_contains("docs/generation/skill-usage.md", "writing-guidelines")),
-    ("React Doctor recorded", 2, text_contains("docs/generation/skill-usage.md", "React Doctor")),
-    ("bookmarks shared contract", 3, any_text_contains("packages/shared/src/contracts/**/*.ts", "Bookmark")),
-    ("bookmarks SQL", 3, any_text_contains("apps/api-server/database/*.sql", "bookmarks")),
-    ("bookmarks API feature", 4, dir_exists("apps/api-server/src/features/bookmarks")),
-    ("bookmarks API repository backed", 4, any_text_contains("apps/api-server/src/features/bookmarks/**/*.ts", "InjectRepository")),
-    ("bookmarks Web feature", 4, dir_exists("apps/web-client/src/features/bookmarks")),
-    ("bookmarks Web route/page", 3, any_text_contains("apps/web-client/src/**/*.tsx", "Bookmark")),
+    ("example model README", 1, file_exists("apps/web-client/src/features/example/model/README.md")),
+    ("example hooks README", 1, file_exists("apps/web-client/src/features/example/hooks/README.md")),
+    ("example ui README", 1, file_exists("apps/web-client/src/features/example/ui/README.md")),
+    ("example lib README", 1, file_exists("apps/web-client/src/features/example/lib/README.md")),
 ]
 
 
-GENERATION_HARNESS_CHECKS: list[Check] = [
-    ("root AGENTS", 2, file_exists("AGENTS.md")),
-    ("web AGENTS", 2, file_exists("apps/web-client/AGENTS.md")),
-    ("api AGENTS", 2, file_exists("apps/api-server/AGENTS.md")),
-    ("shared AGENTS", 2, file_exists("packages/shared/AGENTS.md")),
-    ("ui AGENTS", 2, file_exists("packages/ui/AGENTS.md")),
-    ("docs AGENTS", 1, file_exists("docs/AGENTS.md")),
-    ("skills AGENTS", 1, file_exists(".codex/skills/AGENTS.md")),
-    ("prompt log", 2, file_exists("docs/generation/prompt.md")),
-    ("no bookmarks shared contract yet", 2, no_text_contains("packages/shared/src/contracts/**/*.ts", "Bookmark")),
-    ("no bookmarks SQL yet", 2, no_text_contains("apps/api-server/database/*.sql", "bookmarks")),
-    ("no bookmarks API feature yet", 2, no_path_matches("apps/api-server/src/features/bookmarks")),
-    ("no bookmarks Web feature yet", 2, no_path_matches("apps/web-client/src/features/bookmarks")),
-]
+GENERATION_HARNESS_CHECKS: list[Check] = []
 
 
 def main() -> int:
@@ -292,11 +254,6 @@ def main() -> int:
     print("Runtime evidence still required:")
     print("- npm run verify")
     print("- optional API/Web smoke checks")
-    print("- second generation stability comparison")
-    if args.generation_harness:
-        print("- feature task must still be run with a separate simple prompt")
-    if args.harness:
-        print("- feature task behavior smoke checks")
 
     return 0
 

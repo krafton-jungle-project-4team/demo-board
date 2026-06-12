@@ -5,11 +5,10 @@ export function createTypeOrmOptions(): TypeOrmModuleOptions {
     const { database } = serverEnv;
 
     return {
-        type: "postgres" as const,
+        type: "postgres",
         autoLoadEntities: true,
-        synchronize: false,
+        synchronize: database.synchronize,
         logging: database.logging,
-        manualInitialization: database.manualInitialization,
         host: database.host,
         port: database.port,
         username: database.username,

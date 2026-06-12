@@ -8,12 +8,21 @@
 ## 프로젝트 표준
 
 - 변경 후 `npm run verify`로 lint, format check, typecheck, build를 함께 확인한다.
+- 개별 확인은 `npm run lint`, `npm run format:check`, `npm run typecheck`, `npm run build`를 쓴다.
 - 개발 서버는 루트 npm script로만 실행한다. API 서버는 Docker Compose를 감싼 `npm run dev` 또는 `npm run dev:api`만 사용한다.
 - API 서버를 직접 `nest start`, workspace `start:dev`, 임의 환경 변수 조합으로 실행하지 않는다. 로컬 환경 의존이 실행마다 달라지는 것을 막기 위함이다.
-- 모듈 경계는 `docs/project-standards.md`와 `eslint.config.mjs`를 따른다.
-- `apps/web-client`는 `@nmm/shared`만 workspace import로 사용하고 API는 HTTP로 호출한다.
+- 사용자가 실행하는 작업은 루트 `package.json` script로 제공한다.
+- workspace script는 루트 script가 호출하는 내부 도구 명령으로만 둔다.
+- 모듈 경계는 `eslint.config.mjs`와 앱별 `AGENTS.md`를 따른다.
+- `apps/*`, `packages/*`의 TS/TSX 파일과 `src` 하위 폴더명은 kebab-case다.
+- `*.contract.ts`, `*.config.ts` 같은 중간 확장자는 허용한다.
+- TanStack Router 라우트 파일은 프레임워크/생성기 규칙을 따른다.
+- 앱 내부 absolute import는 `@/*`를 쓴다.
+- workspace 간 import는 패키지 이름으로 한다.
+- `apps/web-client`는 `@nmm/shared`, `@nmm/ui`만 workspace import로 사용하고 API는 HTTP로 호출한다.
 - `apps/api-server`는 `@nmm/shared`만 workspace import로 사용하고 web 코드를 import하지 않는다.
 - `packages/shared`는 앱, React, Nest, Node 런타임, DB를 import하지 않는다.
+- 공통 strict/base TypeScript 옵션은 `tsconfig.base.json`에 둔다.
 
 ## UI 작업 규칙
 
@@ -21,13 +30,4 @@
 - 대체 가능한 primitive가 있으면 raw HTML 대신 `@nmm/ui/components`를 사용한다.
 - 필요한 primitive가 없고 재사용 가치가 있으면 feature/page에 임시 조합을 만들기 전에 `packages/ui`에 추가할지 먼저 검토한다.
 - `section`, `main`, `form`, `h1`, `p`, `div` 같은 의미/레이아웃 태그는 shadcn 대체 가능성을 확인한 뒤에만 직접 사용한다.
-
-## AI 작업 기록
-
-- AI가 수행한 구체적이고 의미 있는 작업은 `docs/ai/` 아래에 기록한다.
-- 기록은 채팅 없이 이해될 만큼 충분하되, 같은 의미를 담는 한 최대한 간결하게 쓴다.
-- 하나의 큰 작업과 그 메모 작성은 같은 작업 단위로 묶고, 가능하면 같은 커밋에 포함한다.
-- 각 기록은 이유, 작업(관련 커밋), 결과(검증/후속 작업)를 포함한다.
-- 메모가 포함된 현재 커밋을 가리킬 때는 해시 대신 `이 메모가 포함된 커밋`으로 적고, 이미 존재하는 관련 커밋만 해시로 적는다.
-- 파일명은 순번으로 시작한다. 예: `docs/ai/001_example-task.md`.
-- 날짜는 파일명 대신 문서 내부에 적는다.
+- 앱별 CSS 파일, 직접 CSS selector, 직접 theme token 추가/수정은 피한다.

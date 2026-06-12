@@ -23,6 +23,10 @@
 - Public primitive는 `src/components.ts`에서 export한다.
 - `cn`은 `src/lib/utils.ts`에 둔다.
 - 가능한 경우 shadcn-compatible component API를 유지한다.
+- shadcn/ui CLI 대상은 `packages/ui`다.
+- `components.json`은 shadcn CLI 설정으로 유지한다.
+- 색상 변경은 shadcn `tailwind.baseColor` 범주 안에서 고른다.
+- `src/styles/globals.css`는 shadcn 기본 scaffold 중심으로 유지한다.
 
 ## 스킬
 
