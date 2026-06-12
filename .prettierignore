@@ -7,5 +7,9 @@ apps/web-client/src/routeTree.gen.ts
 packages/ui/src/components/*
 .codex
 
+# shadcn CLI 생성물은 받은 그대로 둔다.
+packages/ui/src/components/**
+packages/ui/src/hooks/use-mobile.ts
+
 # AI 작업 기록에는 원문 보존이 필요한 문서가 들어갈 수 있다.
 docs/ai/*
