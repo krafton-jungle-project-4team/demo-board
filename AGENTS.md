@@ -1,4 +1,4 @@
-# Repository Guidelines
+# 저장소 지침
 
 ## 문서 작성
 

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Vercel Optimize"
-  short_description: "Audit Vercel cost and performance"
-  default_prompt: "Use $vercel-optimize to audit this deployed Vercel project for cost and performance improvements."
