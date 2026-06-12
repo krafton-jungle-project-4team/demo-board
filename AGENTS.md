@@ -26,6 +26,8 @@
 
 ## UI 작업 규칙
 
+- 설치된 `shadcn` skill은 공식 컴포넌트 예시, CLI, registry, 조합 패턴 참고용으로 사용한다.
+- `shadcn` skill 내용이 이 저장소의 `AGENTS.md`, 하위 `AGENTS.md`, eslint, TypeScript, npm script 규칙과 충돌하면 저장소 규칙을 우선한다.
 - 작은 UI나 HTML tag를 직접 작성하기 전에 `@nmm/ui/components` 또는 shadcn/ui primitive로 대체 가능한지 먼저 확인한다.
 - 대체 가능한 primitive가 있으면 raw HTML 대신 `@nmm/ui/components`를 사용한다.
 - 필요한 primitive가 없고 재사용 가치가 있으면 feature/page에 임시 조합을 만들기 전에 `packages/ui`에 추가할지 먼저 검토한다.
