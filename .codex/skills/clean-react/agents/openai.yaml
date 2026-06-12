@@ -1,0 +1,4 @@
+interface:
+  display_name: "Clean React"
+  short_description: "Improve only changed React code"
+  default_prompt: "Create a goal and use $clean-react to improve the current branch's changed React code from its merge-base until checks pass."
