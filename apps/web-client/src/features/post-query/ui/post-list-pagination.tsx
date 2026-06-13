@@ -173,7 +173,8 @@ function createPageNumber(_: unknown, index: number) {
 function createPostListPageHref(query: PostListQuery, page: number) {
     const searchParams = new URLSearchParams({
         page: String(page),
-        pageSize: String(query.pageSize)
+        pageSize: String(query.pageSize),
+        searchScope: query.searchScope
     });
 
     if (query.q) {

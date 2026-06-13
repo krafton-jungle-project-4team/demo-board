@@ -8,7 +8,8 @@ export function getPostList(query: PostListQuery): Promise<PostListResponse> {
 function createPostListSearchParams(query: PostListQuery) {
     const searchParams = new URLSearchParams({
         page: String(query.page),
-        pageSize: String(query.pageSize)
+        pageSize: String(query.pageSize),
+        searchScope: query.searchScope
     });
 
     if (query.q) {
