@@ -2,9 +2,12 @@ import { Module } from "@nestjs/common";
 import { LoggerModule, nativeLoggerOptions } from "nestjs-pino";
 import { DatabaseModule } from "./infra/database";
 import { getRequestId } from "./infra/http";
+import { AuthModule } from "./features/auth";
 import { ExampleModule } from "./features/example";
 import { HealthModule } from "./features/health";
 import { PostModule } from "./features/post";
+import { PostQueryModule } from "./features/post-query";
+import { PostsModule } from "./features/posts";
 
 @Module({
     imports: [
@@ -21,9 +24,12 @@ import { PostModule } from "./features/post";
             }
         }),
         DatabaseModule,
+        AuthModule,
         ExampleModule,
+        PostQueryModule,
         HealthModule,
-        PostModule
+        PostModule,
+        PostsModule
     ]
 })
 export class AppModule {}
