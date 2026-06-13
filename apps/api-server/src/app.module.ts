@@ -3,6 +3,7 @@ import { LoggerModule, nativeLoggerOptions } from "nestjs-pino";
 import { DatabaseModule } from "./infra/database";
 import { getRequestId } from "./infra/http";
 import { AuthModule } from "./features/auth";
+import { CommentModule } from "./features/comment";
 import { ExampleModule } from "./features/example";
 import { HealthModule } from "./features/health";
 import { PostModule } from "./features/post";
@@ -25,6 +26,7 @@ import { PostsModule } from "./features/posts";
         }),
         DatabaseModule,
         AuthModule,
+        CommentModule,
         ExampleModule,
         PostQueryModule,
         HealthModule,

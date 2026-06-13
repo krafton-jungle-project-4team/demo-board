@@ -45,6 +45,20 @@ export function Header() {
                             게시글
                         </Link>
                     </Button>
+                    <Button asChild variant="ghost" size="sm">
+                        <Link
+                            to="/comments"
+                            search={{
+                                postId: 1,
+                                page: 1
+                            }}
+                            activeProps={{
+                                className: "bg-accent text-accent-foreground"
+                            }}
+                        >
+                            댓글
+                        </Link>
+                    </Button>
                     {currentUser ? (
                         <>
                             <span className="px-2 text-sm text-muted-foreground">
