@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { LoggerModule, nativeLoggerOptions } from "nestjs-pino";
 import { DatabaseModule } from "./infra/database";
 import { getRequestId } from "./infra/http";
+import { AuthModule } from "./features/auth";
 import { ExampleModule } from "./features/example";
 import { HealthModule } from "./features/health";
 import { PostsModule } from "./features/posts";
@@ -21,6 +22,7 @@ import { PostsModule } from "./features/posts";
             }
         }),
         DatabaseModule,
+        AuthModule,
         ExampleModule,
         HealthModule,
         PostsModule
