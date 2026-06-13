@@ -88,21 +88,26 @@ WHERE (
     $1::text IS NULL
     OR (
         $2::text = 'title'
-        AND board_posts.title % $1
+        AND (board_posts.title % $1 OR board_posts.title %> $1)
     )
     OR (
         $2::text = 'content'
-        AND board_posts.content % $1
+        AND (board_posts.content % $1 OR board_posts.content %> $1)
     )
     OR (
         $2::text = 'tag'
-        AND COALESCE(board_post_tag_names.tag_text, '') % $1
+        AND (
+            COALESCE(board_post_tag_names.tag_text, '') % $1
+            OR COALESCE(board_post_tag_names.tag_text, '') %> $1
+        )
     )
     OR (
         $2::text = 'titleContent'
         AND (
             board_posts.title % $1
+            OR board_posts.title %> $1
             OR board_posts.content % $1
+            OR board_posts.content %> $1
         )
     )
 )
@@ -296,12 +301,23 @@ export class BoardQueryService {
             board_posts.updated_at,
             CASE
                 WHEN $1::text IS NULL THEN 0
-                WHEN $2::text = 'title' THEN similarity(board_posts.title, $1)
-                WHEN $2::text = 'content' THEN similarity(board_posts.content, $1)
-                WHEN $2::text = 'tag' THEN similarity(COALESCE(board_post_tag_names.tag_text, ''), $1)
+                WHEN $2::text = 'title' THEN GREATEST(
+                    similarity(board_posts.title, $1),
+                    word_similarity($1, board_posts.title)
+                )
+                WHEN $2::text = 'content' THEN GREATEST(
+                    similarity(board_posts.content, $1),
+                    word_similarity($1, board_posts.content)
+                )
+                WHEN $2::text = 'tag' THEN GREATEST(
+                    similarity(COALESCE(board_post_tag_names.tag_text, ''), $1),
+                    word_similarity($1, COALESCE(board_post_tag_names.tag_text, ''))
+                )
                 WHEN $2::text = 'titleContent' THEN GREATEST(
                     similarity(board_posts.title, $1),
-                    similarity(board_posts.content, $1)
+                    word_similarity($1, board_posts.title),
+                    similarity(board_posts.content, $1),
+                    word_similarity($1, board_posts.content)
                 )
                 ELSE 0
             END AS search_rank
@@ -311,7 +327,7 @@ export class BoardQueryService {
             ON board_post_tag_names.post_id = board_posts.id
         ${boardPostSearchWhereSql}
         ORDER BY
-            CASE WHEN $1::text IS NULL THEN NULL ELSE search_rank END DESC,
+            search_rank DESC,
             board_posts.created_at DESC,
             board_posts.id DESC
         LIMIT $3
