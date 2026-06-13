@@ -18,7 +18,7 @@ export type SignUpInput = z.infer<typeof SignUpInputSchema>;
 
 export async function getCurrentUserOrNull(): Promise<CurrentUserResponse | null> {
     try {
-        return await requestApiData("me", CurrentUserResponseSchema);
+        return await requestApiData("auth/me", CurrentUserResponseSchema);
     } catch (error) {
         if (error instanceof ApiClientError && error.status === 401) {
             return null;

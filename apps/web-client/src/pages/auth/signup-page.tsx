@@ -5,6 +5,7 @@ import { Button } from "@nmm/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components/card";
 import { Field, FieldGroup, FieldLabel } from "@nmm/ui/components/field";
 import { Input } from "@nmm/ui/components/input";
+import { DEFAULT_BOARD_POST_LIST_QUERY } from "@nmm/shared";
 import { useState, type FormEvent } from "react";
 import { SignUpInputSchema, currentUserQueryOptions, signUpWithEmail } from "@/features/auth";
 
@@ -22,7 +23,7 @@ export function SignupPage() {
         await queryClient.invalidateQueries({
             queryKey: currentUserQueryOptions.queryKey
         });
-        await navigate({ to: "/" });
+        await navigate({ to: "/board", search: DEFAULT_BOARD_POST_LIST_QUERY });
     }
 
     function handleSignUpError(error: Error) {
@@ -90,7 +91,7 @@ export function SignupPage() {
                             이미 계정이 있나요?{" "}
                             <Link
                                 className="font-medium text-foreground underline-offset-4 hover:underline"
-                                to="/login"
+                                to="/auth/login"
                             >
                                 로그인
                             </Link>

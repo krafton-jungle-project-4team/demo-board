@@ -7,7 +7,7 @@ import { fromNodeHeaders, toNodeHandler } from "better-auth/node";
 import type { AuthUser } from "@nmm/shared";
 import { DataSource, Repository } from "typeorm";
 import { serverEnv } from "../../../infra/env";
-import { AppUserEntity } from "../database";
+import { AuthUserEntity } from "../database";
 
 type BetterAuthUser = {
     id: string;
@@ -75,7 +75,7 @@ export class AuthService {
 
     constructor(
         @InjectDataSource() dataSource: DataSource,
-        @InjectRepository(AppUserEntity) private readonly appUsers: Repository<AppUserEntity>
+        @InjectRepository(AuthUserEntity) private readonly authUsers: Repository<AuthUserEntity>
     ) {
         this.auth = createAuth(dataSource, this.ensureAppUser.bind(this), this.syncAppUser.bind(this));
         this.handleAuthRequest = toNodeHandler(this.auth);
@@ -102,7 +102,7 @@ export class AuthService {
     }
 
     private async findOrCreateAppUser(user: BetterAuthUser): Promise<AuthUser> {
-        const appUser = await this.findAppUser(user.id);
+        const appUser = await this.findAuthUser(user.id);
 
         if (appUser) {
             return appUser.toAuthUser();
@@ -111,8 +111,8 @@ export class AuthService {
         return this.ensureAppUser(user);
     }
 
-    private async findAppUser(authUserId: string) {
-        return this.appUsers.findOne({
+    private async findAuthUser(authUserId: string) {
+        return this.authUsers.findOne({
             where: {
                 authUserId
             }
@@ -120,14 +120,14 @@ export class AuthService {
     }
 
     private async ensureAppUser(user: BetterAuthUser): Promise<AuthUser> {
-        const existingUser = await this.findAppUser(user.id);
+        const existingUser = await this.findAuthUser(user.id);
 
         if (existingUser) {
             return existingUser.toAuthUser();
         }
 
-        const appUser = await this.appUsers.save(
-            this.appUsers.create({
+        const appUser = await this.authUsers.save(
+            this.authUsers.create({
                 authUserId: user.id,
                 email: user.email,
                 name: user.name
@@ -138,7 +138,7 @@ export class AuthService {
     }
 
     private async syncAppUser(user: BetterAuthUser): Promise<void> {
-        const existingUser = await this.findAppUser(user.id);
+        const existingUser = await this.findAuthUser(user.id);
 
         if (!existingUser) {
             await this.ensureAppUser(user);
@@ -148,6 +148,6 @@ export class AuthService {
         existingUser.email = user.email;
         existingUser.name = user.name;
 
-        await this.appUsers.save(existingUser);
+        await this.authUsers.save(existingUser);
     }
 }
