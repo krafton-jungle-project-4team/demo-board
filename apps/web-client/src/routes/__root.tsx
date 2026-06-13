@@ -2,6 +2,7 @@ import { Outlet, createRootRoute } from "@tanstack/react-router";
 import { QueryErrorResetBoundary, useQueryErrorResetBoundary } from "@tanstack/react-query";
 import { NuqsAdapter } from "nuqs/adapters/tanstack-router";
 import { Suspense } from "react";
+import { Toaster } from "@nmm/ui/components/sonner";
 import { AppErrorBoundary } from "@/app/providers/app-error-boundary";
 import { QueryProvider } from "@/app/providers/query-provider";
 import { Header } from "@/app/root/header";
@@ -27,6 +28,7 @@ function RootLayout() {
                         </QueryErrorResetBoundary>
                     </main>
                 </div>
+                <Toaster />
                 {/* 필요해지면 TanStack Router Devtools를 도입할 수 있지만, 현재는 필요성이 없다. */}
             </NuqsAdapter>
         </QueryProvider>
