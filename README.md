@@ -6,6 +6,7 @@ React, NestJS, shared contract, UI package를 묶은 앱 템플릿이다.
 
 ```sh
 npm install
+npm run db:migrate
 npm run dev
 ```
 
