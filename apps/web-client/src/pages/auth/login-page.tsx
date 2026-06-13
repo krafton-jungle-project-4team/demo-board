@@ -5,6 +5,7 @@ import { Button } from "@nmm/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components/card";
 import { Field, FieldGroup, FieldLabel } from "@nmm/ui/components/field";
 import { Input } from "@nmm/ui/components/input";
+import { DEFAULT_BOARD_POST_LIST_QUERY } from "@nmm/shared";
 import { useState, type FormEvent } from "react";
 import { SignInInputSchema, currentUserQueryOptions, signInWithEmail } from "@/features/auth";
 
@@ -22,7 +23,7 @@ export function LoginPage() {
         await queryClient.invalidateQueries({
             queryKey: currentUserQueryOptions.queryKey
         });
-        await navigate({ to: "/" });
+        await navigate({ to: "/board", search: DEFAULT_BOARD_POST_LIST_QUERY });
     }
 
     function handleSignInError(error: Error) {
@@ -85,7 +86,7 @@ export function LoginPage() {
                             계정이 없나요?{" "}
                             <Link
                                 className="font-medium text-foreground underline-offset-4 hover:underline"
-                                to="/signup"
+                                to="/auth/signup"
                             >
                                 회원가입
                             </Link>

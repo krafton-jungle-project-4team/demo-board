@@ -5,6 +5,5 @@ export type DatabaseEnv = {
     password: string;
     database: string;
     synchronize: boolean;
-    migrationsRun: boolean;
     logging: boolean;
 };

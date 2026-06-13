@@ -28,7 +28,8 @@ services:
         container_name: namanmu-api-server
         command: sh apps/api-server/scripts/dev-entrypoint.sh
         env_file:
-            - apps/api-server/.env
+            - path: apps/api-server/.env
+              required: false
         environment:
             NODE_ENV: ${NODE_ENV:-development}
             PORT: ${PORT:-3000}
@@ -41,7 +42,6 @@ services:
             NMM_DB_PASSWORD: ${NMM_DB_PASSWORD:-change-me}
             NMM_DB_DATABASE: ${NMM_DB_DATABASE:-namanmu}
             NMM_DB_SYNCHRONIZE: ${NMM_DB_SYNCHRONIZE:-false}
-            NMM_DB_MIGRATIONS_RUN: ${NMM_DB_MIGRATIONS_RUN:-true}
             NMM_DB_LOGGING: ${NMM_DB_LOGGING:-false}
         ports:
             - "${PORT:-3000}:${PORT:-3000}"

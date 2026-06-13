@@ -1,5 +1,4 @@
 import type { TypeOrmModuleOptions } from "@nestjs/typeorm";
-import { CreateAuthTables1710000000000, CreateExampleItems1710000000001 } from "../../features/auth/database";
 import { serverEnv } from "../env";
 
 export function createTypeOrmOptions(): TypeOrmModuleOptions {
@@ -9,8 +8,7 @@ export function createTypeOrmOptions(): TypeOrmModuleOptions {
         type: "postgres",
         autoLoadEntities: true,
         synchronize: database.synchronize,
-        migrationsRun: database.migrationsRun,
-        migrations: [CreateAuthTables1710000000000, CreateExampleItems1710000000001],
+        migrationsRun: false,
         logging: database.logging,
         host: database.host,
         port: database.port,

@@ -35,7 +35,6 @@ const ServerEnvSchema = z.object({
     NMM_DB_PASSWORD: RequiredStringSchema,
     NMM_DB_DATABASE: RequiredStringSchema,
     NMM_DB_SYNCHRONIZE: BooleanEnvSchema,
-    NMM_DB_MIGRATIONS_RUN: BooleanEnvSchema,
     NMM_DB_LOGGING: BooleanEnvSchema
 });
 
@@ -59,7 +58,6 @@ function createServerEnv(): ServerEnv {
             password: env.NMM_DB_PASSWORD,
             database: env.NMM_DB_DATABASE,
             synchronize: env.NMM_DB_SYNCHRONIZE,
-            migrationsRun: env.NMM_DB_MIGRATIONS_RUN,
             logging: env.NMM_DB_LOGGING
         }
     };

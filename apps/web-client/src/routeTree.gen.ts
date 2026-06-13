@@ -9,24 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as CommentsRouteImport } from './routes/comments'
-import { Route as SignupRouteImport } from './routes/signup'
-import { Route as LoginRouteImport } from './routes/login'
+import { Route as BoardRouteImport } from './routes/board'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BoardNewRouteImport } from './routes/board.new'
+import { Route as BoardPostIdRouteImport } from './routes/board.$postId'
+import { Route as AuthSignupRouteImport } from './routes/auth.signup'
+import { Route as AuthLoginRouteImport } from './routes/auth.login'
+import { Route as BoardPostIdEditRouteImport } from './routes/board.$postId.edit'
 
-const CommentsRoute = CommentsRouteImport.update({
-  id: '/comments',
-  path: '/comments',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SignupRoute = SignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
+const BoardRoute = BoardRouteImport.update({
+  id: '/board',
+  path: '/board',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -34,62 +27,104 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BoardNewRoute = BoardNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => BoardRoute,
+} as any)
+const BoardPostIdRoute = BoardPostIdRouteImport.update({
+  id: '/$postId',
+  path: '/$postId',
+  getParentRoute: () => BoardRoute,
+} as any)
+const AuthSignupRoute = AuthSignupRouteImport.update({
+  id: '/auth/signup',
+  path: '/auth/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthLoginRoute = AuthLoginRouteImport.update({
+  id: '/auth/login',
+  path: '/auth/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BoardPostIdEditRoute = BoardPostIdEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => BoardPostIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/comments': typeof CommentsRoute
-  '/login': typeof LoginRoute
-  '/signup': typeof SignupRoute
+  '/board': typeof BoardRouteWithChildren
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/signup': typeof AuthSignupRoute
+  '/board/$postId': typeof BoardPostIdRouteWithChildren
+  '/board/new': typeof BoardNewRoute
+  '/board/$postId/edit': typeof BoardPostIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/comments': typeof CommentsRoute
-  '/login': typeof LoginRoute
-  '/signup': typeof SignupRoute
+  '/board': typeof BoardRouteWithChildren
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/signup': typeof AuthSignupRoute
+  '/board/$postId': typeof BoardPostIdRouteWithChildren
+  '/board/new': typeof BoardNewRoute
+  '/board/$postId/edit': typeof BoardPostIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/comments': typeof CommentsRoute
-  '/login': typeof LoginRoute
-  '/signup': typeof SignupRoute
+  '/board': typeof BoardRouteWithChildren
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/signup': typeof AuthSignupRoute
+  '/board/$postId': typeof BoardPostIdRouteWithChildren
+  '/board/new': typeof BoardNewRoute
+  '/board/$postId/edit': typeof BoardPostIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/comments' | '/login' | '/signup'
+  fullPaths:
+    | '/'
+    | '/board'
+    | '/auth/login'
+    | '/auth/signup'
+    | '/board/$postId'
+    | '/board/new'
+    | '/board/$postId/edit'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/comments' | '/login' | '/signup'
-  id: '__root__' | '/' | '/comments' | '/login' | '/signup'
+  to:
+    | '/'
+    | '/board'
+    | '/auth/login'
+    | '/auth/signup'
+    | '/board/$postId'
+    | '/board/new'
+    | '/board/$postId/edit'
+  id:
+    | '__root__'
+    | '/'
+    | '/board'
+    | '/auth/login'
+    | '/auth/signup'
+    | '/board/$postId'
+    | '/board/new'
+    | '/board/$postId/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  CommentsRoute: typeof CommentsRoute
-  LoginRoute: typeof LoginRoute
-  SignupRoute: typeof SignupRoute
+  BoardRoute: typeof BoardRouteWithChildren
+  AuthLoginRoute: typeof AuthLoginRoute
+  AuthSignupRoute: typeof AuthSignupRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/comments': {
-      id: '/comments'
-      path: '/comments'
-      fullPath: '/comments'
-      preLoaderRoute: typeof CommentsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/signup': {
-      id: '/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof SignupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
+    '/board': {
+      id: '/board'
+      path: '/board'
+      fullPath: '/board'
+      preLoaderRoute: typeof BoardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -99,14 +134,73 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/board/new': {
+      id: '/board/new'
+      path: '/new'
+      fullPath: '/board/new'
+      preLoaderRoute: typeof BoardNewRouteImport
+      parentRoute: typeof BoardRoute
+    }
+    '/board/$postId': {
+      id: '/board/$postId'
+      path: '/$postId'
+      fullPath: '/board/$postId'
+      preLoaderRoute: typeof BoardPostIdRouteImport
+      parentRoute: typeof BoardRoute
+    }
+    '/auth/signup': {
+      id: '/auth/signup'
+      path: '/auth/signup'
+      fullPath: '/auth/signup'
+      preLoaderRoute: typeof AuthSignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/login': {
+      id: '/auth/login'
+      path: '/auth/login'
+      fullPath: '/auth/login'
+      preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/board/$postId/edit': {
+      id: '/board/$postId/edit'
+      path: '/edit'
+      fullPath: '/board/$postId/edit'
+      preLoaderRoute: typeof BoardPostIdEditRouteImport
+      parentRoute: typeof BoardPostIdRoute
+    }
   }
 }
 
+interface BoardPostIdRouteChildren {
+  BoardPostIdEditRoute: typeof BoardPostIdEditRoute
+}
+
+const BoardPostIdRouteChildren: BoardPostIdRouteChildren = {
+  BoardPostIdEditRoute: BoardPostIdEditRoute,
+}
+
+const BoardPostIdRouteWithChildren = BoardPostIdRoute._addFileChildren(
+  BoardPostIdRouteChildren,
+)
+
+interface BoardRouteChildren {
+  BoardPostIdRoute: typeof BoardPostIdRouteWithChildren
+  BoardNewRoute: typeof BoardNewRoute
+}
+
+const BoardRouteChildren: BoardRouteChildren = {
+  BoardPostIdRoute: BoardPostIdRouteWithChildren,
+  BoardNewRoute: BoardNewRoute,
+}
+
+const BoardRouteWithChildren = BoardRoute._addFileChildren(BoardRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  CommentsRoute: CommentsRoute,
-  LoginRoute: LoginRoute,
-  SignupRoute: SignupRoute,
+  BoardRoute: BoardRouteWithChildren,
+  AuthLoginRoute: AuthLoginRoute,
+  AuthSignupRoute: AuthSignupRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
