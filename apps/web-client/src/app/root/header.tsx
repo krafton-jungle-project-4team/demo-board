@@ -1,7 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { PostListQuerySchema } from "@nmm/shared";
 import { Button } from "@nmm/ui/components/button";
 import { currentUserQueryOptions, signOut } from "@/features/auth";
+
+const defaultPostListSearch = PostListQuerySchema.parse({});
 
 export function Header() {
     const queryClient = useQueryClient();
@@ -26,12 +29,15 @@ export function Header() {
         <header className="border-b">
             <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
                 <Button asChild variant="ghost" size="sm" className="font-semibold">
-                    <Link to="/">게시판</Link>
+                    <Link to="/" search={defaultPostListSearch}>
+                        NMM Board
+                    </Link>
                 </Button>
                 <nav className="flex items-center gap-1">
                     <Button asChild variant="ghost" size="sm">
                         <Link
                             to="/"
+                            search={defaultPostListSearch}
                             activeProps={{
                                 className: "bg-accent text-accent-foreground"
                             }}

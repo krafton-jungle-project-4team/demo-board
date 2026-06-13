@@ -1,6 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PostsPage } from "@/pages/posts/posts-page";
+import { PostListQuerySchema } from "@nmm/shared";
+import { PostListPage } from "@/pages/post-list/post-list-page";
 
 export const Route = createFileRoute("/")({
-    component: PostsPage
+    validateSearch: (search) => PostListQuerySchema.parse(search),
+    component: IndexRoute
 });
+
+function IndexRoute() {
+    const query = Route.useSearch();
+
+    return <PostListPage query={query} />;
+}
