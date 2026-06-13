@@ -5,6 +5,7 @@ import { getRequestId } from "./infra/http";
 import { AuthModule } from "./features/auth";
 import { ExampleModule } from "./features/example";
 import { HealthModule } from "./features/health";
+import { PostModule } from "./features/post";
 import { PostQueryModule } from "./features/post-query";
 import { PostsModule } from "./features/posts";
 
@@ -27,6 +28,7 @@ import { PostsModule } from "./features/posts";
         ExampleModule,
         PostQueryModule,
         HealthModule,
+        PostModule,
         PostsModule
     ]
 })
