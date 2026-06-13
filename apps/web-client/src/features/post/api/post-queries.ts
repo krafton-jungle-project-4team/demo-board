@@ -11,6 +11,7 @@ export const postQueryKeys = {
     postTagsByPostId: (postId: number) => ["posts", postId, "tags"] as const
 };
 
+// TODO: UI가 붙으면 usePostTags/useCreatePostTagMutation 같은 feature hook을 만들고 공개한다.
 export const postTagsQueryOptions = queryOptions({
     queryKey: postQueryKeys.postTags,
     queryFn: getPostTags
