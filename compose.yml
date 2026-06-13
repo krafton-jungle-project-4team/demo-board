@@ -33,12 +33,15 @@ services:
             NODE_ENV: ${NODE_ENV:-development}
             PORT: ${PORT:-3000}
             NMM_WEB_ORIGIN: ${NMM_WEB_ORIGIN:-http://localhost:5173}
+            NMM_AUTH_SECRET: ${NMM_AUTH_SECRET:-change-me-change-me-change-me-change-me}
+            NMM_AUTH_BASE_URL: ${NMM_AUTH_BASE_URL:-http://localhost:3000/api/auth}
             NMM_DB_HOST: ${NMM_DB_HOST:-postgres}
             NMM_DB_PORT: ${NMM_DB_PORT:-5432}
             NMM_DB_USERNAME: ${NMM_DB_USERNAME:-namanmu}
             NMM_DB_PASSWORD: ${NMM_DB_PASSWORD:-change-me}
             NMM_DB_DATABASE: ${NMM_DB_DATABASE:-namanmu}
-            NMM_DB_SYNCHRONIZE: ${NMM_DB_SYNCHRONIZE:-true}
+            NMM_DB_SYNCHRONIZE: ${NMM_DB_SYNCHRONIZE:-false}
+            NMM_DB_MIGRATIONS_RUN: ${NMM_DB_MIGRATIONS_RUN:-true}
             NMM_DB_LOGGING: ${NMM_DB_LOGGING:-false}
         ports:
             - "${PORT:-3000}:${PORT:-3000}"
