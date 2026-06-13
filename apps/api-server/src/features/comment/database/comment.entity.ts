@@ -1,4 +1,9 @@
-import type { CommentReplyResponse, CommentResponse } from "@nmm/shared";
+import {
+    CommentReplyResponseSchema,
+    CommentResponseSchema,
+    type CommentReplyResponse,
+    type CommentResponse
+} from "@nmm/shared";
 import { Column, CreateDateColumn, DeleteDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
 @Entity("comments")
@@ -12,7 +17,7 @@ export class CommentEntity {
     @Column({ type: "int" })
     authorId!: number;
 
-    @Column({ type: "varchar", length: 50 }) 
+    @Column({ type: "varchar", length: 50 })
     authorNickname!: string;
 
     @Column({ type: "int", nullable: true })
@@ -33,12 +38,15 @@ export class CommentEntity {
     @UpdateDateColumn()
     updatedAt!: Date;
 
-    //엔티티를 API에서 응답 받을 수 있게 변환하는코드. 이거네
     toReplyResponse(): CommentReplyResponse {
-        return {
+        if (this.parentCommentId === null) {
+            throw new Error("Reply comment must have parentCommentId.");
+        }
+
+        return CommentReplyResponseSchema.parse({
             id: this.id,
             postId: this.postId,
-            parentCommentId: this.parentCommentId ?? 0,
+            parentCommentId: this.parentCommentId,
             author: {
                 id: this.authorId,
                 nickname: this.authorNickname
@@ -48,11 +56,11 @@ export class CommentEntity {
             isDeleted: this.deletedAt !== null,
             createdAt: this.createdAt.toISOString(),
             updatedAt: this.updatedAt.toISOString()
-        };
+        });
     }
 
     toCommentResponse(replies: CommentReplyResponse[]): CommentResponse {
-        return {
+        return CommentResponseSchema.parse({
             id: this.id,
             postId: this.postId,
             parentCommentId: null,
@@ -66,6 +74,6 @@ export class CommentEntity {
             createdAt: this.createdAt.toISOString(),
             updatedAt: this.updatedAt.toISOString(),
             replies
-        };
+        });
     }
 }

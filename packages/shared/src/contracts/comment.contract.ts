@@ -8,6 +8,12 @@ export const CreateCommentRequestSchema = z.object({
 //type of로 CCRS의 타입 가져옴. CCRS는 현재 그냥 스키마 값이니까. 그후 z.infet로 스키마 타입 추론함.
 export type CreateCommentRequest = z.infer<typeof CreateCommentRequestSchema>;
 
+export const UpdateCommentRequestSchema = z.object({
+    content: z.string().trim().min(1).max(300)
+});
+
+export type UpdateCommentRequest = z.infer<typeof UpdateCommentRequestSchema>;
+
 //댓글 목록 조회 검증 스키마, coerce:강제 변환
 export const CommentListQuerySchema = z.object({
     page: z.coerce.number().int().positive().default(1),
