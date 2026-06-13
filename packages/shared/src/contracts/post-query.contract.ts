@@ -4,6 +4,14 @@ const DEFAULT_POST_LIST_PAGE = 1;
 const DEFAULT_POST_LIST_PAGE_SIZE = 10;
 const MAX_POST_LIST_PAGE_SIZE = 50;
 
+export const POST_SEARCH_SCOPES = ["title", "content", "tag", "titleContent"] as const;
+
+export const DEFAULT_POST_SEARCH_SCOPE = "titleContent";
+
+export const PostSearchScopeSchema = z.enum(POST_SEARCH_SCOPES).default(DEFAULT_POST_SEARCH_SCOPE);
+
+export type PostSearchScope = z.infer<typeof PostSearchScopeSchema>;
+
 const OptionalSearchKeywordSchema = z.preprocess((value) => {
     if (typeof value !== "string") {
         return undefined;
@@ -17,6 +25,7 @@ const OptionalSearchKeywordSchema = z.preprocess((value) => {
 export const PostListQuerySchema = z.object({
     page: z.coerce.number().int().min(1).default(DEFAULT_POST_LIST_PAGE),
     pageSize: z.coerce.number().int().min(1).max(MAX_POST_LIST_PAGE_SIZE).default(DEFAULT_POST_LIST_PAGE_SIZE),
+    searchScope: PostSearchScopeSchema,
     q: OptionalSearchKeywordSchema
 });
 

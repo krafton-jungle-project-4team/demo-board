@@ -40,9 +40,25 @@ WITH post_tag_names AS (
 const postSearchWhereSql = `
 WHERE (
     $1::text IS NULL
-    OR ${POST_QUERY_TABLES.posts}.${POST_QUERY_COLUMNS.posts.title} % $1
-    OR ${POST_QUERY_TABLES.posts}.${POST_QUERY_COLUMNS.posts.content} % $1
-    OR COALESCE(post_tag_names.tag_text, '') % $1
+    OR (
+        $2::text = 'title'
+        AND ${POST_QUERY_TABLES.posts}.${POST_QUERY_COLUMNS.posts.title} % $1
+    )
+    OR (
+        $2::text = 'content'
+        AND ${POST_QUERY_TABLES.posts}.${POST_QUERY_COLUMNS.posts.content} % $1
+    )
+    OR (
+        $2::text = 'tag'
+        AND COALESCE(post_tag_names.tag_text, '') % $1
+    )
+    OR (
+        $2::text = 'titleContent'
+        AND (
+            ${POST_QUERY_TABLES.posts}.${POST_QUERY_COLUMNS.posts.title} % $1
+            OR ${POST_QUERY_TABLES.posts}.${POST_QUERY_COLUMNS.posts.content} % $1
+        )
+    )
 )
 `;
 
@@ -63,8 +79,13 @@ export class PostListQueryRepository {
         const offset = (query.page - 1) * query.pageSize;
         const keyword = query.q ?? null;
         const [countRows, rows] = await Promise.all([
-            this.dataSource.query(this.createCountSql(), [keyword]) as Promise<PostListCountRow[]>,
-            this.dataSource.query(this.createListSql(), [keyword, query.pageSize, offset]) as Promise<PostListRow[]>
+            this.dataSource.query(this.createCountSql(), [keyword, query.searchScope]) as Promise<PostListCountRow[]>,
+            this.dataSource.query(this.createListSql(), [
+                keyword,
+                query.searchScope,
+                query.pageSize,
+                offset
+            ]) as Promise<PostListRow[]>
         ]);
         const totalItems = Number(countRows[0]?.total_count ?? 0);
         const items = rows.map(toPostListItem);
@@ -110,11 +131,18 @@ export class PostListQueryRepository {
             COALESCE(post_tag_names.tags, ARRAY[]::text[]) AS tags,
             CASE
                 WHEN $1::text IS NULL THEN 0
-                ELSE GREATEST(
-                    similarity(${POST_QUERY_TABLES.posts}.${POST_QUERY_COLUMNS.posts.title}, $1),
-                    similarity(${POST_QUERY_TABLES.posts}.${POST_QUERY_COLUMNS.posts.content}, $1),
-                    similarity(COALESCE(post_tag_names.tag_text, ''), $1)
-                )
+                WHEN $2::text = 'title'
+                    THEN similarity(${POST_QUERY_TABLES.posts}.${POST_QUERY_COLUMNS.posts.title}, $1)
+                WHEN $2::text = 'content'
+                    THEN similarity(${POST_QUERY_TABLES.posts}.${POST_QUERY_COLUMNS.posts.content}, $1)
+                WHEN $2::text = 'tag'
+                    THEN similarity(COALESCE(post_tag_names.tag_text, ''), $1)
+                WHEN $2::text = 'titleContent'
+                    THEN GREATEST(
+                        similarity(${POST_QUERY_TABLES.posts}.${POST_QUERY_COLUMNS.posts.title}, $1),
+                        similarity(${POST_QUERY_TABLES.posts}.${POST_QUERY_COLUMNS.posts.content}, $1)
+                    )
+                ELSE 0
             END AS search_rank
         FROM ${POST_QUERY_TABLES.posts}
         LEFT JOIN post_tag_names
@@ -124,8 +152,8 @@ export class PostListQueryRepository {
             CASE WHEN $1::text IS NULL THEN NULL ELSE search_rank END DESC,
             ${POST_QUERY_TABLES.posts}.${POST_QUERY_COLUMNS.posts.createdAt} DESC,
             ${POST_QUERY_TABLES.posts}.${POST_QUERY_COLUMNS.posts.id} DESC
-        LIMIT $2
-        OFFSET $3
+        LIMIT $3
+        OFFSET $4
         `;
     }
 }
