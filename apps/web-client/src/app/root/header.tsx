@@ -16,7 +16,7 @@ export function Header() {
                                 className: "bg-accent text-accent-foreground"
                             }}
                         >
-                            예시
+                            게시글
                         </Link>
                     </Button>
                 </nav>

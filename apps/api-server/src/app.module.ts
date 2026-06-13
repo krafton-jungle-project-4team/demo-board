@@ -4,6 +4,7 @@ import { DatabaseModule } from "./infra/database";
 import { getRequestId } from "./infra/http";
 import { ExampleModule } from "./features/example";
 import { HealthModule } from "./features/health";
+import { PostsModule } from "./features/posts";
 
 @Module({
     imports: [
@@ -21,7 +22,8 @@ import { HealthModule } from "./features/health";
         }),
         DatabaseModule,
         ExampleModule,
-        HealthModule
+        HealthModule,
+        PostsModule
     ]
 })
 export class AppModule {}
