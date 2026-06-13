@@ -33,11 +33,17 @@ export class PostsCommandService {
     }
 
     async deletePost(postId: number): Promise<DeletePostResponse> {
-        const post = await this.findPostOrThrow(postId);
+        const deleteResult = await this.posts.delete({
+            id: postId
+        });
 
-        await this.posts.remove(post);
+        if (deleteResult.affected !== 1) {
+            throw createPostNotFoundError();
+        }
 
-        return post.toDeletePostResponse();
+        return {
+            id: postId
+        };
     }
 
     private async findPostOrThrow(postId: number) {
