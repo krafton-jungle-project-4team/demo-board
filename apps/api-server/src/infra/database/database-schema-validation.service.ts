@@ -36,6 +36,31 @@ const REQUIRED_TABLE_COLUMNS = {
         "deleted_at",
         "created_at",
         "updated_at"
+    ],
+    estate_transactions: [
+        "id",
+        "source_row_number",
+        "receipt_year",
+        "district_code",
+        "district_name",
+        "legal_dong_code",
+        "legal_dong_name",
+        "lot_type_code",
+        "lot_type_name",
+        "main_lot_number",
+        "sub_lot_number",
+        "building_name",
+        "contract_date",
+        "deal_amount_10k_krw",
+        "building_area_square_meter",
+        "land_area_square_meter",
+        "floor",
+        "right_type",
+        "canceled_at",
+        "built_year",
+        "building_use",
+        "report_type",
+        "brokered_agent_sgg_name"
     ]
 } as const;
 
@@ -44,7 +69,11 @@ const REQUIRED_INDEXES = [
     "idx_board_posts_content_trgm",
     "idx_board_tags_name_trgm",
     "idx_board_tags_normalized_name_unique",
-    "idx_board_post_tags_post_id_tag_id_unique"
+    "idx_board_post_tags_post_id_tag_id_unique",
+    "idx_estate_transactions_source_row_number_unique",
+    "idx_estate_transactions_contract_date",
+    "idx_estate_transactions_district_legal_dong",
+    "idx_estate_transactions_building_use"
 ] as const;
 
 @Injectable()
