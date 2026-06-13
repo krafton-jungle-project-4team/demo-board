@@ -22,6 +22,12 @@ export const PostDetailResponseSchema = PostSchema;
 
 export type PostDetailResponse = z.infer<typeof PostDetailResponseSchema>;
 
+export const PostDetailParamsSchema = z.object({
+    postId: PostIdSchema
+});
+
+export type PostDetailParams = z.infer<typeof PostDetailParamsSchema>;
+
 export const CreatePostRequestSchema = z.object({
     title: z.string().min(1),
     content: z.string().min(1)
