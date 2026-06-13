@@ -20,9 +20,3 @@ export const POST_QUERY_COLUMNS = {
         name: "name"
     }
 } as const;
-
-export const POST_QUERY_TRIGRAM_INDEXES = {
-    postTitle: "idx_posts_title_trgm",
-    postContent: "idx_posts_content_trgm",
-    tagName: "idx_tags_name_trgm"
-} as const;
