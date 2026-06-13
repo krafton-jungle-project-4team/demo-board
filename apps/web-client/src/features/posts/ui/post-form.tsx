@@ -13,6 +13,7 @@ type PostFormProps = {
     initialValues?: PostFormValues;
     isSubmitting: boolean;
     submitLabel: string;
+    errorMessage?: string;
     onSubmit: (values: PostFormValues) => void | Promise<void>;
 };
 
@@ -25,6 +26,7 @@ export function PostForm({
     initialValues = EMPTY_POST_FORM_VALUES,
     isSubmitting,
     submitLabel,
+    errorMessage,
     onSubmit
 }: PostFormProps) {
     const form = useForm<PostFormValues>({
@@ -63,6 +65,7 @@ export function PostForm({
                     <FieldError errors={[contentError]} />
                 </Field>
             </FieldGroup>
+            <FieldError>{errorMessage}</FieldError>
             <Button type="submit" disabled={isSubmitting} className="self-end">
                 {isSubmitting ? <Spinner data-icon="inline-start" /> : null}
                 {submitLabel}
