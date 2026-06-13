@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { PlusIcon } from "lucide-react";
-import { useState } from "react";
+import { type MouseEvent, useState } from "react";
 import type { Post } from "@nmm/shared";
 import { Button } from "@nmm/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components/card";
@@ -15,6 +15,8 @@ import {
     AlertDialogTitle
 } from "@nmm/ui/components/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@nmm/ui/components/dialog";
+import { toast } from "@nmm/ui/components/sonner";
+import { Spinner } from "@nmm/ui/components/spinner";
 import {
     PostForm,
     PostsTable,
@@ -24,18 +26,22 @@ import {
     useUpdatePostMutation,
     type PostFormValues
 } from "@/features/posts";
+import { ApiClientError } from "@/shared/api/http-client";
 
 export function PostsPage() {
     const postsQuery = useSuspenseQuery(postsQueryOptions);
     const createPostMutation = useCreatePostMutation();
     const updatePostMutation = useUpdatePostMutation();
     const deletePostMutation = useDeletePostMutation();
-    const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+    const [createDialogOpen, setCreateDialogOpen] = useState(false);
     const [editingPost, setEditingPost] = useState<Post | null>(null);
-    const [deletingPost, setDeletingPost] = useState<Post | null>(null);
+    const [deleteTargetPost, setDeleteTargetPost] = useState<Post | null>(null);
 
     const posts = postsQuery.data.posts;
-    const deletingPostId = deletePostMutation.isPending ? deletingPost?.id : undefined;
+    const deletingPostId = deletePostMutation.isPending ? deleteTargetPost?.id : undefined;
+    const createErrorMessage = getMutationErrorMessage(createPostMutation.error);
+    const updateErrorMessage = getMutationErrorMessage(updatePostMutation.error);
+    const deleteErrorMessage = getMutationErrorMessage(deletePostMutation.error);
     const editingPostValues = editingPost
         ? {
               title: editingPost.title,
@@ -44,61 +50,94 @@ export function PostsPage() {
         : undefined;
 
     function handleOpenCreateDialog() {
-        setIsCreateDialogOpen(true);
+        createPostMutation.reset();
+        setCreateDialogOpen(true);
     }
 
     function handleCreateDialogOpenChange(isOpen: boolean) {
-        setIsCreateDialogOpen(isOpen);
+        setCreateDialogOpen(isOpen);
+
+        if (!isOpen) {
+            createPostMutation.reset();
+        }
     }
 
     function handleEditDialogOpenChange(isOpen: boolean) {
         if (!isOpen) {
+            updatePostMutation.reset();
             setEditingPost(null);
         }
     }
 
     function handleDeleteDialogOpenChange(isOpen: boolean) {
         if (!isOpen) {
-            setDeletingPost(null);
+            deletePostMutation.reset();
+            setDeleteTargetPost(null);
         }
     }
 
     function handleEditPost(post: Post) {
+        updatePostMutation.reset();
         setEditingPost(post);
     }
 
     function handleDeletePost(post: Post) {
-        setDeletingPost(post);
+        deletePostMutation.reset();
+        setDeleteTargetPost(post);
     }
 
     async function handleCreatePost(values: PostFormValues) {
-        await createPostMutation.mutateAsync(values);
-        setIsCreateDialogOpen(false);
+        try {
+            await createPostMutation.mutateAsync(values);
+            setCreateDialogOpen(false);
+            createPostMutation.reset();
+            toast.success("게시글을 작성했습니다.");
+        } catch (error) {
+            toast.error(getErrorMessage(error));
+        }
     }
 
     async function handleUpdatePost(values: PostFormValues) {
-        if (!editingPost) {
+        const post = editingPost;
+
+        if (!post) {
             return;
         }
 
-        await updatePostMutation.mutateAsync({
-            params: {
-                postId: editingPost.id
-            },
-            request: values
-        });
-        setEditingPost(null);
+        try {
+            await updatePostMutation.mutateAsync({
+                params: {
+                    postId: post.id
+                },
+                request: values
+            });
+            setEditingPost(null);
+            updatePostMutation.reset();
+            toast.success("게시글을 수정했습니다.");
+        } catch (error) {
+            toast.error(getErrorMessage(error));
+        }
     }
 
-    async function handleConfirmDeletePost() {
-        if (!deletingPost) {
+    async function handleConfirmDeletePost(event: MouseEvent<HTMLButtonElement>) {
+        event.preventDefault();
+
+        const post = deleteTargetPost;
+
+        if (!post) {
             return;
         }
 
-        await deletePostMutation.mutateAsync({
-            postId: deletingPost.id
-        });
-        setDeletingPost(null);
+        try {
+            await deletePostMutation.mutateAsync({
+                postId: post.id
+            });
+            setDeleteTargetPost(null);
+            deletePostMutation.reset();
+            toast.success("게시글을 삭제했습니다.");
+        } catch (error) {
+            toast.error(getErrorMessage(error));
+        }
     }
 
     return (
@@ -128,7 +167,7 @@ export function PostsPage() {
                 </CardContent>
             </Card>
 
-            <Dialog open={isCreateDialogOpen} onOpenChange={handleCreateDialogOpenChange}>
+            <Dialog open={createDialogOpen} onOpenChange={handleCreateDialogOpenChange}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>새 게시글</DialogTitle>
@@ -137,6 +176,7 @@ export function PostsPage() {
                     <PostForm
                         isSubmitting={createPostMutation.isPending}
                         submitLabel="작성"
+                        errorMessage={createErrorMessage}
                         onSubmit={handleCreatePost}
                     />
                 </DialogContent>
@@ -154,17 +194,20 @@ export function PostsPage() {
                             initialValues={editingPostValues}
                             isSubmitting={updatePostMutation.isPending}
                             submitLabel="수정"
+                            errorMessage={updateErrorMessage}
                             onSubmit={handleUpdatePost}
                         />
                     ) : null}
                 </DialogContent>
             </Dialog>
 
-            <AlertDialog open={deletingPost !== null} onOpenChange={handleDeleteDialogOpenChange}>
+            <AlertDialog open={deleteTargetPost !== null} onOpenChange={handleDeleteDialogOpenChange}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>게시글 삭제</AlertDialogTitle>
-                        <AlertDialogDescription>삭제하면 다시 되돌릴 수 없습니다.</AlertDialogDescription>
+                        <AlertDialogDescription>
+                            {deleteErrorMessage ?? "삭제하면 다시 되돌릴 수 없습니다."}
+                        </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel disabled={deletePostMutation.isPending}>취소</AlertDialogCancel>
@@ -173,6 +216,7 @@ export function PostsPage() {
                             disabled={deletePostMutation.isPending}
                             onClick={handleConfirmDeletePost}
                         >
+                            {deletePostMutation.isPending ? <Spinner data-icon="inline-start" /> : null}
                             삭제
                         </AlertDialogAction>
                     </AlertDialogFooter>
@@ -180,4 +224,20 @@ export function PostsPage() {
             </AlertDialog>
         </section>
     );
+}
+
+function getMutationErrorMessage(error: Error | null) {
+    return error ? getErrorMessage(error) : undefined;
+}
+
+function getErrorMessage(error: unknown) {
+    if (error instanceof ApiClientError) {
+        return error.message;
+    }
+
+    if (error instanceof Error) {
+        return error.message;
+    }
+
+    return "알 수 없는 오류가 발생했습니다.";
 }
