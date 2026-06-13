@@ -311,7 +311,7 @@ export class BoardQueryService {
             ON board_post_tag_names.post_id = board_posts.id
         ${boardPostSearchWhereSql}
         ORDER BY
-            CASE WHEN $1::text IS NULL THEN NULL ELSE search_rank END DESC,
+            search_rank DESC,
             board_posts.created_at DESC,
             board_posts.id DESC
         LIMIT $3
