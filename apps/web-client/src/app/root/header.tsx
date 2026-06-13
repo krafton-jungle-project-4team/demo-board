@@ -19,6 +19,20 @@ export function Header() {
                             예시
                         </Link>
                     </Button>
+                    <Button asChild variant="ghost" size="sm">
+                        <Link
+                            to="/comments"
+                            search={{
+                                postId: 1,
+                                page: 1
+                            }}
+                            activeProps={{
+                                className: "bg-accent text-accent-foreground"
+                            }}
+                        >
+                            댓글
+                        </Link>
+                    </Button>
                 </nav>
             </div>
         </header>
