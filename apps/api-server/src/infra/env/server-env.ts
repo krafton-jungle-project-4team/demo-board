@@ -8,8 +8,14 @@ export type AppEnv = {
     nodeEnv: string;
 };
 
+export type AuthEnv = {
+    secret: string;
+    baseUrl: string;
+};
+
 export type ServerEnv = {
     app: AppEnv;
+    auth: AuthEnv;
     database: DatabaseEnv;
 };
 
@@ -21,12 +27,15 @@ const ServerEnvSchema = z.object({
     PORT: NumberEnvSchema,
     NODE_ENV: RequiredStringSchema,
     NMM_WEB_ORIGIN: RequiredStringSchema,
+    NMM_AUTH_SECRET: RequiredStringSchema,
+    NMM_AUTH_BASE_URL: RequiredStringSchema,
     NMM_DB_HOST: RequiredStringSchema,
     NMM_DB_PORT: NumberEnvSchema,
     NMM_DB_USERNAME: RequiredStringSchema,
     NMM_DB_PASSWORD: RequiredStringSchema,
     NMM_DB_DATABASE: RequiredStringSchema,
     NMM_DB_SYNCHRONIZE: BooleanEnvSchema,
+    NMM_DB_MIGRATIONS_RUN: BooleanEnvSchema,
     NMM_DB_LOGGING: BooleanEnvSchema
 });
 
@@ -39,6 +48,10 @@ function createServerEnv(): ServerEnv {
             webOrigin: env.NMM_WEB_ORIGIN,
             nodeEnv: env.NODE_ENV
         },
+        auth: {
+            secret: env.NMM_AUTH_SECRET,
+            baseUrl: env.NMM_AUTH_BASE_URL
+        },
         database: {
             host: env.NMM_DB_HOST,
             port: env.NMM_DB_PORT,
@@ -46,6 +59,7 @@ function createServerEnv(): ServerEnv {
             password: env.NMM_DB_PASSWORD,
             database: env.NMM_DB_DATABASE,
             synchronize: env.NMM_DB_SYNCHRONIZE,
+            migrationsRun: env.NMM_DB_MIGRATIONS_RUN,
             logging: env.NMM_DB_LOGGING
         }
     };
