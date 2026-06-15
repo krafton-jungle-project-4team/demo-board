@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { SongpaBoardDongCodeSchema, SongpaBoardDongNameSchema } from "./songpa-dong.contract";
+import {
+    NullableSongpaBoardDongCodeSchema,
+    NullableSongpaBoardDongNameSchema,
+    SongpaBoardDongCodeSchema,
+    SongpaBoardDongNameSchema
+} from "./songpa-dong.contract";
 
 const DEFAULT_BOARD_POST_LIST_PAGE = 1;
 const DEFAULT_BOARD_POST_LIST_PAGE_SIZE = 10;
@@ -20,7 +25,9 @@ export type BoardPostScope = z.infer<typeof BoardPostScopeSchema>;
 export const BoardAuthorSchema = z.object({
     id: BoardIdSchema,
     name: z.string().min(1),
-    email: z.string().email()
+    email: z.string().email(),
+    residenceDongCode: NullableSongpaBoardDongCodeSchema,
+    residenceDongName: NullableSongpaBoardDongNameSchema
 });
 
 export type BoardAuthor = z.infer<typeof BoardAuthorSchema>;

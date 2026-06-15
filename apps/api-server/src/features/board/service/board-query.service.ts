@@ -39,6 +39,8 @@ type BoardPostListRow = {
     author_id: string;
     author_name: string;
     author_email: string;
+    author_residence_dong_code: string | null;
+    author_residence_dong_name: string | null;
     created_at: Date | string;
     updated_at: Date | string;
 };
@@ -56,6 +58,8 @@ type BoardCommentRow = {
     author_id: string;
     author_name: string;
     author_email: string;
+    author_residence_dong_code: string | null;
+    author_residence_dong_name: string | null;
     content: string;
     depth: number;
     deleted_at: Date | string | null;
@@ -201,6 +205,8 @@ export class BoardQueryService {
                 SELECT ${this.boardCommentSelectSql()}
                 FROM board_comments
                 JOIN auth_users ON auth_users.id = board_comments.author_id
+                LEFT JOIN board_songpa_dongs author_dongs
+                    ON author_dongs.code = auth_users.residence_dong_code
                 WHERE board_comments.post_id = $1
                     AND board_comments.parent_comment_id IS NULL
                 ORDER BY board_comments.created_at ASC, board_comments.id ASC
@@ -243,6 +249,8 @@ export class BoardQueryService {
             SELECT ${this.boardCommentSelectSql()}
             FROM board_comments
             JOIN auth_users ON auth_users.id = board_comments.author_id
+            LEFT JOIN board_songpa_dongs author_dongs
+                ON author_dongs.code = auth_users.residence_dong_code
             WHERE board_comments.parent_comment_id = ANY($1::bigint[])
             ORDER BY board_comments.created_at ASC, board_comments.id ASC
             `,
@@ -275,7 +283,9 @@ export class BoardQueryService {
             board_comments.updated_at,
             auth_users.id::text AS author_id,
             auth_users.name AS author_name,
-            auth_users.email AS author_email
+            auth_users.email AS author_email,
+            auth_users.residence_dong_code AS author_residence_dong_code,
+            author_dongs.name AS author_residence_dong_name
         `;
     }
 
@@ -303,6 +313,8 @@ export class BoardQueryService {
             auth_users.id::text AS author_id,
             auth_users.name AS author_name,
             auth_users.email AS author_email,
+            auth_users.residence_dong_code AS author_residence_dong_code,
+            author_dongs.name AS author_residence_dong_name,
             board_posts.created_at,
             board_posts.updated_at,
             CASE
@@ -331,6 +343,8 @@ export class BoardQueryService {
         JOIN auth_users ON auth_users.id = board_posts.author_id
         LEFT JOIN board_songpa_dongs board_dongs
             ON board_dongs.code = board_posts.dong_code
+        LEFT JOIN board_songpa_dongs author_dongs
+            ON author_dongs.code = auth_users.residence_dong_code
         LEFT JOIN board_post_tag_names
             ON board_post_tag_names.post_id = board_posts.id
         ${boardPostSearchWhereSql}
@@ -356,12 +370,16 @@ export class BoardQueryService {
             auth_users.id::text AS author_id,
             auth_users.name AS author_name,
             auth_users.email AS author_email,
+            auth_users.residence_dong_code AS author_residence_dong_code,
+            author_dongs.name AS author_residence_dong_name,
             board_posts.created_at,
             board_posts.updated_at
         FROM board_posts
         JOIN auth_users ON auth_users.id = board_posts.author_id
         LEFT JOIN board_songpa_dongs board_dongs
             ON board_dongs.code = board_posts.dong_code
+        LEFT JOIN board_songpa_dongs author_dongs
+            ON author_dongs.code = auth_users.residence_dong_code
         LEFT JOIN board_post_tag_names
             ON board_post_tag_names.post_id = board_posts.id
         WHERE board_posts.id = $1
@@ -412,11 +430,19 @@ function toBoardCommentReplyResponse(row: BoardCommentRow): BoardCommentReplyRes
     });
 }
 
-function toBoardAuthor(row: { author_id: string; author_name: string; author_email: string }) {
+function toBoardAuthor(row: {
+    author_id: string;
+    author_name: string;
+    author_email: string;
+    author_residence_dong_code?: string | null;
+    author_residence_dong_name?: string | null;
+}) {
     return {
         id: Number(row.author_id),
         name: row.author_name,
-        email: row.author_email
+        email: row.author_email,
+        residenceDongCode: row.author_residence_dong_code ?? null,
+        residenceDongName: row.author_residence_dong_name ?? null
     };
 }
 
