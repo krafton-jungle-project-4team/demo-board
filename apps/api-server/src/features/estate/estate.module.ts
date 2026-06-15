@@ -1,12 +1,12 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { EstateAiController } from "./controller/estate-ai.controller";
-import { EstatePropertyEntity, EstateTransactionEntity } from "./database";
-import { EstateAiQueryService } from "./service/estate-ai-query.service";
+import { EstateTransactionEntity } from "./database";
+import { EstateController } from "./controller/estate.controller";
+import { EstateQueryService } from "./service/estate-query.service";
 
 @Module({
-    imports: [TypeOrmModule.forFeature([EstatePropertyEntity, EstateTransactionEntity])],
-    controllers: [EstateAiController],
-    providers: [EstateAiQueryService]
+    imports: [TypeOrmModule.forFeature([EstateTransactionEntity])],
+    controllers: [EstateController],
+    providers: [EstateQueryService]
 })
 export class EstateModule {}
