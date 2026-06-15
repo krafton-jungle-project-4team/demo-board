@@ -4,16 +4,13 @@ import {
     EstateMarketSummaryResponseSchema,
     EstateSimilarTransactionResponseSchema,
     EstateTransactionResponseSchema,
-    EstateTransactionSearchResponseSchema,
     type EstateMarketSummaryRequest,
     type EstateMarketSummaryResponse,
     type EstateSimilarTransactionItem,
     type EstateSimilarTransactionRequest,
     type EstateSimilarTransactionResponse,
     type EstateTransactionFilter,
-    type EstateTransactionResponse,
-    type EstateTransactionSearchRequest,
-    type EstateTransactionSearchResponse
+    type EstateTransactionResponse
 } from "@nmm/shared";
 import { DataSource } from "typeorm";
 import { serverEnv } from "../../../infra/env";
@@ -54,10 +51,6 @@ type EstateTransactionRow = {
     brokered_agent_sgg_name: string | null;
 };
 
-type EstateTransactionCountRow = {
-    total_count: string;
-};
-
 type EstateTransactionEmbeddingRow = {
     embedding: string;
 };
@@ -88,52 +81,7 @@ type WhereSql = {
 export class EstateAiQueryService {
     constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
 
-    async searchTransactions(query: EstateTransactionSearchRequest): Promise<EstateTransactionSearchResponse> {
-        const offset = (query.page - 1) * query.pageSize;
-        const whereSql = this.createWhereSql(query);
-        const limitParameterIndex = whereSql.values.length + 1;
-        const offsetParameterIndex = whereSql.values.length + 2;
-        const [countRows, rows] = await Promise.all([
-            this.dataSource.query(
-                `
-                SELECT COUNT(*)::text AS total_count
-                FROM estate_transactions
-                ${whereSql.whereSql}
-                `,
-                whereSql.values
-            ) as Promise<EstateTransactionCountRow[]>,
-            this.dataSource.query(
-                `
-                SELECT
-                    ${this.estateTransactionSelectSql()},
-                    ${whereSql.searchRankSql} AS search_rank
-                FROM estate_transactions
-                ${whereSql.whereSql}
-                ORDER BY
-                    search_rank DESC,
-                    estate_transactions.contract_date DESC,
-                    estate_transactions.id DESC
-                LIMIT $${limitParameterIndex}
-                OFFSET $${offsetParameterIndex}
-                `,
-                [...whereSql.values, query.pageSize, offset]
-            ) as Promise<EstateTransactionRow[]>
-        ]);
-        const totalItems = Number(countRows[0]?.total_count ?? 0);
-        const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / query.pageSize);
-
-        return EstateTransactionSearchResponseSchema.parse({
-            items: rows.map((row) => this.toEstateTransactionResponse(row)),
-            page: query.page,
-            pageSize: query.pageSize,
-            totalItems,
-            totalPages,
-            hasPreviousPage: query.page > 1,
-            hasNextPage: totalPages > query.page
-        });
-    }
-
-    async getTransaction(transactionId: number): Promise<EstateTransactionResponse> {
+    private async getTransaction(transactionId: number): Promise<EstateTransactionResponse> {
         const transaction = await this.findTransaction(transactionId);
 
         if (!transaction) {

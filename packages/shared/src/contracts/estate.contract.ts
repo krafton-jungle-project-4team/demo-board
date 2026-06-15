@@ -1,9 +1,6 @@
 import { z } from "zod";
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-const DEFAULT_ESTATE_TRANSACTION_PAGE = 1;
-const DEFAULT_ESTATE_TRANSACTION_PAGE_SIZE = 10;
-const MAX_ESTATE_TRANSACTION_PAGE_SIZE = 50;
 const DEFAULT_ESTATE_SIMILAR_LIMIT = 5;
 const MAX_ESTATE_SIMILAR_LIMIT = 20;
 
@@ -70,24 +67,6 @@ export const EstateTransactionFilterSchema = z.object({
 
 export type EstateTransactionFilter = z.infer<typeof EstateTransactionFilterSchema>;
 
-export const EstateTransactionSearchRequestSchema = EstateTransactionFilterSchema.extend({
-    page: z.coerce.number().int().min(1).default(DEFAULT_ESTATE_TRANSACTION_PAGE),
-    pageSize: z.coerce
-        .number()
-        .int()
-        .min(1)
-        .max(MAX_ESTATE_TRANSACTION_PAGE_SIZE)
-        .default(DEFAULT_ESTATE_TRANSACTION_PAGE_SIZE)
-});
-
-export type EstateTransactionSearchRequest = z.infer<typeof EstateTransactionSearchRequestSchema>;
-
-export const EstateTransactionParamsSchema = z.object({
-    transactionId: z.coerce.number().int().positive()
-});
-
-export type EstateTransactionParams = z.infer<typeof EstateTransactionParamsSchema>;
-
 export const EstateTransactionResponseSchema = z.object({
     id: EstateTransactionIdSchema,
     sourceRowNumber: z.number().int().positive(),
@@ -115,18 +94,6 @@ export const EstateTransactionResponseSchema = z.object({
 });
 
 export type EstateTransactionResponse = z.infer<typeof EstateTransactionResponseSchema>;
-
-export const EstateTransactionSearchResponseSchema = z.object({
-    items: z.array(EstateTransactionResponseSchema),
-    page: z.number().int().min(1),
-    pageSize: z.number().int().min(1).max(MAX_ESTATE_TRANSACTION_PAGE_SIZE),
-    totalItems: z.number().int().min(0),
-    totalPages: z.number().int().min(0),
-    hasPreviousPage: z.boolean(),
-    hasNextPage: z.boolean()
-});
-
-export type EstateTransactionSearchResponse = z.infer<typeof EstateTransactionSearchResponseSchema>;
 
 export const EstateSimilarTransactionRequestSchema = z
     .object({
