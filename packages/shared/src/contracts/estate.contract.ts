@@ -37,6 +37,22 @@ const OptionalPositiveNumberSchema = z.preprocess((value) => {
     return value;
 }, z.coerce.number().positive().optional());
 
+const BooleanQuerySchema = z.preprocess((value) => {
+    if (value === "" || value === null || value === undefined) {
+        return undefined;
+    }
+
+    if (value === "true") {
+        return true;
+    }
+
+    if (value === "false") {
+        return false;
+    }
+
+    return value;
+}, z.boolean().default(false));
+
 export const EstateTransactionFilterSchema = z.object({
     q: OptionalTrimmedTextSchema,
     districtName: OptionalTrimmedTextSchema,
@@ -49,7 +65,7 @@ export const EstateTransactionFilterSchema = z.object({
     dealAmountMax10kKrw: OptionalPositiveNumberSchema,
     areaMinSquareMeter: OptionalPositiveNumberSchema,
     areaMaxSquareMeter: OptionalPositiveNumberSchema,
-    includeCanceled: z.boolean().default(false)
+    includeCanceled: BooleanQuerySchema
 });
 
 export type EstateTransactionFilter = z.infer<typeof EstateTransactionFilterSchema>;

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Query } from "@nestjs/common";
 import {
     EstateMarketSummaryRequestSchema,
     EstateSimilarTransactionRequestSchema,
@@ -15,9 +15,9 @@ import { EstateAiQueryService } from "../service/estate-ai-query.service";
 export class EstateAiController {
     constructor(private readonly estateAiQueryService: EstateAiQueryService) {}
 
-    @Post("transactions/search")
-    searchTransactions(@Body() body: unknown): Promise<EstateTransactionSearchResponse> {
-        const request = EstateTransactionSearchRequestSchema.parse(body);
+    @Get("transactions")
+    searchTransactions(@Query() query: unknown): Promise<EstateTransactionSearchResponse> {
+        const request = EstateTransactionSearchRequestSchema.parse(query);
 
         return this.estateAiQueryService.searchTransactions(request);
     }
@@ -36,9 +36,9 @@ export class EstateAiController {
         return this.estateAiQueryService.findSimilarTransactions(request);
     }
 
-    @Post("market-summary")
-    summarizeMarket(@Body() body: unknown): Promise<EstateMarketSummaryResponse> {
-        const request = EstateMarketSummaryRequestSchema.parse(body);
+    @Get("market-summary")
+    summarizeMarket(@Query() query: unknown): Promise<EstateMarketSummaryResponse> {
+        const request = EstateMarketSummaryRequestSchema.parse(query);
 
         return this.estateAiQueryService.summarizeMarket(request);
     }
