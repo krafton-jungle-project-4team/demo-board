@@ -121,6 +121,11 @@ export function BoardListPage({ query }: BoardListPageProps) {
         void navigateToSearch(searchScope, "");
     }
 
+    function handleTagSearch(tagName: string) {
+        setKeyword(tagName);
+        setSearchScope("tag");
+        void navigateToSearch("tag", tagName);
+    }
 
     function handlePageChange(page: number) {
         if (page === query.page) {
@@ -217,6 +222,7 @@ export function BoardListPage({ query }: BoardListPageProps) {
                         currentUserId={currentUser?.id}
                         deletingPostId={deletingPostId}
                         onDeletePost={handleDeletePost}
+                        onTagSearch={handleTagSearch}
                     />
                     <BoardPostListPagination query={query} postList={postList} onPageChange={handlePageChange} />
                 </>

@@ -20,6 +20,7 @@ type BoardPostListProps = {
     currentUserId?: number;
     deletingPostId?: number;
     onDeletePost: (post: BoardPostListItem) => void;
+    onTagSearch: (tagName: string) => void;
 };
 
 const boardPostRelativeTimeFormatter = new Intl.RelativeTimeFormat("ko-KR", {
@@ -37,7 +38,8 @@ export function BoardPostList({
     postList,
     currentUserId,
     deletingPostId,
-    onDeletePost
+    onDeletePost,
+    onTagSearch
 }: BoardPostListProps) {
     if (postList.items.length === 0) {
         return (
@@ -61,6 +63,7 @@ export function BoardPostList({
             isDeleting={deletingPostId === post.id}
             canManagePost={currentUserId !== undefined && post.author.id === currentUserId}
             onDeletePost={onDeletePost}
+            onTagSearch={onTagSearch}
         />
     ));
 
@@ -73,15 +76,16 @@ type BoardPostCardProps = {
     isDeleting: boolean;
     canManagePost: boolean;
     onDeletePost: (post: BoardPostListItem) => void;
+    onTagSearch: (tagName: string) => void;
 };
 
-function BoardPostCard({ query, post, isDeleting, canManagePost, onDeletePost }: BoardPostCardProps) {
+function BoardPostCard({ query, post, isDeleting, canManagePost, onDeletePost, onTagSearch }: BoardPostCardProps) {
     function handleDeleteClick() {
         onDeletePost(post);
     }
 
     return (
-        <Card className="gap-2 rounded-lg border-border bg-card p-4 shadow-none transition-shadow hover:shadow-sm">
+        <Card className="gap-0 rounded-lg border-border bg-card p-4 shadow-none transition-shadow hover:shadow-sm">
             <CardHeader className="gap-2 p-0">
                 <CardDescription className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                     <BoardPostDongBadge dongName={post.dongName} />
@@ -100,7 +104,7 @@ function BoardPostCard({ query, post, isDeleting, canManagePost, onDeletePost }:
                     </CardAction>
                 ) : null}
             </CardHeader>
-            <CardContent className="flex flex-col gap-1 p-0">
+            <CardContent className="mt-2 flex flex-col gap-1 p-0">
                 <CardTitle className="text-base leading-6 font-semibold text-foreground">
                     <BoardPostDetailLink query={query} post={post} className="line-clamp-2">
                         {post.title}
@@ -110,7 +114,7 @@ function BoardPostCard({ query, post, isDeleting, canManagePost, onDeletePost }:
                     {post.excerpt}
                 </BoardPostDetailLink>
             </CardContent>
-            <BoardPostTagsFooter post={post} />
+            <BoardPostTagsFooter post={post} onTagSearch={onTagSearch} />
         </Card>
     );
 }
@@ -137,15 +141,45 @@ function BoardPostDetailLink({ query, post, className, children }: BoardPostDeta
     );
 }
 
-function BoardPostTagsFooter({ post }: { post: BoardPostListItem }) {
+function BoardPostTagsFooter({
+    post,
+    onTagSearch
+}: {
+    post: BoardPostListItem;
+    onTagSearch: (tagName: string) => void;
+}) {
     if (post.tags.length === 0) {
         return null;
     }
 
+    const tagItems = post.tags.map((tag) => (
+        <BoardPostTagSearchButton key={tag.id} tagName={tag.name} onTagSearch={onTagSearch} />
+    ));
+
+    return <CardFooter className="mt-2 flex min-w-0 flex-wrap items-center gap-2 p-0">{tagItems}</CardFooter>;
+}
+
+type BoardPostTagSearchButtonProps = {
+    tagName: string;
+    onTagSearch: (tagName: string) => void;
+};
+
+function BoardPostTagSearchButton({ tagName, onTagSearch }: BoardPostTagSearchButtonProps) {
+    function handleTagSearchClick() {
+        onTagSearch(tagName);
+    }
+
     return (
-        <CardFooter className="min-w-0 p-0 text-xs text-muted-foreground">
-            <span className="truncate">{formatBoardPostTags(post)}</span>
-        </CardFooter>
+        <Button
+            type="button"
+            variant="link"
+            size="sm"
+            aria-label={`${tagName} 태그 검색`}
+            className="h-auto min-w-0 rounded-none p-0 text-sm font-medium text-primary hover:underline"
+            onClick={handleTagSearchClick}
+        >
+            #{tagName}
+        </Button>
     );
 }
 
@@ -190,10 +224,6 @@ function BoardPostManagementActions({ query, post, isDeleting, onDeletePost }: B
             </Button>
         </div>
     );
-}
-
-function formatBoardPostTags(post: BoardPostListItem) {
-    return post.tags.map((tag) => `#${tag.name}`).join(" ");
 }
 
 function formatBoardPostRelativeTime(value: string) {
