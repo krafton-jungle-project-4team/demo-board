@@ -1,25 +1,12 @@
+import {
+    EstateTransactionListResponseSchema,
+    type EstateTransactionListQuery,
+    type EstateTransactionListResponse
+} from "@nmm/shared";
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { EstateTransactionEntity } from "../database";
-
-type EstateTransactionListQuery = { 
-    legalDongName?: string;
-    buildingUse?: string;
-    buildingName?: string;
-};
-
-export type EstateTransactionListItemResponse = { //프론트가 받기 편하게 정제된 데이터
-    id: number;
-    legalDongName: string;
-    buildingName: string | null;
-    buildingUse: string;
-    contractDate: Date;
-    dealAmount10kKrw: number;
-    buildingAreaSquareMeter: number;
-    floor: number | null;
-    builtYear: number;
-};
 
 @Injectable()
 export class EstateQueryService { //실거래 내역 DB에서 가져옴
@@ -28,7 +15,7 @@ export class EstateQueryService { //실거래 내역 DB에서 가져옴
         private readonly estateTransactions: Repository<EstateTransactionEntity>
     ) {}
 
-    getTransactions(query: EstateTransactionListQuery): Promise<EstateTransactionListItemResponse[]> { //조건으로 필터링
+    getTransactions(query: EstateTransactionListQuery): Promise<EstateTransactionListResponse> { //조건으로 필터링
         const queryBuilder = this.estateTransactions.createQueryBuilder("estateTransaction");
 
         if (query.legalDongName) {
@@ -54,22 +41,33 @@ export class EstateQueryService { //실거래 내역 DB에서 가져옴
             .addOrderBy("estateTransaction.id", "ASC")
             .take(20)
             .getMany()
-            .then((transactions) => transactions.map(toEstateTransactionListItem));
+            .then((transactions) => 
+                EstateTransactionListResponseSchema.parse(transactions.map(toEstateTransactionListItem))
+            );
     }
 }
 
 function toEstateTransactionListItem(
     transaction: EstateTransactionEntity
-): EstateTransactionListItemResponse {
-    return { //프론트에 줄 정보들
+): EstateTransactionListResponse[number] {
+    return { 
         id: transaction.id,
         legalDongName: transaction.legalDongName,
         buildingName: transaction.buildingName,
         buildingUse: transaction.buildingUse,
-        contractDate: transaction.contractDate,
+        contractDate: toDateString(transaction.contractDate),
         dealAmount10kKrw: transaction.dealAmount10kKrw,
-        buildingAreaSquareMeter: transaction.buildingAreaSquareMeter,
+        buildingAreaSquareMeter: String(transaction.buildingAreaSquareMeter),
         floor: transaction.floor,
         builtYear: transaction.builtYear
     };
+}
+
+//zod조건 맞추려고 변환해주는 함수
+function toDateString(value: Date | string) {
+    if (value instanceof Date) {
+        return value.toISOString().slice(0, 10);
+    }
+
+    return value;
 }
