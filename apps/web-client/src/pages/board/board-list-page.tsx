@@ -8,7 +8,8 @@ import {
     SongpaBoardDongCodeSchema,
     getSongpaBoardDongName,
     type BoardPostListItem,
-    type BoardPostListQuery
+    type BoardPostListQuery,
+    type BoardPostSearchScope
 } from "@nmm/shared";
 import {
     AlertDialog,
@@ -25,6 +26,7 @@ import { Button } from "@nmm/ui/components/button";
 import { Card, CardContent } from "@nmm/ui/components/card";
 import { toast } from "@nmm/ui/components/sonner";
 import { Spinner } from "@nmm/ui/components/spinner";
+import { ToggleGroup, ToggleGroupItem } from "@nmm/ui/components/toggle-group";
 import { currentUserQueryOptions } from "@/features/auth";
 import {
     BoardPostList,
@@ -40,6 +42,16 @@ type BoardListPageProps = {
 };
 
 const DONG_FILTER_ALL_VALUE = "ALL";
+const DONG_BOARD_FILTER_OPTIONS = [
+    {
+        value: DONG_FILTER_ALL_VALUE,
+        label: "전체"
+    },
+    ...SONGPA_BOARD_DONGS.map((dong) => ({
+        value: dong.stdgCd,
+        label: dong.stdgNm
+    }))
+];
 
 export function BoardListPage({ query }: BoardListPageProps) {
     const navigate = useNavigate({ from: "/board" });
@@ -79,19 +91,16 @@ export function BoardListPage({ query }: BoardListPageProps) {
         }
 
         const nextSearchScope = BoardPostSearchScopeSchema.parse(value);
-        const nextKeyword = keyword.trim();
 
         setSearchScope(nextSearchScope);
-        void navigateToList({
-            dongCode: query.dongCode,
-            page: 1,
-            pageSize: query.pageSize,
-            searchScope: nextSearchScope,
-            q: nextKeyword.length > 0 ? nextKeyword : undefined
-        });
+        void navigateToSearch(nextSearchScope, keyword);
     }
 
     function handleDongFilterChange(value: string) {
+        if (!value) {
+            return;
+        }
+
         const nextDongCode = value === DONG_FILTER_ALL_VALUE ? undefined : SongpaBoardDongCodeSchema.parse(value);
 
         void navigateToList({
@@ -104,27 +113,14 @@ export function BoardListPage({ query }: BoardListPageProps) {
     function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
 
-        const nextKeyword = keyword.trim();
-
-        void navigateToList({
-            dongCode: query.dongCode,
-            page: 1,
-            pageSize: query.pageSize,
-            searchScope,
-            q: nextKeyword.length > 0 ? nextKeyword : undefined
-        });
+        void navigateToSearch(searchScope, keyword);
     }
 
     function handleClearSearch() {
         setKeyword("");
-        void navigateToList({
-            dongCode: query.dongCode,
-            page: 1,
-            pageSize: query.pageSize,
-            searchScope,
-            q: undefined
-        });
+        void navigateToSearch(searchScope, "");
     }
+
 
     function handlePageChange(page: number) {
         if (page === query.page) {
@@ -172,12 +168,24 @@ export function BoardListPage({ query }: BoardListPageProps) {
         });
     }
 
+    function navigateToSearch(nextSearchScope: BoardPostSearchScope, nextKeyword: string) {
+        const trimmedKeyword = nextKeyword.trim();
+
+        return navigateToList({
+            dongCode: query.dongCode,
+            page: 1,
+            pageSize: query.pageSize,
+            searchScope: nextSearchScope,
+            q: trimmedKeyword.length > 0 ? trimmedKeyword : undefined
+        });
+    }
+
     if (isPostListError) {
         throw postListError;
     }
 
     return (
-        <section className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10 sm:px-6 lg:px-8">
+        <section className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 py-8 sm:px-6 lg:px-8">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex flex-col gap-1">
                     <div className="flex flex-wrap items-center gap-2">
@@ -281,74 +289,56 @@ type DongBoardFilterProps = {
 
 function DongBoardFilter({ dongCode, onDongFilterChange }: DongBoardFilterProps) {
     const selectedValue = dongCode ?? DONG_FILTER_ALL_VALUE;
+    const filterItems = DONG_BOARD_FILTER_OPTIONS.map(renderDongBoardFilterOption);
 
     return (
-        <div className="flex flex-wrap gap-2" aria-label="동네 필터">
-            <DongBoardFilterButton
-                value={DONG_FILTER_ALL_VALUE}
-                label="전체"
-                isSelected={selectedValue === DONG_FILTER_ALL_VALUE}
-                onSelect={onDongFilterChange}
-            />
-            {SONGPA_BOARD_DONGS.map((dong) => {
-                const isSelected = selectedValue === dong.stdgCd;
-
-                return (
-                    <DongBoardFilterButton
-                        key={dong.stdgCd}
-                        value={dong.stdgCd}
-                        label={dong.stdgNm}
-                        isSelected={isSelected}
-                        onSelect={onDongFilterChange}
-                    />
-                );
-            })}
-        </div>
+        <ToggleGroup
+            type="single"
+            value={selectedValue}
+            onValueChange={onDongFilterChange}
+            variant="default"
+            size="sm"
+            spacing={2}
+            className="flex w-full max-w-full flex-wrap justify-start gap-2"
+            aria-label="동네 필터"
+        >
+            {filterItems}
+        </ToggleGroup>
     );
 }
 
-function DongBoardFilterButton({
-    value,
-    label,
-    isSelected,
-    onSelect
-}: {
+type DongBoardFilterOption = {
     value: string;
     label: string;
-    isSelected: boolean;
-    onSelect: (value: string) => void;
-}) {
-    function handleClick() {
-        onSelect(value);
-    }
+};
 
+function renderDongBoardFilterOption(option: DongBoardFilterOption) {
     return (
-        <Button
-            type="button"
-            size="sm"
-            variant={isSelected ? "default" : "outline"}
-            aria-pressed={isSelected}
-            onClick={handleClick}
+        <ToggleGroupItem
+            key={option.value}
+            value={option.value}
+            aria-label={option.label}
+            className="text-muted-foreground hover:bg-muted hover:text-foreground data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
         >
-            {label}
-        </Button>
+            {option.label}
+        </ToggleGroupItem>
     );
 }
 
 function BoardListPendingCard() {
     return (
-        <Card>
-            <CardContent className="text-sm text-muted-foreground">게시글을 불러오는 중</CardContent>
+        <Card className="border-border bg-card p-4 shadow-none">
+            <CardContent className="p-0 text-sm text-muted-foreground">게시글을 불러오는 중</CardContent>
         </Card>
     );
 }
 
 function getBoardTitle(dongName?: string | null) {
     if (dongName) {
-        return `${dongName} 동네 게시판`;
+        return `${dongName} 이웃 글`;
     }
 
-    return "송파구 동네 게시판";
+    return "동네 이웃 글";
 }
 
 function getBoardDescription(dongName?: string | null) {
