@@ -9,13 +9,15 @@ import { Repository } from "typeorm";
 import { EstateTransactionEntity } from "../database";
 
 @Injectable()
-export class EstateQueryService { //실거래 내역 DB에서 가져옴
+export class EstateQueryService {
+    //실거래 내역 DB에서 가져옴
     constructor(
         @InjectRepository(EstateTransactionEntity)
         private readonly estateTransactions: Repository<EstateTransactionEntity>
     ) {}
 
-    getTransactions(query: EstateTransactionListQuery): Promise<EstateTransactionListResponse> { //조건으로 필터링
+    getTransactions(query: EstateTransactionListQuery): Promise<EstateTransactionListResponse> {
+        //조건으로 필터링
         const queryBuilder = this.estateTransactions.createQueryBuilder("estateTransaction");
 
         if (query.legalDongName) {
@@ -41,17 +43,15 @@ export class EstateQueryService { //실거래 내역 DB에서 가져옴
             .addOrderBy("estateTransaction.id", "ASC")
             .take(20)
             .getMany()
-            .then((transactions) => 
+            .then((transactions) =>
                 EstateTransactionListResponseSchema.parse(transactions.map(toEstateTransactionListItem))
             );
     }
 }
 
-function toEstateTransactionListItem(
-    transaction: EstateTransactionEntity
-): EstateTransactionListResponse[number] {
-    return { 
-        id: transaction.id,
+function toEstateTransactionListItem(transaction: EstateTransactionEntity): EstateTransactionListResponse[number] {
+    return {
+        id: Number(transaction.id),
         legalDongName: transaction.legalDongName,
         buildingName: transaction.buildingName,
         buildingUse: transaction.buildingUse,

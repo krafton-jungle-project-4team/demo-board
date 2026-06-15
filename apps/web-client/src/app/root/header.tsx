@@ -45,6 +45,16 @@ export function Header() {
                             게시글
                         </Link>
                     </Button>
+                    <Button asChild variant="ghost" size="sm">
+                        <Link
+                            to="/estate"
+                            activeProps={{
+                                className: "bg-accent text-accent-foreground"
+                            }}
+                        >
+                            매물검색
+                        </Link>
+                    </Button>
                     {currentUser ? (
                         <>
                             <span className="px-2 text-sm text-muted-foreground">
