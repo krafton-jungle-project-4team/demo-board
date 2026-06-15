@@ -5,7 +5,7 @@ import type { BoardPostListQuery } from "@nmm/shared";
 import { Badge } from "@nmm/ui/components/badge";
 import { Button } from "@nmm/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components/card";
-import { BoardCommentSection, boardPostQueryOptions } from "@/features/board";
+import { BoardCommentSection, BoardPostDongBadge, boardPostQueryOptions } from "@/features/board";
 
 type BoardDetailPageProps = {
     postId: number;
@@ -28,8 +28,11 @@ export function BoardDetailPage({ postId, query }: BoardDetailPageProps) {
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="flex flex-col gap-2">
                             <CardTitle className="text-2xl">{post.title}</CardTitle>
-                            <CardDescription>
-                                {post.author.name} · {formatBoardPostDetailDate(post.createdAt)}
+                            <CardDescription className="flex flex-wrap items-center gap-1.5">
+                                <BoardPostDongBadge dongName={post.dongName} />
+                                <span>{post.author.name}</span>
+                                <span>·</span>
+                                <span>{formatBoardPostDetailDate(post.createdAt)}</span>
                             </CardDescription>
                         </div>
                         <Button asChild variant="outline" size="sm">

@@ -6,6 +6,7 @@ import { Button } from "@nmm/ui/components/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@nmm/ui/components/empty";
 import { Spinner } from "@nmm/ui/components/spinner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@nmm/ui/components/table";
+import { BoardPostDongBadge } from "./board-post-dong-badge";
 
 type BoardPostListProps = {
     postList: BoardPostListResponse;
@@ -80,7 +81,10 @@ function BoardPostListRow({ post, isDeleting, onDeletePost }: BoardPostListRowPr
                     search={DEFAULT_BOARD_POST_LIST_QUERY}
                     className="flex flex-col gap-1"
                 >
-                    <span className="font-medium">{post.title}</span>
+                    <span className="flex flex-wrap items-center gap-1.5">
+                        <BoardPostDongBadge dongName={post.dongName} />
+                        <span className="font-medium">{post.title}</span>
+                    </span>
                     <span className="line-clamp-2 text-muted-foreground">{post.excerpt}</span>
                 </Link>
             </TableCell>
