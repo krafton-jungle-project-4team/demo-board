@@ -14,6 +14,7 @@
         "dev:db:stop": "docker compose --env-file ${NMM_ENV_FILE:-apps/api-server/.env} stop postgres",
         "db:init": "sh apps/api-server/scripts/db-run-sql.sh apps/api-server/database/init",
         "db:migrate": "sh apps/api-server/scripts/db-run-sql.sh apps/api-server/database/migrations",
+        "estate:embeddings:sync": "docker compose --env-file ${NMM_ENV_FILE:-apps/api-server/.env} run --rm api-server npm run estate:embeddings:sync -w @nmm/api-server --",
         "preview:web": "npm run build -w @nmm/shared && npm run build:profile -w @nmm/web-client && npm run preview -w @nmm/web-client",
         "build": "npm run build -w @nmm/shared && npm run build -w @nmm/web-client && npm run build -w @nmm/api-server",
         "build:web": "npm run build -w @nmm/shared && npm run build -w @nmm/web-client",
