@@ -5,7 +5,9 @@ import {
     type AuthUser,
     type BoardCommentWriteRequest,
     type BoardCommandResponse,
-    type BoardPostWriteRequest
+    type BoardPostCreateRequest,
+    type BoardPostUpdateRequest,
+    type SongpaBoardDongCode
 } from "@nmm/shared";
 import { DataSource, IsNull, Repository, type EntityManager } from "typeorm";
 import { BOARD_ERRORS, createBoardError } from "../board.errors";
@@ -25,11 +27,13 @@ export class BoardCommandService {
         @InjectRepository(BoardCommentEntity) private readonly comments: Repository<BoardCommentEntity>
     ) {}
 
-    async createPost(authUser: AuthUser, request: BoardPostWriteRequest): Promise<BoardCommandResponse> {
+    async createPost(authUser: AuthUser, request: BoardPostCreateRequest): Promise<BoardCommandResponse> {
+        const dongCode = this.resolvePostDongCode(authUser, request.postScope);
         const postId = await this.dataSource.transaction(async (manager) => {
             const post = await manager.save(
                 manager.create(BoardPostEntity, {
                     authorId: authUser.id,
+                    dongCode,
                     title: request.title,
                     content: request.content
                 })
@@ -46,7 +50,7 @@ export class BoardCommandService {
     async updatePost(
         authUser: AuthUser,
         postId: number,
-        request: BoardPostWriteRequest
+        request: BoardPostUpdateRequest
     ): Promise<BoardCommandResponse> {
         await this.dataSource.transaction(async (manager) => {
             const post = await this.findPostOrThrow(manager, postId);
@@ -293,6 +297,21 @@ export class BoardCommandService {
         if (authUser.id !== ownerId) {
             throw createBoardError(BOARD_ERRORS.FORBIDDEN);
         }
+    }
+
+    private resolvePostDongCode(
+        authUser: AuthUser,
+        postScope: BoardPostCreateRequest["postScope"]
+    ): SongpaBoardDongCode | null {
+        if (postScope === "ALL") {
+            return null;
+        }
+
+        if (!authUser.residenceDongCode) {
+            throw createBoardError(BOARD_ERRORS.DONG_RESIDENCE_REQUIRED);
+        }
+
+        return authUser.residenceDongCode;
     }
 }
 

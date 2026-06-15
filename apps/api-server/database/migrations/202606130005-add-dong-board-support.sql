@@ -25,6 +25,9 @@ SET name = EXCLUDED.name;
 ALTER TABLE auth_users
 ADD COLUMN IF NOT EXISTS residence_dong_code varchar(5);
 
+ALTER TABLE board_posts
+ADD COLUMN IF NOT EXISTS dong_code varchar(5);
+
 DO $$
 BEGIN
     IF NOT EXISTS (
@@ -35,6 +38,19 @@ BEGIN
         ALTER TABLE auth_users
         ADD CONSTRAINT fk_auth_users_residence_dong_code
         FOREIGN KEY (residence_dong_code) REFERENCES board_songpa_dongs (code);
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'fk_board_posts_dong_code'
+    ) THEN
+        ALTER TABLE board_posts
+        ADD CONSTRAINT fk_board_posts_dong_code
+        FOREIGN KEY (dong_code) REFERENCES board_songpa_dongs (code);
     END IF;
 END $$;
 

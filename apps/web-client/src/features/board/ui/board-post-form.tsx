@@ -1,25 +1,47 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { BoardPostWriteRequestSchema, type BoardPostDetailResponse, type BoardPostWriteRequest } from "@nmm/shared";
+import {
+    BoardPostScopeSchema,
+    BoardPostWriteRequestSchema,
+    type BoardPostDetailResponse,
+    type BoardPostScope,
+    type BoardPostWriteRequest
+} from "@nmm/shared";
 import { Button } from "@nmm/ui/components/button";
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@nmm/ui/components/field";
+import {
+    Field,
+    FieldDescription,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+    FieldLegend,
+    FieldSet
+} from "@nmm/ui/components/field";
 import { Input } from "@nmm/ui/components/input";
 import { Spinner } from "@nmm/ui/components/spinner";
 import { Textarea } from "@nmm/ui/components/textarea";
+import { ToggleGroup, ToggleGroupItem } from "@nmm/ui/components/toggle-group";
 
 const BoardPostFormSchema = z.object({
+    postScope: BoardPostScopeSchema.optional(),
     title: z.string().trim().min(1, "제목을 입력하세요.").max(200, "제목은 200자 이하로 입력하세요."),
     content: z.string().trim().min(1, "내용을 입력하세요.").max(20000, "내용은 20000자 이하로 입력하세요."),
     tagsText: z.string()
 });
 
-export type BoardPostFormValues = BoardPostWriteRequest;
+export type BoardPostFormValues = BoardPostWriteRequest & {
+    postScope?: BoardPostScope;
+};
 
 type BoardPostFormFields = z.infer<typeof BoardPostFormSchema>;
 
 type BoardPostFormProps = {
     initialPost?: BoardPostDetailResponse;
+    postScopeOptions?: {
+        canCreateMyDongPost: boolean;
+        residenceDongName?: string | null;
+    };
     isSubmitting: boolean;
     submitLabel: string;
     errorMessage?: string;
@@ -27,16 +49,25 @@ type BoardPostFormProps = {
 };
 
 const EMPTY_BOARD_POST_FORM_FIELDS = {
+    postScope: "ALL",
     title: "",
     content: "",
     tagsText: ""
 } satisfies BoardPostFormFields;
 
-export function BoardPostForm({ initialPost, isSubmitting, submitLabel, errorMessage, onSubmit }: BoardPostFormProps) {
+export function BoardPostForm({
+    initialPost,
+    postScopeOptions,
+    isSubmitting,
+    submitLabel,
+    errorMessage,
+    onSubmit
+}: BoardPostFormProps) {
     const form = useForm<BoardPostFormFields>({
         resolver: zodResolver(BoardPostFormSchema),
         defaultValues: initialPost ? toBoardPostFormFields(initialPost) : EMPTY_BOARD_POST_FORM_FIELDS
     });
+    const postScope = form.watch("postScope") ?? "ALL";
     const titleField = form.register("title");
     const contentField = form.register("content");
     const tagsTextField = form.register("tagsText");
@@ -45,12 +76,27 @@ export function BoardPostForm({ initialPost, isSubmitting, submitLabel, errorMes
     const tagsTextError = form.formState.errors.tagsText;
     const handlePostSubmit = form.handleSubmit(handleSubmit);
 
+    function handlePostScopeChange(value: string) {
+        if (!value) {
+            return;
+        }
+
+        form.setValue("postScope", BoardPostScopeSchema.parse(value), {
+            shouldDirty: true,
+            shouldValidate: true
+        });
+    }
+
     function handleSubmit(values: BoardPostFormFields) {
-        const request = BoardPostWriteRequestSchema.parse({
+        const request: BoardPostFormValues = BoardPostWriteRequestSchema.parse({
             title: values.title,
             content: values.content,
             tags: parseTagsText(values.tagsText)
         });
+
+        if (postScopeOptions) {
+            request.postScope = BoardPostScopeSchema.parse(values.postScope);
+        }
 
         return onSubmit(request);
     }
@@ -58,6 +104,35 @@ export function BoardPostForm({ initialPost, isSubmitting, submitLabel, errorMes
     return (
         <form className="flex flex-col gap-6" onSubmit={handlePostSubmit}>
             <FieldGroup>
+                {postScopeOptions ? (
+                    <FieldSet>
+                        <FieldLegend>글 범위</FieldLegend>
+                        <ToggleGroup
+                            type="single"
+                            value={postScope}
+                            onValueChange={handlePostScopeChange}
+                            variant="outline"
+                            size="sm"
+                            aria-label="글 범위"
+                        >
+                            <ToggleGroupItem value="ALL" aria-label="전체 글">
+                                전체 글
+                            </ToggleGroupItem>
+                            <ToggleGroupItem
+                                value="MY_DONG"
+                                disabled={!postScopeOptions.canCreateMyDongPost}
+                                aria-label="내 동네 글"
+                            >
+                                내 동네 글
+                            </ToggleGroupItem>
+                        </ToggleGroup>
+                        <FieldDescription>
+                            {postScopeOptions.canCreateMyDongPost
+                                ? `내 동네 글은 ${postScopeOptions.residenceDongName ?? "내 거주동"} 게시글로 등록됩니다.`
+                                : "동네 글을 작성하려면 거주동 설정이 필요해요. 지금은 전체 글로 작성할 수 있어요."}
+                        </FieldDescription>
+                    </FieldSet>
+                ) : null}
                 <Field data-invalid={titleError !== undefined}>
                     <FieldLabel htmlFor="board-post-title">제목</FieldLabel>
                     <Input
@@ -103,6 +178,7 @@ export function BoardPostForm({ initialPost, isSubmitting, submitLabel, errorMes
 
 function toBoardPostFormFields(post: BoardPostDetailResponse): BoardPostFormFields {
     return {
+        postScope: undefined,
         title: post.title,
         content: post.content,
         tagsText: post.tags.map((tag) => tag.name).join(", ")

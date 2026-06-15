@@ -1,3 +1,4 @@
+import type { SongpaBoardDongCode } from "@nmm/shared";
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
 @Entity("board_posts")
@@ -8,6 +9,9 @@ export class BoardPostEntity {
 
     @Column({ name: "author_id", type: "bigint" })
     authorId!: number;
+
+    @Column({ name: "dong_code", type: "varchar", length: 5, nullable: true })
+    dongCode!: SongpaBoardDongCode | null;
 
     @Column({ type: "text" })
     title!: string;

@@ -24,7 +24,7 @@ const REQUIRED_TABLE_COLUMNS = {
     auth_verification: ["id", "identifier", "value", "expiresAt", "createdAt", "updatedAt"],
     auth_users: ["id", "auth_user_id", "email", "name", "residence_dong_code", "created_at", "updated_at"],
     board_songpa_dongs: ["code", "name", "created_at"],
-    board_posts: ["id", "author_id", "title", "content", "created_at", "updated_at"],
+    board_posts: ["id", "author_id", "dong_code", "title", "content", "created_at", "updated_at"],
     board_tags: ["id", "name", "normalized_name", "created_at"],
     board_post_tags: ["id", "post_id", "tag_id", "created_at"],
     board_comments: [

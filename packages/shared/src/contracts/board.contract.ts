@@ -7,8 +7,14 @@ const MAX_BOARD_POST_TAG_COUNT = 10;
 
 export const BOARD_POST_SEARCH_SCOPES = ["title", "content", "tag", "titleContent"] as const;
 export const DEFAULT_BOARD_POST_SEARCH_SCOPE = "titleContent";
+export const BOARD_POST_SCOPES = ["ALL", "MY_DONG"] as const;
+export const DEFAULT_BOARD_POST_SCOPE = "ALL";
 
 export const BoardIdSchema = z.number().int().positive();
+
+export const BoardPostScopeSchema = z.enum(BOARD_POST_SCOPES).default(DEFAULT_BOARD_POST_SCOPE);
+
+export type BoardPostScope = z.infer<typeof BoardPostScopeSchema>;
 
 export const BoardAuthorSchema = z.object({
     id: BoardIdSchema,
@@ -111,13 +117,23 @@ export const BoardPostDetailResponseSchema = z.object({
 
 export type BoardPostDetailResponse = z.infer<typeof BoardPostDetailResponseSchema>;
 
-export const BoardPostWriteRequestSchema = z.object({
+export const BoardPostUpdateRequestSchema = z.object({
     title: z.string().trim().min(1).max(200),
     content: z.string().trim().min(1).max(20000),
     tags: BoardPostTagsSchema
 });
 
-export type BoardPostWriteRequest = z.infer<typeof BoardPostWriteRequestSchema>;
+export type BoardPostUpdateRequest = z.infer<typeof BoardPostUpdateRequestSchema>;
+
+export const BoardPostCreateRequestSchema = BoardPostUpdateRequestSchema.extend({
+    postScope: BoardPostScopeSchema
+});
+
+export type BoardPostCreateRequest = z.infer<typeof BoardPostCreateRequestSchema>;
+
+export const BoardPostWriteRequestSchema = BoardPostUpdateRequestSchema;
+
+export type BoardPostWriteRequest = BoardPostUpdateRequest;
 
 export const BoardCommandResponseSchema = z.object({
     id: BoardIdSchema

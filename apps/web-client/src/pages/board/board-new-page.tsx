@@ -1,25 +1,44 @@
-import { useNavigate } from "@tanstack/react-router";
-import { DEFAULT_BOARD_POST_LIST_QUERY } from "@nmm/shared";
+import { useQuery } from "@tanstack/react-query";
+import { Link, useNavigate } from "@tanstack/react-router";
+import type { BoardPostListQuery } from "@nmm/shared";
+import { Button } from "@nmm/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components/card";
 import { toast } from "@nmm/ui/components/sonner";
+import { currentUserQueryOptions } from "@/features/auth";
 import { BoardPostForm, useCreateBoardPostMutation, type BoardPostFormValues } from "@/features/board";
 import { ApiClientError } from "@/shared/api/http-client";
 
-export function BoardNewPage() {
+type BoardNewPageProps = {
+    query: BoardPostListQuery;
+};
+
+export function BoardNewPage({ query }: BoardNewPageProps) {
     const navigate = useNavigate();
+    const currentUserQuery = useQuery(currentUserQueryOptions);
+    const currentUser = currentUserQuery.data;
     const createPostMutation = useCreateBoardPostMutation();
     const errorMessage = createPostMutation.error ? getErrorMessage(createPostMutation.error) : undefined;
+    const canCreatePost = currentUser !== null && currentUser !== undefined;
 
     async function handleSubmit(values: BoardPostFormValues) {
+        if (!values.postScope) {
+            return;
+        }
+
         try {
-            const response = await createPostMutation.mutateAsync(values);
+            const response = await createPostMutation.mutateAsync({
+                title: values.title,
+                content: values.content,
+                tags: values.tags,
+                postScope: values.postScope
+            });
             toast.success("게시글을 작성했습니다.");
             await navigate({
                 to: "/board/$postId",
                 params: {
                     postId: String(response.id)
                 },
-                search: DEFAULT_BOARD_POST_LIST_QUERY
+                search: query
             });
         } catch (error) {
             toast.error(getErrorMessage(error));
@@ -31,18 +50,39 @@ export function BoardNewPage() {
             <Card>
                 <CardHeader>
                     <CardTitle>새 게시글</CardTitle>
-                    <CardDescription>제목, 내용, 태그를 입력하세요.</CardDescription>
+                    <CardDescription>송파 생활 이야기를 자유롭게 남겨보세요.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <BoardPostForm
-                        isSubmitting={createPostMutation.isPending}
-                        submitLabel="작성"
-                        errorMessage={errorMessage}
-                        onSubmit={handleSubmit}
-                    />
+                    {currentUserQuery.isPending ? (
+                        <p className="text-sm text-muted-foreground">작성 권한을 확인하는 중</p>
+                    ) : canCreatePost ? (
+                        <BoardPostForm
+                            postScopeOptions={{
+                                canCreateMyDongPost: Boolean(currentUser.residenceDongCode),
+                                residenceDongName: currentUser.residenceDongName
+                            }}
+                            isSubmitting={createPostMutation.isPending}
+                            submitLabel="작성"
+                            errorMessage={errorMessage}
+                            onSubmit={handleSubmit}
+                        />
+                    ) : (
+                        <BoardWriteLoginNotice />
+                    )}
                 </CardContent>
             </Card>
         </section>
+    );
+}
+
+function BoardWriteLoginNotice() {
+    return (
+        <div className="flex flex-col gap-4">
+            <p className="text-sm text-muted-foreground">로그인 후 글을 작성할 수 있어요.</p>
+            <Button asChild className="self-start">
+                <Link to="/auth/login">로그인</Link>
+            </Button>
+        </div>
     );
 }
 
