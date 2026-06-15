@@ -6,10 +6,13 @@ import {
 import { requestApiData } from "@/shared/api/http-client";
 
 export function getEstateTransactions(query: EstateTransactionListQuery): Promise<EstateTransactionListResponse> {
-    return requestApiData(
-        `estate/transactions?${createEstateTransactionListSearchParams(query)}`,
-        EstateTransactionListResponseSchema
-    );
+    return requestApiData(createEstateTransactionListPath(query), EstateTransactionListResponseSchema);
+}
+
+function createEstateTransactionListPath(query: EstateTransactionListQuery) {
+    const searchParams = createEstateTransactionListSearchParams(query);
+
+    return searchParams.length > 0 ? `estate/transactions?${searchParams}` : "estate/transactions";
 }
 
 function createEstateTransactionListSearchParams(query: EstateTransactionListQuery) {
