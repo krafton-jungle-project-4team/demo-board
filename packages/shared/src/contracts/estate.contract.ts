@@ -11,9 +11,7 @@ const OptionalEstateSearchKeywordSchema = z.preprocess((value) => {
 }, z.string().min(1).max(100).optional());
 
 export const EstateTransactionListQuerySchema = z.object({
-    legalDongName: OptionalEstateSearchKeywordSchema,
-    buildingUse: OptionalEstateSearchKeywordSchema,
-    buildingName: OptionalEstateSearchKeywordSchema
+    q: OptionalEstateSearchKeywordSchema
 });
 
 export type EstateTransactionListQuery = z.infer<typeof EstateTransactionListQuerySchema>;

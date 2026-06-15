@@ -18,16 +18,8 @@ function createEstateTransactionListPath(query: EstateTransactionListQuery) {
 function createEstateTransactionListSearchParams(query: EstateTransactionListQuery) {
     const searchParams = new URLSearchParams();
 
-    if (query.legalDongName) {
-        searchParams.set("legalDongName", query.legalDongName);
-    }
-
-    if (query.buildingUse) {
-        searchParams.set("buildingUse", query.buildingUse);
-    }
-
-    if (query.buildingName) {
-        searchParams.set("buildingName", query.buildingName);
+    if (query.q) {
+        searchParams.set("q", query.q);
     }
 
     return searchParams.toString();

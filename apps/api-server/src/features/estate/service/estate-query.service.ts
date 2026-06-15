@@ -5,7 +5,7 @@ import {
 } from "@nmm/shared";
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { Brackets, Repository } from "typeorm";
 import { EstateTransactionEntity } from "../database";
 
 @Injectable()
@@ -20,21 +20,21 @@ export class EstateQueryService {
         //조건으로 필터링
         const queryBuilder = this.estateTransactions.createQueryBuilder("estateTransaction");
 
-        if (query.legalDongName) {
-            queryBuilder.andWhere("estateTransaction.legalDongName = :legalDongName", {
-                legalDongName: query.legalDongName
-            });
-        }
+        if (query.q) {
+            const keywords = query.q.split(/\s+/);
 
-        if (query.buildingUse) {
-            queryBuilder.andWhere("estateTransaction.buildingUse = :buildingUse", {
-                buildingUse: query.buildingUse
-            });
-        }
-
-        if (query.buildingName) {
-            queryBuilder.andWhere("estateTransaction.buildingName ILIKE :buildingName", {
-                buildingName: `%${query.buildingName}%`
+            keywords.forEach((keyword, index) => {
+                queryBuilder.andWhere(
+                    new Brackets((bracketQueryBuilder) => {
+                        bracketQueryBuilder
+                            .where(`estateTransaction.legalDongName ILIKE :keyword${index}`)
+                            .orWhere(`estateTransaction.buildingUse ILIKE :keyword${index}`)
+                            .orWhere(`estateTransaction.buildingName ILIKE :keyword${index}`);
+                    }),
+                    {
+                        [`keyword${index}`]: `%${keyword}%`
+                    }
+                );
             });
         }
 
