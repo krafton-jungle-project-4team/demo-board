@@ -26,6 +26,51 @@ export const ESTATE_ERRORS = {
         statusCode: HttpStatus.BAD_GATEWAY,
         code: "ESTATE_EMBEDDING_REQUEST_FAILED",
         message: "임베딩 생성 요청에 실패했습니다."
+    },
+    PROPERTY_NOT_FOUND: {
+        statusCode: HttpStatus.NOT_FOUND,
+        code: "ESTATE_PROPERTY_NOT_FOUND",
+        message: "매물 위치 정보를 찾을 수 없습니다."
+    },
+    PROPERTY_COORDINATES_MISSING: {
+        statusCode: HttpStatus.CONFLICT,
+        code: "ESTATE_PROPERTY_COORDINATES_MISSING",
+        message: "매물 좌표 정보가 없습니다."
+    },
+    TMAP_APP_KEY_MISSING: {
+        statusCode: HttpStatus.SERVICE_UNAVAILABLE,
+        code: "ESTATE_TMAP_APP_KEY_MISSING",
+        message: "TMAP API 키가 설정되지 않았습니다."
+    },
+    TMAP_UNAUTHORIZED: {
+        statusCode: HttpStatus.BAD_GATEWAY,
+        code: "ESTATE_TMAP_UNAUTHORIZED",
+        message: "TMAP API 인증에 실패했습니다."
+    },
+    TMAP_RATE_LIMITED: {
+        statusCode: HttpStatus.BAD_GATEWAY,
+        code: "ESTATE_TMAP_RATE_LIMITED",
+        message: "TMAP API 호출 한도를 초과했습니다."
+    },
+    TMAP_TIMEOUT: {
+        statusCode: HttpStatus.GATEWAY_TIMEOUT,
+        code: "ESTATE_TMAP_TIMEOUT",
+        message: "TMAP API 응답 시간이 초과되었습니다."
+    },
+    TMAP_BAD_RESPONSE: {
+        statusCode: HttpStatus.BAD_GATEWAY,
+        code: "ESTATE_TMAP_BAD_RESPONSE",
+        message: "TMAP API 응답을 해석할 수 없습니다."
+    },
+    NO_TRANSPORT_FOUND: {
+        statusCode: HttpStatus.NOT_FOUND,
+        code: "ESTATE_NO_TRANSPORT_FOUND",
+        message: "주변 대중교통 후보를 찾을 수 없습니다."
+    },
+    NO_WALK_ROUTE_FOUND: {
+        statusCode: HttpStatus.NOT_FOUND,
+        code: "ESTATE_NO_WALK_ROUTE_FOUND",
+        message: "도보 경로를 계산할 수 없습니다."
     }
 } as const;
 

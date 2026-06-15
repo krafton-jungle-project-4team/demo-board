@@ -23,10 +23,20 @@ export type AiEnv = {
     };
 };
 
+export type TmapEnv = {
+    appKey?: string;
+    baseUrl: string;
+    timeoutMs: number;
+    walkRouteCacheTtlSeconds: number;
+    transportPoiCacheTtlSeconds: number;
+    maxTmapCallsPerRequest: number;
+};
+
 export type ServerEnv = {
     app: AppEnv;
     auth: AuthEnv;
     ai: AiEnv;
+    tmap: TmapEnv;
     database: DatabaseEnv;
 };
 
@@ -50,6 +60,10 @@ const EmbeddingDimensionsSchema = z.preprocess(
     (value) => (value === undefined || value === "" ? "1536" : value),
     NumberEnvSchema.pipe(z.number().int().positive())
 );
+const OptionalNumberEnvSchema = z.preprocess(
+    (value) => (value === undefined || value === "" ? undefined : value),
+    NumberEnvSchema.optional()
+);
 
 const ServerEnvSchema = z.object({
     PORT: NumberEnvSchema,
@@ -68,7 +82,13 @@ const ServerEnvSchema = z.object({
     NMM_EMBEDDING_MODEL: z.string().min(1).default("text-embedding-3-small"),
     NMM_EMBEDDING_DIMENSIONS: EmbeddingDimensionsSchema,
     NMM_OPENAI_BASE_URL: OptionalStringSchema,
-    OPENAI_API_KEY: OptionalStringSchema
+    OPENAI_API_KEY: OptionalStringSchema,
+    NMM_TMAP_APP_KEY: OptionalStringSchema,
+    NMM_TMAP_BASE_URL: OptionalStringSchema,
+    NMM_TMAP_TIMEOUT_MS: OptionalNumberEnvSchema,
+    NMM_TMAP_WALK_ROUTE_CACHE_TTL_SECONDS: OptionalNumberEnvSchema,
+    NMM_TMAP_TRANSPORT_POI_CACHE_TTL_SECONDS: OptionalNumberEnvSchema,
+    NMM_TMAP_MAX_CALLS_PER_REQUEST: OptionalNumberEnvSchema
 });
 
 function createServerEnv(): ServerEnv {
@@ -92,6 +112,14 @@ function createServerEnv(): ServerEnv {
                 model: env.NMM_EMBEDDING_MODEL,
                 dimensions: env.NMM_EMBEDDING_DIMENSIONS
             }
+        },
+        tmap: {
+            appKey: env.NMM_TMAP_APP_KEY,
+            baseUrl: env.NMM_TMAP_BASE_URL ?? "https://apis.openapi.sk.com",
+            timeoutMs: env.NMM_TMAP_TIMEOUT_MS ?? 5000,
+            walkRouteCacheTtlSeconds: env.NMM_TMAP_WALK_ROUTE_CACHE_TTL_SECONDS ?? 604800,
+            transportPoiCacheTtlSeconds: env.NMM_TMAP_TRANSPORT_POI_CACHE_TTL_SECONDS ?? 86400,
+            maxTmapCallsPerRequest: env.NMM_TMAP_MAX_CALLS_PER_REQUEST ?? 10
         },
         database: {
             host: env.NMM_DB_HOST,
