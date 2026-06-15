@@ -1,4 +1,4 @@
-import { CurrentUserResponseSchema, type CurrentUserResponse } from "@nmm/shared";
+import { CurrentUserResponseSchema, type CurrentUserResponse, type UpdateResidenceDongRequest } from "@nmm/shared";
 import { z } from "zod";
 import { ApiClientError, requestApiData } from "@/shared/api/http-client";
 import { authClient } from "./auth-client";
@@ -50,4 +50,11 @@ export async function signOut(): Promise<void> {
     if (result.error) {
         throw new Error(result.error.message ?? "로그아웃에 실패했습니다.");
     }
+}
+
+export function updateResidenceDong(request: UpdateResidenceDongRequest): Promise<CurrentUserResponse> {
+    return requestApiData("auth/me/residence-dong", CurrentUserResponseSchema, {
+        method: "PATCH",
+        json: request
+    });
 }

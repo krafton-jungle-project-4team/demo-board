@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { BoardPostListQuerySchema } from "@nmm/shared";
+import { Badge } from "@nmm/ui/components/badge";
 import { Button } from "@nmm/ui/components/button";
 import { currentUserQueryOptions, signOut } from "@/features/auth";
 
@@ -30,7 +31,7 @@ export function Header() {
             <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
                 <Button asChild variant="ghost" size="sm" className="font-semibold">
                     <Link to="/board" search={defaultBoardPostListSearch}>
-                        NMM Board
+                        송파 생활 게시판
                     </Link>
                 </Button>
                 <nav className="flex items-center gap-1">
@@ -47,9 +48,19 @@ export function Header() {
                     </Button>
                     {currentUser ? (
                         <>
-                            <span className="px-2 text-sm text-muted-foreground">
-                                {currentUser.name || currentUser.email}
-                            </span>
+                            <Button asChild variant="ghost" size="sm">
+                                <Link
+                                    to="/profile"
+                                    activeProps={{
+                                        className: "bg-accent text-accent-foreground"
+                                    }}
+                                >
+                                    {currentUser.name || currentUser.email}
+                                    {currentUser.residenceDongName ? (
+                                        <Badge variant="outline">{currentUser.residenceDongName}</Badge>
+                                    ) : null}
+                                </Link>
+                            </Button>
                             <Button
                                 variant="ghost"
                                 size="sm"
