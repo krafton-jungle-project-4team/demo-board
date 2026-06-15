@@ -109,6 +109,7 @@ export class BoardCommandService {
     ): Promise<BoardCommandResponse> {
         const replyId = await this.dataSource.transaction(async (manager) => {
             const parentComment = await this.findCommentOrThrow(manager, parentCommentId);
+            await this.findPostOrThrow(manager, Number(parentComment.postId));
 
             if (parentComment.depth !== 0 || parentComment.parentCommentId !== null) {
                 throw createBoardError(BOARD_ERRORS.REPLY_DEPTH_EXCEEDED);
