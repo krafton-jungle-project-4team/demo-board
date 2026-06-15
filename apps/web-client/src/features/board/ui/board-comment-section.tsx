@@ -1,7 +1,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { MessageCircleIcon, PencilIcon, ReplyIcon, Trash2Icon } from "lucide-react";
 import { type FormEvent, useState } from "react";
-import type { BoardCommentReplyResponse, BoardCommentResponse } from "@nmm/shared";
+import type { BoardAuthor, BoardCommentReplyResponse, BoardCommentResponse } from "@nmm/shared";
 import { Button } from "@nmm/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@nmm/ui/components/empty";
@@ -16,6 +16,7 @@ import {
     useDeleteBoardCommentMutation,
     useUpdateBoardCommentMutation
 } from "../api/board-mutations";
+import { BoardAuthorLabel } from "./board-author-label";
 
 const BOARD_COMMENT_PAGE_SIZE = 20;
 const EMPTY_COMMENT_FORM_VALUE = "";
@@ -129,7 +130,7 @@ function BoardCommentItem({ comment }: { comment: BoardCommentResponse }) {
     return (
         <article className="flex flex-col gap-4 rounded-md border p-4">
             <BoardCommentHeader
-                authorName={comment.author.name}
+                author={comment.author}
                 createdAt={comment.createdAt}
                 isDeleted={comment.isDeleted}
                 isDeleting={deleteCommentMutation.isPending}
@@ -202,7 +203,7 @@ function BoardCommentReplyItem({ reply }: { reply: BoardCommentReplyResponse }) 
     return (
         <article className="flex flex-col gap-3 rounded-md bg-muted/30 p-4">
             <BoardCommentHeader
-                authorName={reply.author.name}
+                author={reply.author}
                 createdAt={reply.createdAt}
                 isDeleted={reply.isDeleted}
                 isDeleting={deleteCommentMutation.isPending}
@@ -226,7 +227,7 @@ function BoardCommentReplyItem({ reply }: { reply: BoardCommentReplyResponse }) 
 }
 
 type BoardCommentHeaderProps = {
-    authorName: string;
+    author: BoardAuthor;
     createdAt: string;
     isDeleted: boolean;
     isDeleting: boolean;
@@ -235,7 +236,7 @@ type BoardCommentHeaderProps = {
 };
 
 function BoardCommentHeader({
-    authorName,
+    author,
     createdAt,
     isDeleted,
     isDeleting,
@@ -245,7 +246,9 @@ function BoardCommentHeader({
     return (
         <div className="flex items-start justify-between gap-4">
             <div className="flex flex-col gap-1">
-                <p className="text-sm font-medium">{authorName}</p>
+                <p className="text-sm font-medium">
+                    <BoardAuthorLabel author={author} />
+                </p>
                 <p className="text-sm text-muted-foreground">{formatBoardCommentDate(createdAt)}</p>
             </div>
             <div className="flex gap-2">

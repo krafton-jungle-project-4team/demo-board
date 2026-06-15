@@ -14,6 +14,7 @@ export {
     useUpdateBoardPostMutation
 } from "./api/board-mutations";
 export { BoardCommentSection } from "./ui/board-comment-section";
+export { BoardAuthorLabel } from "./ui/board-author-label";
 export { BoardPostDongBadge } from "./ui/board-post-dong-badge";
 export { BoardPostForm, type BoardPostFormValues } from "./ui/board-post-form";
 export { BoardPostList } from "./ui/board-post-list";

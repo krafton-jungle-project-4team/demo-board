@@ -5,7 +5,7 @@ import type { BoardPostListQuery } from "@nmm/shared";
 import { Badge } from "@nmm/ui/components/badge";
 import { Button } from "@nmm/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components/card";
-import { BoardCommentSection, BoardPostDongBadge, boardPostQueryOptions } from "@/features/board";
+import { BoardAuthorLabel, BoardCommentSection, BoardPostDongBadge, boardPostQueryOptions } from "@/features/board";
 
 type BoardDetailPageProps = {
     postId: number;
@@ -30,7 +30,7 @@ export function BoardDetailPage({ postId, query }: BoardDetailPageProps) {
                             <CardTitle className="text-2xl">{post.title}</CardTitle>
                             <CardDescription className="flex flex-wrap items-center gap-1.5">
                                 <BoardPostDongBadge dongName={post.dongName} />
-                                <span>{post.author.name}</span>
+                                <BoardAuthorLabel author={post.author} />
                                 <span>·</span>
                                 <span>{formatBoardPostDetailDate(post.createdAt)}</span>
                             </CardDescription>

@@ -6,6 +6,7 @@ import { Button } from "@nmm/ui/components/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@nmm/ui/components/empty";
 import { Spinner } from "@nmm/ui/components/spinner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@nmm/ui/components/table";
+import { BoardAuthorLabel } from "./board-author-label";
 import { BoardPostDongBadge } from "./board-post-dong-badge";
 
 type BoardPostListProps = {
@@ -91,7 +92,9 @@ function BoardPostListRow({ post, isDeleting, onDeletePost }: BoardPostListRowPr
             <TableCell>
                 <BoardPostTags post={post} />
             </TableCell>
-            <TableCell className="text-muted-foreground">{post.author.name}</TableCell>
+            <TableCell className="text-muted-foreground">
+                <BoardAuthorLabel author={post.author} />
+            </TableCell>
             <TableCell className="text-muted-foreground">{formatBoardPostDate(post.createdAt)}</TableCell>
             <TableCell>
                 <div className="flex justify-end gap-2">
