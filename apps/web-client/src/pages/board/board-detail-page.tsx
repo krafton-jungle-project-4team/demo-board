@@ -20,9 +20,8 @@ const boardPostDetailDateFormatter = new Intl.DateTimeFormat("ko-KR", {
 
 export function BoardDetailPage({ postId, query }: BoardDetailPageProps) {
     const postQuery = useSuspenseQuery(boardPostQueryOptions(postId));
-    const currentUserQuery = useQuery(currentUserQueryOptions);
+    const { data: currentUser } = useQuery(currentUserQueryOptions);
     const post = postQuery.data;
-    const currentUser = currentUserQuery.data;
     const canManagePost = currentUser?.id === post.author.id;
 
     return (

@@ -14,8 +14,7 @@ type BoardNewPageProps = {
 
 export function BoardNewPage({ query }: BoardNewPageProps) {
     const navigate = useNavigate();
-    const currentUserQuery = useQuery(currentUserQueryOptions);
-    const currentUser = currentUserQuery.data;
+    const { data: currentUser, isPending: isCurrentUserPending } = useQuery(currentUserQueryOptions);
     const createPostMutation = useCreateBoardPostMutation();
     const errorMessage = createPostMutation.error ? getErrorMessage(createPostMutation.error) : undefined;
     const isSignedIn = currentUser !== null && currentUser !== undefined;
@@ -49,7 +48,7 @@ export function BoardNewPage({ query }: BoardNewPageProps) {
                     <CardDescription>현재 거주동 기준으로 동네 게시판에 등록됩니다.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {currentUserQuery.isPending ? (
+                    {isCurrentUserPending ? (
                         <p className="text-sm text-muted-foreground">작성 권한을 확인하는 중</p>
                     ) : canCreatePost ? (
                         <BoardPostForm

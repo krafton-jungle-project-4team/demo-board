@@ -40,12 +40,11 @@ export function BoardCommentSection({ postId }: BoardCommentSectionProps) {
             pageSize: BOARD_COMMENT_PAGE_SIZE
         })
     );
-    const currentUserQuery = useQuery(currentUserQueryOptions);
-    const currentUser = currentUserQuery.data;
+    const { data: currentUser, isPending: isCurrentUserPending } = useQuery(currentUserQueryOptions);
     const createCommentMutation = useCreateBoardCommentMutation(postId);
     const commentWriteState = getCommentWriteState({
         isSignedIn: currentUser !== null && currentUser !== undefined,
-        isCheckingUser: currentUserQuery.isPending
+        isCheckingUser: isCurrentUserPending
     });
     const canCreateComment = commentWriteState === "can";
 

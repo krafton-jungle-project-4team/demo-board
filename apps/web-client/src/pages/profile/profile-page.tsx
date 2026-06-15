@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { type FormEvent, useEffect, useState } from "react";
-import { SONGPA_BOARD_DONGS, SongpaBoardDongCodeSchema, type CurrentUserResponse } from "@nmm/shared";
+import { type FormEvent, useState } from "react";
+import { SONGPA_BOARD_DONGS, SongpaBoardDongCodeSchema } from "@nmm/shared";
 import { Button } from "@nmm/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components/card";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@nmm/ui/components/field";
@@ -12,10 +12,9 @@ import { currentUserQueryOptions, useUpdateResidenceDongMutation } from "@/featu
 import { ApiClientError } from "@/shared/api/http-client";
 
 export function ProfilePage() {
-    const currentUserQuery = useQuery(currentUserQueryOptions);
-    const currentUser = currentUserQuery.data;
+    const { data: currentUser, isPending: isCurrentUserPending } = useQuery(currentUserQueryOptions);
 
-    if (currentUserQuery.isPending) {
+    if (isCurrentUserPending) {
         return (
             <section className="mx-auto flex w-full max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
                 <Card className="w-full">
@@ -51,22 +50,21 @@ export function ProfilePage() {
                     <CardDescription>내 동네 글 작성에 사용할 송파구 거주동을 선택하세요.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <ResidenceDongForm currentUser={currentUser} />
+                    <ResidenceDongForm
+                        key={currentUser.residenceDongCode ?? "empty-residence-dong"}
+                        initialResidenceDongCode={currentUser.residenceDongCode ?? ""}
+                    />
                 </CardContent>
             </Card>
         </section>
     );
 }
 
-function ResidenceDongForm({ currentUser }: { currentUser: CurrentUserResponse }) {
+function ResidenceDongForm({ initialResidenceDongCode }: { initialResidenceDongCode: string }) {
     const updateResidenceDongMutation = useUpdateResidenceDongMutation();
-    const [residenceDongCode, setResidenceDongCode] = useState(currentUser.residenceDongCode ?? "");
+    const [residenceDongCode, setResidenceDongCode] = useState(initialResidenceDongCode);
     const [formError, setFormError] = useState<string | undefined>();
     const isSubmitDisabled = updateResidenceDongMutation.isPending || residenceDongCode.length === 0;
-
-    useEffect(() => {
-        setResidenceDongCode(currentUser.residenceDongCode ?? "");
-    }, [currentUser.residenceDongCode]);
 
     function handleResidenceDongChange(value: string) {
         setResidenceDongCode(value);

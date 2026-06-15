@@ -42,14 +42,17 @@ const DONG_FILTER_ALL_VALUE = "ALL";
 
 export function BoardListPage({ query }: BoardListPageProps) {
     const navigate = useNavigate({ from: "/board" });
-    const currentUserQuery = useQuery(currentUserQueryOptions);
-    const currentUser = currentUserQuery.data;
-    const postListQuery = useQuery(boardPostListQueryOptions(query));
+    const { data: currentUser, isPending: isCurrentUserPending } = useQuery(currentUserQueryOptions);
+    const {
+        data: postList,
+        error: postListError,
+        isError: isPostListError,
+        isPending: isPostListPending
+    } = useQuery(boardPostListQueryOptions(query));
     const deletePostMutation = useDeleteBoardPostMutation();
     const [keyword, setKeyword] = useState(query.q ?? "");
     const [searchScope, setSearchScope] = useState(query.searchScope);
     const [deleteTargetPost, setDeleteTargetPost] = useState<BoardPostListItem | null>(null);
-    const postList = postListQuery.data;
     const deletingPostId = deletePostMutation.isPending ? deleteTargetPost?.id : undefined;
     const selectedDongName = getSongpaBoardDongName(query.dongCode);
     const boardTitle = getBoardTitle(selectedDongName);
@@ -167,8 +170,8 @@ export function BoardListPage({ query }: BoardListPageProps) {
         });
     }
 
-    if (postListQuery.isError) {
-        throw postListQuery.error;
+    if (isPostListError) {
+        throw postListError;
     }
 
     return (
@@ -178,7 +181,7 @@ export function BoardListPage({ query }: BoardListPageProps) {
                     <h1 className="text-2xl font-semibold tracking-tight">{boardTitle}</h1>
                     <p className="text-sm text-muted-foreground">{boardDescription}</p>
                 </div>
-                <BoardCreateButton query={query} isPending={currentUserQuery.isPending} isSignedIn={isSignedIn} />
+                <BoardCreateButton query={query} isPending={isCurrentUserPending} isSignedIn={isSignedIn} />
             </div>
             <DongBoardFilter dongCode={query.dongCode} onDongFilterChange={handleDongFilterChange} />
             <BoardPostListSearchForm
@@ -189,7 +192,7 @@ export function BoardListPage({ query }: BoardListPageProps) {
                 onSubmit={handleSearchSubmit}
                 onClear={handleClearSearch}
             />
-            {postListQuery.isPending ? (
+            {isPostListPending ? (
                 <BoardListPendingCard />
             ) : postList ? (
                 <>

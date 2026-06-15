@@ -21,9 +21,8 @@ type BoardEditPageProps = {
 export function BoardEditPage({ postId, query }: BoardEditPageProps) {
     const navigate = useNavigate();
     const postQuery = useSuspenseQuery(boardPostQueryOptions(postId));
-    const currentUserQuery = useQuery(currentUserQueryOptions);
+    const { data: currentUser, isPending: isCurrentUserPending } = useQuery(currentUserQueryOptions);
     const post = postQuery.data;
-    const currentUser = currentUserQuery.data;
     const updatePostMutation = useUpdateBoardPostMutation();
     const errorMessage = updatePostMutation.error ? getErrorMessage(updatePostMutation.error) : undefined;
     const canManagePost = currentUser?.id === post.author.id;
@@ -51,7 +50,7 @@ export function BoardEditPage({ postId, query }: BoardEditPageProps) {
         }
     }
 
-    if (currentUserQuery.isPending) {
+    if (isCurrentUserPending) {
         return (
             <section className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10 sm:px-6 lg:px-8">
                 <Card>
