@@ -4,8 +4,8 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const DEFAULT_ESTATE_TRANSACTION_LIST_PAGE = 1;
 const DEFAULT_ESTATE_TRANSACTION_LIST_PAGE_SIZE = 20;
 const MAX_ESTATE_TRANSACTION_LIST_PAGE_SIZE = 50;
-const DEFAULT_ESTATE_SIMILAR_LIMIT = 5;
-const MAX_ESTATE_SIMILAR_LIMIT = 20;
+const DEFAULT_ESTATE_SIMILAR_TRANSACTION_LIMIT = 10;
+const MAX_ESTATE_SIMILAR_TRANSACTION_LIMIT = 50;
 const DEFAULT_ESTATE_TRANSPORT_RADIUS_KM = 1;
 const MAX_ESTATE_TRANSPORT_RADIUS_KM = 3;
 const DEFAULT_ESTATE_TRANSPORT_LIMIT = 5;
@@ -15,7 +15,7 @@ const MAX_ESTATE_WALK_CANDIDATE_COUNT = 5;
 const DEFAULT_ESTATE_PROPERTY_LIST_LIMIT = 20;
 const MAX_ESTATE_PROPERTY_LIST_LIMIT = 100;
 
-export const EstateTransactionIdSchema = z.number().int().positive();
+export const EstateTransactionIdSchema = z.coerce.number().int().positive();
 export const EstatePropertyIdSchema = z.coerce.number().int().positive();
 
 const OptionalTrimmedTextSchema = z.preprocess((value) => {
@@ -38,6 +38,16 @@ const OptionalDateSchema = z.preprocess((value) => {
     return trimmedValue.length > 0 ? trimmedValue : undefined;
 }, z.string().regex(DATE_PATTERN).optional());
 
+const OptionalQueryTextSchema = z.preprocess((value) => {
+    if (typeof value !== "string") {
+        return undefined;
+    }
+
+    const queryText = value.trim();
+
+    return queryText.length > 0 ? queryText : undefined;
+}, z.string().min(1).max(1000).optional());
+
 const OptionalPositiveNumberSchema = z.preprocess((value) => {
     if (value === "" || value === null || value === undefined) {
         return undefined;
@@ -51,61 +61,16 @@ const BooleanQuerySchema = z.preprocess((value) => {
         return undefined;
     }
 
-    if (value === "true") {
+    if (value === "true" || value === "1") {
         return true;
     }
 
-    if (value === "false") {
+    if (value === "false" || value === "0") {
         return false;
     }
 
     return value;
-}, z.boolean().default(false));
-
-export const EstateTransactionFilterSchema = z.object({
-    q: OptionalTrimmedTextSchema,
-    districtName: OptionalTrimmedTextSchema,
-    legalDongName: OptionalTrimmedTextSchema,
-    buildingName: OptionalTrimmedTextSchema,
-    buildingUse: OptionalTrimmedTextSchema,
-    contractDateFrom: OptionalDateSchema,
-    contractDateTo: OptionalDateSchema,
-    dealAmountMin10kKrw: OptionalPositiveNumberSchema,
-    dealAmountMax10kKrw: OptionalPositiveNumberSchema,
-    areaMinSquareMeter: OptionalPositiveNumberSchema,
-    areaMaxSquareMeter: OptionalPositiveNumberSchema,
-    includeCanceled: BooleanQuerySchema
-});
-
-export type EstateTransactionFilter = z.infer<typeof EstateTransactionFilterSchema>;
-
-export const EstateTransactionResponseSchema = z.object({
-    id: EstateTransactionIdSchema,
-    sourceRowNumber: z.number().int().positive(),
-    receiptYear: z.number().int().positive(),
-    districtCode: z.string().min(1),
-    districtName: z.string().min(1),
-    legalDongCode: z.string().min(1),
-    legalDongName: z.string().min(1),
-    lotTypeCode: z.string().nullable(),
-    lotTypeName: z.string().nullable(),
-    mainLotNumber: z.string().nullable(),
-    subLotNumber: z.string().nullable(),
-    buildingName: z.string().nullable(),
-    contractDate: z.string().regex(DATE_PATTERN),
-    dealAmount10kKrw: z.number().int().positive(),
-    buildingAreaSquareMeter: z.number().positive(),
-    landAreaSquareMeter: z.number().nullable(),
-    floor: z.number().int().nullable(),
-    rightType: z.string().nullable(),
-    canceledAt: z.string().regex(DATE_PATTERN).nullable(),
-    builtYear: z.number().int().min(0),
-    buildingUse: z.string().min(1),
-    reportType: z.string().min(1),
-    brokeredAgentSggName: z.string().nullable()
-});
-
-export type EstateTransactionResponse = z.infer<typeof EstateTransactionResponseSchema>;
+}, z.boolean().optional());
 
 export const EstateTransactionListQuerySchema = z.object({
     page: z.coerce.number().int().min(1).default(DEFAULT_ESTATE_TRANSACTION_LIST_PAGE),
@@ -153,25 +118,62 @@ export const EstateLegalDongListResponseSchema = z.array(z.string().min(1));
 
 export type EstateLegalDongListResponse = z.infer<typeof EstateLegalDongListResponseSchema>;
 
-export const EstateSimilarTransactionRequestSchema = z
-    .object({
-        referenceTransactionId: EstateTransactionIdSchema.optional(),
-        queryText: OptionalTrimmedTextSchema,
-        filters: EstateTransactionFilterSchema.partial().default({}),
-        limit: z.coerce.number().int().min(1).max(MAX_ESTATE_SIMILAR_LIMIT).default(DEFAULT_ESTATE_SIMILAR_LIMIT)
-    })
-    .superRefine((request, context) => {
-        const hasReferenceTransactionId = request.referenceTransactionId !== undefined;
-        const hasQueryText = request.queryText !== undefined;
+export const EstateTransactionFilterSchema = z.object({
+    q: OptionalTrimmedTextSchema,
+    districtName: OptionalTrimmedTextSchema,
+    legalDongName: OptionalTrimmedTextSchema,
+    buildingName: OptionalTrimmedTextSchema,
+    buildingUse: OptionalTrimmedTextSchema,
+    contractDateFrom: OptionalDateSchema,
+    contractDateTo: OptionalDateSchema,
+    dealAmountMin10kKrw: OptionalPositiveNumberSchema,
+    dealAmountMax10kKrw: OptionalPositiveNumberSchema,
+    areaMinSquareMeter: OptionalPositiveNumberSchema,
+    areaMaxSquareMeter: OptionalPositiveNumberSchema,
+    includeCanceled: BooleanQuerySchema
+});
 
-        if (hasReferenceTransactionId === hasQueryText) {
-            context.addIssue({
-                code: "custom",
-                path: ["referenceTransactionId"],
-                message: "referenceTransactionId와 queryText 중 하나만 입력해야 합니다."
-            });
-        }
-    });
+export type EstateTransactionFilter = z.infer<typeof EstateTransactionFilterSchema>;
+
+export const EstateTransactionResponseSchema = z.object({
+    id: EstateTransactionIdSchema,
+    sourceRowNumber: z.number().int().positive(),
+    receiptYear: z.number().int().positive(),
+    districtCode: z.string().min(1),
+    districtName: z.string().min(1),
+    legalDongCode: z.string().min(1),
+    legalDongName: z.string().min(1),
+    lotTypeCode: z.string().nullable(),
+    lotTypeName: z.string().nullable(),
+    mainLotNumber: z.string().nullable(),
+    subLotNumber: z.string().nullable(),
+    buildingName: z.string().nullable(),
+    contractDate: z.string().regex(DATE_PATTERN),
+    dealAmount10kKrw: z.number().int().positive(),
+    buildingAreaSquareMeter: z.number().positive(),
+    landAreaSquareMeter: z.number().nullable(),
+    floor: z.number().int().nullable(),
+    rightType: z.string().nullable(),
+    canceledAt: z.string().regex(DATE_PATTERN).nullable(),
+    builtYear: z.number().int().min(0),
+    buildingUse: z.string().min(1),
+    reportType: z.string().min(1),
+    brokeredAgentSggName: z.string().nullable()
+});
+
+export type EstateTransactionResponse = z.infer<typeof EstateTransactionResponseSchema>;
+
+export const EstateSimilarTransactionRequestSchema = z.object({
+    referenceTransactionId: EstateTransactionIdSchema.optional(),
+    queryText: OptionalQueryTextSchema,
+    filters: EstateTransactionFilterSchema.default({}),
+    limit: z.coerce
+        .number()
+        .int()
+        .min(1)
+        .max(MAX_ESTATE_SIMILAR_TRANSACTION_LIMIT)
+        .default(DEFAULT_ESTATE_SIMILAR_TRANSACTION_LIMIT)
+});
 
 export type EstateSimilarTransactionRequest = z.infer<typeof EstateSimilarTransactionRequestSchema>;
 
