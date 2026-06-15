@@ -1,4 +1,4 @@
-import { useQueryErrorResetBoundary } from "@tanstack/react-query";
+import { useQuery, useQueryErrorResetBoundary } from "@tanstack/react-query";
 import { SearchIcon } from "lucide-react";
 import { Suspense, useState } from "react";
 import type { ChangeEvent, SubmitEvent } from "react";
@@ -7,8 +7,10 @@ import type { EstateTransactionListQuery } from "@nmm/shared";
 import { Button } from "@nmm/ui/components/button";
 import { Field, FieldLabel } from "@nmm/ui/components/field";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@nmm/ui/components/input-group";
+import { NativeSelect, NativeSelectOption } from "@nmm/ui/components/native-select";
 import { AppErrorBoundary } from "@/app/providers/app-error-boundary";
 import {
+    estateLegalDongListQueryOptions,
     EstateTransactionList,
     EstateTransactionListLoading,
     renderEstateTransactionListError,
@@ -17,7 +19,9 @@ import {
 
 export function EstateSearchPage() {
     const { reset } = useQueryErrorResetBoundary();
+    const legalDongListQuery = useQuery(estateLegalDongListQueryOptions());
     const [searchKeywordInput, setSearchKeywordInput] = useState("");
+    const [legalDongNameFilter, setLegalDongNameFilter] = useState("");
     const [query, setQuery] = useState<EstateTransactionListQuery>(DEFAULT_ESTATE_TRANSACTION_LIST_QUERY);
     const [areaUnit, setAreaUnit] = useState<AreaUnit>("squareMeter");
     const queryBoundaryKey = JSON.stringify(query);
@@ -25,16 +29,18 @@ export function EstateSearchPage() {
     function handleSearchSubmit(event: SubmitEvent) {
         event.preventDefault();
 
-        const q = searchKeywordInput.trim();
-
-        setQuery({
-            ...DEFAULT_ESTATE_TRANSACTION_LIST_QUERY,
-            q: q.length > 0 ? q : undefined
-        });
+        setQuery(createEstateTransactionListQuery(searchKeywordInput, legalDongNameFilter));
     }
 
     function handleSearchKeywordInputChange(event: ChangeEvent<HTMLInputElement>) {
         setSearchKeywordInput(event.target.value);
+    }
+
+    function handleLegalDongNameFilterChange(event: ChangeEvent<HTMLSelectElement>) {
+        const legalDongName = event.target.value;
+
+        setLegalDongNameFilter(legalDongName);
+        setQuery(createEstateTransactionListQuery(searchKeywordInput, legalDongName));
     }
 
     function handleAreaUnitToggle() {
@@ -73,6 +79,25 @@ export function EstateSearchPage() {
                         />
                     </InputGroup>
                 </Field>
+                <Field className="sm:w-40">
+                    <FieldLabel htmlFor="estate-legal-dong-filter" className="sr-only">
+                        법정동 필터
+                    </FieldLabel>
+                    <NativeSelect
+                        id="estate-legal-dong-filter"
+                        value={legalDongNameFilter}
+                        onChange={handleLegalDongNameFilterChange}
+                        disabled={legalDongListQuery.isLoading || legalDongListQuery.isError}
+                        className="w-full"
+                    >
+                        <NativeSelectOption value="">전체 동</NativeSelectOption>
+                        {(legalDongListQuery.data ?? []).map((legalDongName) => (
+                            <NativeSelectOption key={legalDongName} value={legalDongName}>
+                                {legalDongName}
+                            </NativeSelectOption>
+                        ))}
+                    </NativeSelect>
+                </Field>
                 <Button type="submit" className="sm:w-24">
                     검색
                 </Button>
@@ -90,4 +115,15 @@ export function EstateSearchPage() {
             </AppErrorBoundary>
         </section>
     );
+}
+
+function createEstateTransactionListQuery(searchKeywordInput: string, legalDongNameFilter: string) {
+    const q = searchKeywordInput.trim();
+    const legalDongName = legalDongNameFilter.trim();
+
+    return {
+        ...DEFAULT_ESTATE_TRANSACTION_LIST_QUERY,
+        q: q.length > 0 ? q : undefined,
+        legalDongName: legalDongName.length > 0 ? legalDongName : undefined
+    };
 }

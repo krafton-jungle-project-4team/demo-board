@@ -1,5 +1,7 @@
 import {
+    EstateLegalDongListResponseSchema,
     EstateTransactionListResponseSchema,
+    type EstateLegalDongListResponse,
     type EstateTransactionListQuery,
     type EstateTransactionListResponse
 } from "@nmm/shared";
@@ -19,6 +21,12 @@ export class EstateQueryService {
     async getTransactions(query: EstateTransactionListQuery): Promise<EstateTransactionListResponse> {
         //조건으로 필터링
         const queryBuilder = this.estateTransactions.createQueryBuilder("estateTransaction");
+
+        if (query.legalDongName) {
+            queryBuilder.andWhere("estateTransaction.legalDongName = :legalDongName", {
+                legalDongName: query.legalDongName
+            });
+        }
 
         if (query.q) {
             const keywords = query.q.split(/\s+/);
@@ -56,6 +64,17 @@ export class EstateQueryService {
             hasNextPage: query.page < totalPages
         });
     }
+
+    async getLegalDongNames(): Promise<EstateLegalDongListResponse> {
+        const legalDongs = await this.estateTransactions
+            .createQueryBuilder("estateTransaction")
+            .select("estateTransaction.legalDongName", "legalDongName")
+            .distinct(true)
+            .orderBy("estateTransaction.legalDongName", "ASC")
+            .getRawMany<{ legalDongName: string }>();
+
+        return EstateLegalDongListResponseSchema.parse(legalDongs.map(toLegalDongName));
+    }
 }
 
 function toEstateTransactionListItem(
@@ -81,4 +100,8 @@ function toDateString(value: Date | string) {
     }
 
     return value;
+}
+
+function toLegalDongName(legalDong: { legalDongName: string }) {
+    return legalDong.legalDongName;
 }

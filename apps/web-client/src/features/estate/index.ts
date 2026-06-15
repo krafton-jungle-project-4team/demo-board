@@ -1,4 +1,8 @@
-export { estateQueryKeys, estateTransactionListQueryOptions } from "./api/estate-queries";
+export {
+    estateLegalDongListQueryOptions,
+    estateQueryKeys,
+    estateTransactionListQueryOptions
+} from "./api/estate-queries";
 export {
     EstateTransactionList,
     EstateTransactionListLoading,

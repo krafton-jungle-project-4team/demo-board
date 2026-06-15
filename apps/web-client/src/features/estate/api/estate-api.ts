@@ -1,5 +1,7 @@
 import {
+    EstateLegalDongListResponseSchema,
     EstateTransactionListResponseSchema,
+    type EstateLegalDongListResponse,
     type EstateTransactionListQuery,
     type EstateTransactionListResponse
 } from "@nmm/shared";
@@ -9,10 +11,14 @@ export function getEstateTransactions(query: EstateTransactionListQuery): Promis
     return requestApiData(createEstateTransactionListPath(query), EstateTransactionListResponseSchema);
 }
 
+export function getEstateLegalDongs(): Promise<EstateLegalDongListResponse> {
+    return requestApiData("estate/legal-dongs", EstateLegalDongListResponseSchema);
+}
+
 function createEstateTransactionListPath(query: EstateTransactionListQuery) {
     const searchParams = createEstateTransactionListSearchParams(query);
 
-    return searchParams.length > 0 ? `estate/transactions?${searchParams}` : "estate/transactions";
+    return `estate/transactions?${searchParams}`;
 }
 
 function createEstateTransactionListSearchParams(query: EstateTransactionListQuery) {
@@ -23,6 +29,10 @@ function createEstateTransactionListSearchParams(query: EstateTransactionListQue
 
     if (query.q) {
         searchParams.set("q", query.q);
+    }
+
+    if (query.legalDongName) {
+        searchParams.set("legalDongName", query.legalDongName);
     }
 
     return searchParams.toString();

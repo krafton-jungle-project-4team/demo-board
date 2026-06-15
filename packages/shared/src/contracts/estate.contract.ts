@@ -22,7 +22,8 @@ export const EstateTransactionListQuerySchema = z.object({
         .min(1)
         .max(MAX_ESTATE_TRANSACTION_LIST_PAGE_SIZE)
         .default(DEFAULT_ESTATE_TRANSACTION_LIST_PAGE_SIZE),
-    q: OptionalEstateSearchKeywordSchema
+    q: OptionalEstateSearchKeywordSchema,
+    legalDongName: OptionalEstateSearchKeywordSchema
 });
 
 export type EstateTransactionListQuery = z.infer<typeof EstateTransactionListQuerySchema>;
@@ -54,3 +55,7 @@ export const EstateTransactionListResponseSchema = z.object({
 });
 
 export type EstateTransactionListResponse = z.infer<typeof EstateTransactionListResponseSchema>;
+
+export const EstateLegalDongListResponseSchema = z.array(z.string().min(1));
+
+export type EstateLegalDongListResponse = z.infer<typeof EstateLegalDongListResponseSchema>;

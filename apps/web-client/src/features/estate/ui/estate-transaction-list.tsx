@@ -20,6 +20,7 @@ import { estateTransactionListQueryOptions } from "@/features/estate/api/estate-
 
 const DISABLED_PAGINATION_LINK_CLASS_NAME = "pointer-events-none opacity-50";
 const MAX_VISIBLE_PAGE_COUNT = 5;
+const SQUARE_METERS_PER_PYEONG = 3.305785;
 
 export type AreaUnit = "squareMeter" | "pyeong";
 
@@ -280,6 +281,10 @@ function createEstateTransactionListPageHref(query: EstateTransactionListQuery, 
         searchParams.set("q", query.q);
     }
 
+    if (query.legalDongName) {
+        searchParams.set("legalDongName", query.legalDongName);
+    }
+
     return `/estate?${searchParams.toString()}`;
 }
 
@@ -291,7 +296,7 @@ function formatArea(areaSquareMeter: string, areaUnit: AreaUnit) {
     const squareMeter = Number(areaSquareMeter);
 
     if (areaUnit === "pyeong") {
-        return `${(squareMeter / 3.305785).toLocaleString("ko-KR", {
+        return `${(squareMeter / SQUARE_METERS_PER_PYEONG).toLocaleString("ko-KR", {
             maximumFractionDigits: 1
         })}평`;
     }
