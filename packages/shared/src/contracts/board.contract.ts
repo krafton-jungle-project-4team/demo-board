@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { SongpaBoardDongCodeSchema, SongpaBoardDongNameSchema } from "./songpa-dong.contract";
 
 const DEFAULT_BOARD_POST_LIST_PAGE = 1;
 const DEFAULT_BOARD_POST_LIST_PAGE_SIZE = 10;
@@ -83,6 +84,8 @@ export type BoardCommentParams = z.infer<typeof BoardCommentParamsSchema>;
 
 export const BoardPostListItemSchema = z.object({
     id: BoardIdSchema,
+    dongCode: SongpaBoardDongCodeSchema.nullable(),
+    dongName: SongpaBoardDongNameSchema.nullable(),
     title: z.string().min(1),
     excerpt: z.string(),
     tags: BoardTagListResponseSchema,
@@ -107,6 +110,8 @@ export type BoardPostListResponse = z.infer<typeof BoardPostListResponseSchema>;
 
 export const BoardPostDetailResponseSchema = z.object({
     id: BoardIdSchema,
+    dongCode: SongpaBoardDongCodeSchema.nullable(),
+    dongName: SongpaBoardDongNameSchema.nullable(),
     title: z.string().min(1),
     content: z.string().min(1),
     tags: BoardTagListResponseSchema,

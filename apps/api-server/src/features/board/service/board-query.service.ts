@@ -31,6 +31,8 @@ type BoardTagJson = {
 
 type BoardPostListRow = {
     id: string;
+    dong_code: string | null;
+    dong_name: string | null;
     title: string;
     content: string;
     tags: BoardTagJson[] | null;
@@ -158,6 +160,8 @@ export class BoardQueryService {
 
         return BoardPostDetailResponseSchema.parse({
             id: Number(row.id),
+            dongCode: row.dong_code,
+            dongName: row.dong_name,
             title: row.title,
             content: row.content,
             tags: parseBoardTags(row.tags),
@@ -291,6 +295,8 @@ export class BoardQueryService {
         ${boardTagCteSql}
         SELECT
             board_posts.id::text AS id,
+            board_posts.dong_code,
+            board_dongs.name AS dong_name,
             board_posts.title,
             board_posts.content,
             COALESCE(board_post_tag_names.tags, '[]'::jsonb) AS tags,
@@ -323,6 +329,8 @@ export class BoardQueryService {
             END AS search_rank
         FROM board_posts
         JOIN auth_users ON auth_users.id = board_posts.author_id
+        LEFT JOIN board_songpa_dongs board_dongs
+            ON board_dongs.code = board_posts.dong_code
         LEFT JOIN board_post_tag_names
             ON board_post_tag_names.post_id = board_posts.id
         ${boardPostSearchWhereSql}
@@ -340,6 +348,8 @@ export class BoardQueryService {
         ${boardTagCteSql}
         SELECT
             board_posts.id::text AS id,
+            board_posts.dong_code,
+            board_dongs.name AS dong_name,
             board_posts.title,
             board_posts.content,
             COALESCE(board_post_tag_names.tags, '[]'::jsonb) AS tags,
@@ -350,6 +360,8 @@ export class BoardQueryService {
             board_posts.updated_at
         FROM board_posts
         JOIN auth_users ON auth_users.id = board_posts.author_id
+        LEFT JOIN board_songpa_dongs board_dongs
+            ON board_dongs.code = board_posts.dong_code
         LEFT JOIN board_post_tag_names
             ON board_post_tag_names.post_id = board_posts.id
         WHERE board_posts.id = $1
@@ -360,6 +372,8 @@ export class BoardQueryService {
 function toBoardPostListItem(row: BoardPostListRow) {
     return BoardPostListItemSchema.parse({
         id: Number(row.id),
+        dongCode: row.dong_code,
+        dongName: row.dong_name,
         title: row.title,
         excerpt: createExcerpt(row.content),
         tags: parseBoardTags(row.tags),
