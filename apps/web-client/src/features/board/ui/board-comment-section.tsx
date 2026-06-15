@@ -79,7 +79,12 @@ export function BoardCommentSection({ postId }: BoardCommentSectionProps) {
                 {commentsQuery.data.items.length > 0 ? (
                     <div className="flex flex-col gap-4">
                         {commentsQuery.data.items.map((comment) => (
-                            <BoardCommentItem key={comment.id} comment={comment} canCreateReply={canCreateComment} />
+                            <BoardCommentItem
+                                key={comment.id}
+                                comment={comment}
+                                currentUserId={currentUser?.id}
+                                canCreateReply={canCreateComment}
+                            />
                         ))}
                     </div>
                 ) : (
@@ -143,9 +148,11 @@ function BoardCommentEmpty() {
 
 function BoardCommentItem({
     comment,
+    currentUserId,
     canCreateReply
 }: {
     comment: BoardCommentResponse;
+    currentUserId?: number;
     canCreateReply: boolean;
 }) {
     const [replyOpen, setReplyOpen] = useState(false);
@@ -153,6 +160,7 @@ function BoardCommentItem({
     const createReplyMutation = useCreateBoardCommentReplyMutation();
     const updateCommentMutation = useUpdateBoardCommentMutation();
     const deleteCommentMutation = useDeleteBoardCommentMutation();
+    const canManageComment = currentUserId === comment.author.id;
 
     async function handleReplySubmit(content: string) {
         await createReplyMutation.mutateAsync({
@@ -183,10 +191,18 @@ function BoardCommentItem({
     }
 
     function handleEditClick() {
+        if (comment.isDeleted) {
+            return;
+        }
+
         setEditing((isEditing) => !isEditing);
     }
 
     function handleDeleteClick() {
+        if (comment.isDeleted) {
+            return;
+        }
+
         deleteCommentMutation.mutate(comment.id);
     }
 
@@ -196,11 +212,12 @@ function BoardCommentItem({
                 author={comment.author}
                 createdAt={comment.createdAt}
                 isDeleted={comment.isDeleted}
+                canManage={canManageComment}
                 isDeleting={deleteCommentMutation.isPending}
                 onEditClick={handleEditClick}
                 onDeleteClick={handleDeleteClick}
             />
-            {editing ? (
+            {editing && !comment.isDeleted ? (
                 <BoardCommentForm
                     id={`board-comment-${comment.id}-edit`}
                     label="댓글 수정"
@@ -238,7 +255,7 @@ function BoardCommentItem({
             {comment.replies.length > 0 ? (
                 <div className="flex flex-col gap-3 border-l pl-4">
                     {comment.replies.map((reply) => (
-                        <BoardCommentReplyItem key={reply.id} reply={reply} />
+                        <BoardCommentReplyItem key={reply.id} reply={reply} currentUserId={currentUserId} />
                     ))}
                 </div>
             ) : null}
@@ -246,10 +263,11 @@ function BoardCommentItem({
     );
 }
 
-function BoardCommentReplyItem({ reply }: { reply: BoardCommentReplyResponse }) {
+function BoardCommentReplyItem({ reply, currentUserId }: { reply: BoardCommentReplyResponse; currentUserId?: number }) {
     const [editing, setEditing] = useState(false);
     const updateCommentMutation = useUpdateBoardCommentMutation();
     const deleteCommentMutation = useDeleteBoardCommentMutation();
+    const canManageReply = currentUserId === reply.author.id;
 
     async function handleUpdateSubmit(content: string) {
         await updateCommentMutation.mutateAsync({
@@ -262,10 +280,18 @@ function BoardCommentReplyItem({ reply }: { reply: BoardCommentReplyResponse }) 
     }
 
     function handleEditClick() {
+        if (reply.isDeleted) {
+            return;
+        }
+
         setEditing((isEditing) => !isEditing);
     }
 
     function handleDeleteClick() {
+        if (reply.isDeleted) {
+            return;
+        }
+
         deleteCommentMutation.mutate(reply.id);
     }
 
@@ -275,11 +301,12 @@ function BoardCommentReplyItem({ reply }: { reply: BoardCommentReplyResponse }) 
                 author={reply.author}
                 createdAt={reply.createdAt}
                 isDeleted={reply.isDeleted}
+                canManage={canManageReply}
                 isDeleting={deleteCommentMutation.isPending}
                 onEditClick={handleEditClick}
                 onDeleteClick={handleDeleteClick}
             />
-            {editing ? (
+            {editing && !reply.isDeleted ? (
                 <BoardCommentForm
                     id={`board-comment-reply-${reply.id}-edit`}
                     label="답글 수정"
@@ -299,6 +326,7 @@ type BoardCommentHeaderProps = {
     author: BoardAuthor;
     createdAt: string;
     isDeleted: boolean;
+    canManage: boolean;
     isDeleting: boolean;
     onEditClick: () => void;
     onDeleteClick: () => void;
@@ -308,6 +336,7 @@ function BoardCommentHeader({
     author,
     createdAt,
     isDeleted,
+    canManage,
     isDeleting,
     onEditClick,
     onDeleteClick
@@ -320,22 +349,18 @@ function BoardCommentHeader({
                 </p>
                 <p className="text-sm text-muted-foreground">{formatBoardCommentDate(createdAt)}</p>
             </div>
-            <div className="flex gap-2">
-                <Button type="button" variant="ghost" size="sm" disabled={isDeleted} onClick={onEditClick}>
-                    <PencilIcon data-icon="inline-start" />
-                    수정
-                </Button>
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    disabled={isDeleted || isDeleting}
-                    onClick={onDeleteClick}
-                >
-                    {isDeleting ? <Spinner data-icon="inline-start" /> : <Trash2Icon data-icon="inline-start" />}
-                    삭제
-                </Button>
-            </div>
+            {canManage && !isDeleted ? (
+                <div className="flex gap-2">
+                    <Button type="button" variant="ghost" size="sm" onClick={onEditClick}>
+                        <PencilIcon data-icon="inline-start" />
+                        수정
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" disabled={isDeleting} onClick={onDeleteClick}>
+                        {isDeleting ? <Spinner data-icon="inline-start" /> : <Trash2Icon data-icon="inline-start" />}
+                        삭제
+                    </Button>
+                </div>
+            ) : null}
         </div>
     );
 }
