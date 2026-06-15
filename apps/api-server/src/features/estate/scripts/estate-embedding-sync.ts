@@ -6,7 +6,7 @@ import {
     createEstateTransactionEmbeddingInput,
     toPgVector,
     type EstateEmbeddingSource
-} from "./estate-embedding";
+} from "../service/estate-embedding";
 
 const DEFAULT_BATCH_SIZE = 100;
 
