@@ -1,7 +1,9 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { MessageCircleIcon, PencilIcon, ReplyIcon, Trash2Icon } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import type { BoardAuthor, BoardCommentReplyResponse, BoardCommentResponse } from "@nmm/shared";
+import { Alert, AlertDescription } from "@nmm/ui/components/alert";
 import { Button } from "@nmm/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@nmm/ui/components/empty";
@@ -16,6 +18,7 @@ import {
     useDeleteBoardCommentMutation,
     useUpdateBoardCommentMutation
 } from "../api/board-mutations";
+import { currentUserQueryOptions } from "@/features/auth";
 import { BoardAuthorLabel } from "./board-author-label";
 
 const BOARD_COMMENT_PAGE_SIZE = 20;
@@ -37,7 +40,14 @@ export function BoardCommentSection({ postId }: BoardCommentSectionProps) {
             pageSize: BOARD_COMMENT_PAGE_SIZE
         })
     );
+    const currentUserQuery = useQuery(currentUserQueryOptions);
+    const currentUser = currentUserQuery.data;
     const createCommentMutation = useCreateBoardCommentMutation(postId);
+    const commentWriteState = getCommentWriteState({
+        isSignedIn: currentUser !== null && currentUser !== undefined,
+        isCheckingUser: currentUserQuery.isPending
+    });
+    const canCreateComment = commentWriteState === "can";
 
     async function handleCreateComment(content: string) {
         await createCommentMutation.mutateAsync({
@@ -52,18 +62,24 @@ export function BoardCommentSection({ postId }: BoardCommentSectionProps) {
                 <CardDescription>{commentsQuery.data.pageInfo.totalCount.toLocaleString("ko-KR")}개</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-6">
-                <BoardCommentForm
-                    id="new-board-comment"
-                    label="새 댓글"
-                    submitLabel="댓글 작성"
-                    isPending={createCommentMutation.isPending}
-                    onSubmit={handleCreateComment}
-                />
+                {commentWriteState === "checking" ? (
+                    <p className="text-sm text-muted-foreground">댓글 작성 권한을 확인하는 중</p>
+                ) : canCreateComment ? (
+                    <BoardCommentForm
+                        id="new-board-comment"
+                        label="새 댓글"
+                        submitLabel="댓글 작성"
+                        isPending={createCommentMutation.isPending}
+                        onSubmit={handleCreateComment}
+                    />
+                ) : (
+                    <BoardCommentWriteNotice state={commentWriteState} />
+                )}
                 <Separator />
                 {commentsQuery.data.items.length > 0 ? (
                     <div className="flex flex-col gap-4">
                         {commentsQuery.data.items.map((comment) => (
-                            <BoardCommentItem key={comment.id} comment={comment} />
+                            <BoardCommentItem key={comment.id} comment={comment} canCreateReply={canCreateComment} />
                         ))}
                     </div>
                 ) : (
@@ -72,6 +88,43 @@ export function BoardCommentSection({ postId }: BoardCommentSectionProps) {
             </CardContent>
         </Card>
     );
+}
+
+type CommentWriteState = "can" | "checking" | "loginRequired";
+
+function getCommentWriteState({
+    isSignedIn,
+    isCheckingUser
+}: {
+    isSignedIn: boolean;
+    isCheckingUser: boolean;
+}): CommentWriteState {
+    if (isCheckingUser) {
+        return "checking";
+    }
+
+    if (!isSignedIn) {
+        return "loginRequired";
+    }
+
+    return "can";
+}
+
+function BoardCommentWriteNotice({ state }: { state: CommentWriteState }) {
+    if (state === "loginRequired") {
+        return (
+            <Alert>
+                <AlertDescription className="flex flex-col gap-3">
+                    <span>로그인 후 댓글을 작성할 수 있어요.</span>
+                    <Button asChild className="self-start">
+                        <Link to="/auth/login">로그인</Link>
+                    </Button>
+                </AlertDescription>
+            </Alert>
+        );
+    }
+
+    return null;
 }
 
 function BoardCommentEmpty() {
@@ -88,7 +141,13 @@ function BoardCommentEmpty() {
     );
 }
 
-function BoardCommentItem({ comment }: { comment: BoardCommentResponse }) {
+function BoardCommentItem({
+    comment,
+    canCreateReply
+}: {
+    comment: BoardCommentResponse;
+    canCreateReply: boolean;
+}) {
     const [replyOpen, setReplyOpen] = useState(false);
     const [editing, setEditing] = useState(false);
     const createReplyMutation = useCreateBoardCommentReplyMutation();
@@ -116,6 +175,10 @@ function BoardCommentItem({ comment }: { comment: BoardCommentResponse }) {
     }
 
     function handleReplyClick() {
+        if (!canCreateReply) {
+            return;
+        }
+
         setReplyOpen((isOpen) => !isOpen);
     }
 
@@ -151,7 +214,13 @@ function BoardCommentItem({ comment }: { comment: BoardCommentResponse }) {
             )}
             {!comment.isDeleted ? (
                 <div className="flex justify-end">
-                    <Button type="button" variant="ghost" size="sm" onClick={handleReplyClick}>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={!canCreateReply}
+                        onClick={handleReplyClick}
+                    >
                         <ReplyIcon data-icon="inline-start" />
                         답글
                     </Button>

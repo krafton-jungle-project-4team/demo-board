@@ -1,4 +1,4 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 import { type ChangeEvent, type FormEvent, type MouseEvent, useEffect, useState } from "react";
@@ -24,6 +24,7 @@ import { Button } from "@nmm/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components/card";
 import { toast } from "@nmm/ui/components/sonner";
 import { Spinner } from "@nmm/ui/components/spinner";
+import { currentUserQueryOptions } from "@/features/auth";
 import {
     BoardPostList,
     BoardPostListPagination,
@@ -41,6 +42,8 @@ const DONG_FILTER_ALL_VALUE = "ALL";
 
 export function BoardListPage({ query }: BoardListPageProps) {
     const navigate = useNavigate({ from: "/board" });
+    const currentUserQuery = useQuery(currentUserQueryOptions);
+    const currentUser = currentUserQuery.data;
     const postListQuery = useSuspenseQuery(boardPostListQueryOptions(query));
     const deletePostMutation = useDeleteBoardPostMutation();
     const [keyword, setKeyword] = useState(query.q ?? "");
@@ -51,6 +54,7 @@ export function BoardListPage({ query }: BoardListPageProps) {
     const selectedDongName = getSongpaBoardDongName(query.dongCode);
     const boardTitle = getBoardTitle(selectedDongName);
     const boardDescription = getBoardDescription(selectedDongName);
+    const isSignedIn = currentUser !== null && currentUser !== undefined;
 
     useEffect(() => {
         setKeyword(query.q ?? "");
@@ -170,11 +174,7 @@ export function BoardListPage({ query }: BoardListPageProps) {
                     <h1 className="text-2xl font-semibold tracking-tight">{boardTitle}</h1>
                     <p className="text-sm text-muted-foreground">{boardDescription}</p>
                 </div>
-                <Button asChild>
-                    <Link to="/board/new" search={query}>
-                        <PlusIcon data-icon="inline-start" />새 게시글
-                    </Link>
-                </Button>
+                <BoardCreateButton query={query} isPending={currentUserQuery.isPending} isSignedIn={isSignedIn} />
             </div>
             <DongBoardFilter dongCode={query.dongCode} onDongFilterChange={handleDongFilterChange} />
             <BoardPostListSearchForm
@@ -221,6 +221,42 @@ export function BoardListPage({ query }: BoardListPageProps) {
                 </AlertDialogContent>
             </AlertDialog>
         </section>
+    );
+}
+
+function BoardCreateButton({
+    query,
+    isPending,
+    isSignedIn
+}: {
+    query: BoardPostListQuery;
+    isPending: boolean;
+    isSignedIn: boolean;
+}) {
+    if (isPending) {
+        return (
+            <Button disabled>
+                <PlusIcon data-icon="inline-start" />새 게시글
+            </Button>
+        );
+    }
+
+    if (!isSignedIn) {
+        return (
+            <Button asChild>
+                <Link to="/auth/login">
+                    <PlusIcon data-icon="inline-start" />새 게시글
+                </Link>
+            </Button>
+        );
+    }
+
+    return (
+        <Button asChild>
+            <Link to="/board/new" search={query}>
+                <PlusIcon data-icon="inline-start" />새 게시글
+            </Link>
+        </Button>
     );
 }
 
