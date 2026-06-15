@@ -58,6 +58,12 @@ export type EstateTransactionListQuery = z.infer<typeof EstateTransactionListQue
 
 export const DEFAULT_ESTATE_TRANSACTION_LIST_QUERY = EstateTransactionListQuerySchema.parse({});
 
+export const EstateTransactionParamsSchema = z.object({
+    transactionId: z.coerce.number().int().positive()
+});
+
+export type EstateTransactionParams = z.infer<typeof EstateTransactionParamsSchema>;
+
 export const EstateTransactionListItemSchema = z.object({
     id: z.number(),
     legalDongName: z.string(),

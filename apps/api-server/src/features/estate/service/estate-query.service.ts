@@ -1,14 +1,17 @@
 import {
     EstateLegalDongListResponseSchema,
+    EstateTransactionResponseSchema,
     EstateTransactionListResponseSchema,
     type EstateLegalDongListResponse,
     type EstateTransactionListQuery,
+    type EstateTransactionResponse,
     type EstateTransactionListResponse
 } from "@nmm/shared";
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Brackets, Repository } from "typeorm";
 import { EstateTransactionEntity } from "../database";
+import { ESTATE_ERRORS, createEstateError } from "../estate.errors";
 
 @Injectable()
 export class EstateQueryService {
@@ -65,6 +68,20 @@ export class EstateQueryService {
         });
     }
 
+    async getTransaction(transactionId: number): Promise<EstateTransactionResponse> {
+        const transaction = await this.estateTransactions.findOne({
+            where: {
+                id: transactionId
+            }
+        });
+
+        if (!transaction) {
+            throw createEstateError(ESTATE_ERRORS.TRANSACTION_NOT_FOUND);
+        }
+
+        return toEstateTransactionResponse(transaction);
+    }
+
     async getLegalDongNames(): Promise<EstateLegalDongListResponse> {
         const legalDongs = await this.estateTransactions
             .createQueryBuilder("estateTransaction")
@@ -85,7 +102,7 @@ function toEstateTransactionListItem(
         legalDongName: transaction.legalDongName,
         buildingName: transaction.buildingName,
         buildingUse: transaction.buildingUse,
-        contractDate: toDateString(transaction.contractDate),
+        contractDate: toRequiredDateString(transaction.contractDate),
         dealAmount10kKrw: transaction.dealAmount10kKrw,
         buildingAreaSquareMeter: String(transaction.buildingAreaSquareMeter),
         floor: transaction.floor,
@@ -93,13 +110,49 @@ function toEstateTransactionListItem(
     };
 }
 
+function toEstateTransactionResponse(transaction: EstateTransactionEntity): EstateTransactionResponse {
+    return EstateTransactionResponseSchema.parse({
+        id: Number(transaction.id),
+        sourceRowNumber: transaction.sourceRowNumber,
+        receiptYear: transaction.receiptYear,
+        districtCode: transaction.districtCode,
+        districtName: transaction.districtName,
+        legalDongCode: transaction.legalDongCode,
+        legalDongName: transaction.legalDongName,
+        lotTypeCode: transaction.lotTypeCode,
+        lotTypeName: transaction.lotTypeName,
+        mainLotNumber: transaction.mainLotNumber,
+        subLotNumber: transaction.subLotNumber,
+        buildingName: transaction.buildingName,
+        contractDate: toRequiredDateString(transaction.contractDate),
+        dealAmount10kKrw: transaction.dealAmount10kKrw,
+        buildingAreaSquareMeter: Number(transaction.buildingAreaSquareMeter),
+        landAreaSquareMeter: toNullableNumber(transaction.landAreaSquareMeter),
+        floor: transaction.floor,
+        rightType: transaction.rightType,
+        canceledAt: toNullableDateString(transaction.canceledAt),
+        builtYear: transaction.builtYear,
+        buildingUse: transaction.buildingUse,
+        reportType: transaction.reportType,
+        brokeredAgentSggName: transaction.brokeredAgentSggName
+    });
+}
+
 //zod조건 맞추려고 변환해주는 함수
-function toDateString(value: Date | string) {
-    if (value instanceof Date) {
-        return value.toISOString().slice(0, 10);
+function toRequiredDateString(value: Date | string) {
+    return value instanceof Date ? value.toISOString().slice(0, 10) : value;
+}
+
+function toNullableDateString(value: Date | string | null) {
+    if (value === null) {
+        return null;
     }
 
-    return value;
+    return toRequiredDateString(value);
+}
+
+function toNullableNumber(value: number | string | null) {
+    return value === null ? null : Number(value);
 }
 
 function toLegalDongName(legalDong: { legalDongName: string }) {

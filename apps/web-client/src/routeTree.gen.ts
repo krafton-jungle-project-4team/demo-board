@@ -16,6 +16,7 @@ import { Route as BoardNewRouteImport } from './routes/board.new'
 import { Route as BoardPostIdRouteImport } from './routes/board.$postId'
 import { Route as AuthSignupRouteImport } from './routes/auth.signup'
 import { Route as AuthLoginRouteImport } from './routes/auth.login'
+import { Route as EstateTransactionsTransactionIdRouteImport } from './routes/estate.transactions.$transactionId'
 import { Route as BoardPostIdEditRouteImport } from './routes/board.$postId.edit'
 
 const EstateRoute = EstateRouteImport.update({
@@ -53,6 +54,12 @@ const AuthLoginRoute = AuthLoginRouteImport.update({
   path: '/auth/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EstateTransactionsTransactionIdRoute =
+  EstateTransactionsTransactionIdRouteImport.update({
+    id: '/transactions/$transactionId',
+    path: '/transactions/$transactionId',
+    getParentRoute: () => EstateRoute,
+  } as any)
 const BoardPostIdEditRoute = BoardPostIdEditRouteImport.update({
   id: '/edit',
   path: '/edit',
@@ -62,33 +69,36 @@ const BoardPostIdEditRoute = BoardPostIdEditRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/board': typeof BoardRouteWithChildren
-  '/estate': typeof EstateRoute
+  '/estate': typeof EstateRouteWithChildren
   '/auth/login': typeof AuthLoginRoute
   '/auth/signup': typeof AuthSignupRoute
   '/board/$postId': typeof BoardPostIdRouteWithChildren
   '/board/new': typeof BoardNewRoute
   '/board/$postId/edit': typeof BoardPostIdEditRoute
+  '/estate/transactions/$transactionId': typeof EstateTransactionsTransactionIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/board': typeof BoardRouteWithChildren
-  '/estate': typeof EstateRoute
+  '/estate': typeof EstateRouteWithChildren
   '/auth/login': typeof AuthLoginRoute
   '/auth/signup': typeof AuthSignupRoute
   '/board/$postId': typeof BoardPostIdRouteWithChildren
   '/board/new': typeof BoardNewRoute
   '/board/$postId/edit': typeof BoardPostIdEditRoute
+  '/estate/transactions/$transactionId': typeof EstateTransactionsTransactionIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/board': typeof BoardRouteWithChildren
-  '/estate': typeof EstateRoute
+  '/estate': typeof EstateRouteWithChildren
   '/auth/login': typeof AuthLoginRoute
   '/auth/signup': typeof AuthSignupRoute
   '/board/$postId': typeof BoardPostIdRouteWithChildren
   '/board/new': typeof BoardNewRoute
   '/board/$postId/edit': typeof BoardPostIdEditRoute
+  '/estate/transactions/$transactionId': typeof EstateTransactionsTransactionIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,6 +111,7 @@ export interface FileRouteTypes {
     | '/board/$postId'
     | '/board/new'
     | '/board/$postId/edit'
+    | '/estate/transactions/$transactionId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -111,6 +122,7 @@ export interface FileRouteTypes {
     | '/board/$postId'
     | '/board/new'
     | '/board/$postId/edit'
+    | '/estate/transactions/$transactionId'
   id:
     | '__root__'
     | '/'
@@ -121,12 +133,13 @@ export interface FileRouteTypes {
     | '/board/$postId'
     | '/board/new'
     | '/board/$postId/edit'
+    | '/estate/transactions/$transactionId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BoardRoute: typeof BoardRouteWithChildren
-  EstateRoute: typeof EstateRoute
+  EstateRoute: typeof EstateRouteWithChildren
   AuthLoginRoute: typeof AuthLoginRoute
   AuthSignupRoute: typeof AuthSignupRoute
 }
@@ -182,6 +195,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/estate/transactions/$transactionId': {
+      id: '/estate/transactions/$transactionId'
+      path: '/transactions/$transactionId'
+      fullPath: '/estate/transactions/$transactionId'
+      preLoaderRoute: typeof EstateTransactionsTransactionIdRouteImport
+      parentRoute: typeof EstateRoute
+    }
     '/board/$postId/edit': {
       id: '/board/$postId/edit'
       path: '/edit'
@@ -216,10 +236,21 @@ const BoardRouteChildren: BoardRouteChildren = {
 
 const BoardRouteWithChildren = BoardRoute._addFileChildren(BoardRouteChildren)
 
+interface EstateRouteChildren {
+  EstateTransactionsTransactionIdRoute: typeof EstateTransactionsTransactionIdRoute
+}
+
+const EstateRouteChildren: EstateRouteChildren = {
+  EstateTransactionsTransactionIdRoute: EstateTransactionsTransactionIdRoute,
+}
+
+const EstateRouteWithChildren =
+  EstateRoute._addFileChildren(EstateRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BoardRoute: BoardRouteWithChildren,
-  EstateRoute: EstateRoute,
+  EstateRoute: EstateRouteWithChildren,
   AuthLoginRoute: AuthLoginRoute,
   AuthSignupRoute: AuthSignupRoute,
 }

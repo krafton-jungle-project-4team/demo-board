@@ -1,6 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
 import type { EstateTransactionListQuery } from "@nmm/shared";
-import { getEstateLegalDongs, getEstateTransactions } from "./estate-api";
+import { getEstateLegalDongs, getEstateTransaction, getEstateTransactions } from "./estate-api";
 
 const estateQueryKeyRoot = ["estate"] as const; //리액트 쿼리로 부동산 관련 데이터인걸 입력
 
@@ -9,7 +9,8 @@ export const estateQueryKeys = {
     all: estateQueryKeyRoot,
     legalDongList: () => [...estateQueryKeyRoot, "legal-dongs", "list"] as const,
     transactionList: (query: EstateTransactionListQuery) =>
-        [...estateQueryKeyRoot, "transactions", "list", query] as const
+        [...estateQueryKeyRoot, "transactions", "list", query] as const,
+    transaction: (transactionId: number) => [...estateQueryKeyRoot, "transactions", transactionId] as const
 };
 
 //어떤 데이터를 받아올지 설정
@@ -17,6 +18,13 @@ export function estateTransactionListQueryOptions(query: EstateTransactionListQu
     return queryOptions({
         queryKey: estateQueryKeys.transactionList(query),
         queryFn: () => getEstateTransactions(query)
+    });
+}
+
+export function estateTransactionQueryOptions(transactionId: number) {
+    return queryOptions({
+        queryKey: estateQueryKeys.transaction(transactionId),
+        queryFn: () => getEstateTransaction(transactionId)
     });
 }
 
