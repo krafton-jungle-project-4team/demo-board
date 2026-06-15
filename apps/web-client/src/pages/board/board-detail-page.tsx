@@ -1,5 +1,5 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { PencilIcon } from "lucide-react";
 import type { BoardPostListQuery } from "@nmm/shared";
 import { Badge } from "@nmm/ui/components/badge";
@@ -11,6 +11,7 @@ import { BoardAuthorLabel, BoardCommentSection, BoardPostDongBadge, boardPostQue
 type BoardDetailPageProps = {
     postId: number;
     query: BoardPostListQuery;
+    commentPage: number;
 };
 
 const boardPostDetailDateFormatter = new Intl.DateTimeFormat("ko-KR", {
@@ -18,11 +19,33 @@ const boardPostDetailDateFormatter = new Intl.DateTimeFormat("ko-KR", {
     timeStyle: "short"
 });
 
-export function BoardDetailPage({ postId, query }: BoardDetailPageProps) {
+export function BoardDetailPage({ postId, query, commentPage }: BoardDetailPageProps) {
+    const navigate = useNavigate({ from: "/board/$postId" });
     const postQuery = useSuspenseQuery(boardPostQueryOptions(postId));
     const { data: currentUser } = useQuery(currentUserQueryOptions);
     const post = postQuery.data;
     const canManagePost = currentUser?.id === post.author.id;
+
+    function handleCommentPageChange(page: number) {
+        if (page === commentPage) {
+            return;
+        }
+
+        void navigate({
+            to: "/board/$postId",
+            params: {
+                postId: String(postId)
+            },
+            search: {
+                ...query,
+                commentPage: page
+            }
+        });
+    }
+
+    function createCommentPageHref(page: number) {
+        return createBoardDetailPageHref(postId, query, page);
+    }
 
     return (
         <section className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-10 sm:px-6 lg:px-8">
@@ -67,11 +90,35 @@ export function BoardDetailPage({ postId, query }: BoardDetailPageProps) {
                     <p className="whitespace-pre-wrap leading-7">{post.content}</p>
                 </CardContent>
             </Card>
-            <BoardCommentSection postId={post.id} />
+            <BoardCommentSection
+                postId={post.id}
+                page={commentPage}
+                createPageHref={createCommentPageHref}
+                onPageChange={handleCommentPageChange}
+            />
         </section>
     );
 }
 
 function formatBoardPostDetailDate(value: string) {
     return boardPostDetailDateFormatter.format(new Date(value));
+}
+
+function createBoardDetailPageHref(postId: number, query: BoardPostListQuery, commentPage: number) {
+    const searchParams = new URLSearchParams({
+        page: String(query.page),
+        pageSize: String(query.pageSize),
+        searchScope: query.searchScope,
+        commentPage: String(commentPage)
+    });
+
+    if (query.q) {
+        searchParams.set("q", query.q);
+    }
+
+    if (query.dongCode) {
+        searchParams.set("dongCode", query.dongCode);
+    }
+
+    return `/board/${postId}?${searchParams.toString()}`;
 }

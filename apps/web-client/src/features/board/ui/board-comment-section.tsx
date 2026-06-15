@@ -1,7 +1,7 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { MessageCircleIcon, PencilIcon, ReplyIcon, Trash2Icon } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import type { BoardAuthor, BoardCommentReplyResponse, BoardCommentResponse } from "@nmm/shared";
 import { Alert, AlertDescription } from "@nmm/ui/components/alert";
 import { Button } from "@nmm/ui/components/button";
@@ -26,6 +26,9 @@ const EMPTY_COMMENT_FORM_VALUE = "";
 
 type BoardCommentSectionProps = {
     postId: number;
+    page: number;
+    createPageHref: (page: number) => string;
+    onPageChange: (page: number) => void;
 };
 
 const boardCommentDateFormatter = new Intl.DateTimeFormat("ko-KR", {
@@ -33,20 +36,29 @@ const boardCommentDateFormatter = new Intl.DateTimeFormat("ko-KR", {
     timeStyle: "short"
 });
 
-export function BoardCommentSection({ postId }: BoardCommentSectionProps) {
+export function BoardCommentSection({ postId, page, onPageChange }: BoardCommentSectionProps) {
     const commentsQuery = useSuspenseQuery(
         boardCommentsQueryOptions(postId, {
-            page: 1,
+            page,
             pageSize: BOARD_COMMENT_PAGE_SIZE
         })
     );
     const { data: currentUser, isPending: isCurrentUserPending } = useQuery(currentUserQueryOptions);
     const createCommentMutation = useCreateBoardCommentMutation(postId);
+    const pageInfo = commentsQuery.data.pageInfo;
     const commentWriteState = getCommentWriteState({
         isSignedIn: currentUser !== null && currentUser !== undefined,
         isCheckingUser: isCurrentUserPending
     });
     const canCreateComment = commentWriteState === "can";
+
+    useEffect(() => {
+        const lastAvailablePage = Math.max(1, pageInfo.totalPages);
+
+        if (page > lastAvailablePage) {
+            onPageChange(lastAvailablePage);
+        }
+    }, [onPageChange, page, pageInfo.totalPages]);
 
     async function handleCreateComment(content: string) {
         await createCommentMutation.mutateAsync({
@@ -58,7 +70,7 @@ export function BoardCommentSection({ postId }: BoardCommentSectionProps) {
         <Card>
             <CardHeader>
                 <CardTitle>댓글</CardTitle>
-                <CardDescription>{commentsQuery.data.pageInfo.totalCount.toLocaleString("ko-KR")}개</CardDescription>
+                <CardDescription>{pageInfo.totalCount.toLocaleString("ko-KR")}개</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-6">
                 {commentWriteState === "checking" ? (
