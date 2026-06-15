@@ -20,8 +20,9 @@ import {
     AlertDialogHeader,
     AlertDialogTitle
 } from "@nmm/ui/components/alert-dialog";
+import { Badge } from "@nmm/ui/components/badge";
 import { Button } from "@nmm/ui/components/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components/card";
+import { Card, CardContent } from "@nmm/ui/components/card";
 import { toast } from "@nmm/ui/components/sonner";
 import { Spinner } from "@nmm/ui/components/spinner";
 import { currentUserQueryOptions } from "@/features/auth";
@@ -58,6 +59,7 @@ export function BoardListPage({ query }: BoardListPageProps) {
     const boardTitle = getBoardTitle(selectedDongName);
     const boardDescription = getBoardDescription(selectedDongName);
     const isSignedIn = currentUser !== null && currentUser !== undefined;
+    const postTotalCount = postList?.totalItems;
 
     useEffect(() => {
         setKeyword(query.q ?? "");
@@ -178,7 +180,12 @@ export function BoardListPage({ query }: BoardListPageProps) {
         <section className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10 sm:px-6 lg:px-8">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-2xl font-semibold tracking-tight">{boardTitle}</h1>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <h1 className="text-2xl font-semibold tracking-tight">{boardTitle}</h1>
+                        {postTotalCount !== undefined ? (
+                            <Badge variant="secondary">{postTotalCount.toLocaleString("ko-KR")}개</Badge>
+                        ) : null}
+                    </div>
                     <p className="text-sm text-muted-foreground">{boardDescription}</p>
                 </div>
                 <BoardCreateButton query={query} isPending={isCurrentUserPending} isSignedIn={isSignedIn} />
@@ -196,21 +203,13 @@ export function BoardListPage({ query }: BoardListPageProps) {
                 <BoardListPendingCard />
             ) : postList ? (
                 <>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>목록</CardTitle>
-                            <CardDescription>총 {postList.totalItems.toLocaleString("ko-KR")}개</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <BoardPostList
-                                query={query}
-                                postList={postList}
-                                currentUserId={currentUser?.id}
-                                deletingPostId={deletingPostId}
-                                onDeletePost={handleDeletePost}
-                            />
-                        </CardContent>
-                    </Card>
+                    <BoardPostList
+                        query={query}
+                        postList={postList}
+                        currentUserId={currentUser?.id}
+                        deletingPostId={deletingPostId}
+                        onDeletePost={handleDeletePost}
+                    />
                     <BoardPostListPagination query={query} postList={postList} onPageChange={handlePageChange} />
                 </>
             ) : null}
