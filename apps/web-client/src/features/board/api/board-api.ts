@@ -102,5 +102,9 @@ function createBoardPostListSearchParams(query: BoardPostListQuery) {
         searchParams.set("q", query.q);
     }
 
+    if (query.dongCode) {
+        searchParams.set("dongCode", query.dongCode);
+    }
+
     return searchParams.toString();
 }

@@ -61,7 +61,24 @@ const OptionalBoardSearchKeywordSchema = z.preprocess((value) => {
     return keyword.length > 0 ? keyword : undefined;
 }, z.string().min(1).max(100).optional());
 
+const OptionalBoardDongCodeSchema = z.preprocess((value) => {
+    if (value === undefined || value === null) {
+        return undefined;
+    }
+
+    if (typeof value !== "string" && typeof value !== "number") {
+        return value;
+    }
+
+    const dongCode = String(value)
+        .trim()
+        .replace(/^"(.+)"$/, "$1");
+
+    return dongCode.length > 0 ? dongCode : undefined;
+}, SongpaBoardDongCodeSchema.optional());
+
 export const BoardPostListQuerySchema = z.object({
+    dongCode: OptionalBoardDongCodeSchema,
     page: z.coerce.number().int().min(1).default(DEFAULT_BOARD_POST_LIST_PAGE),
     pageSize: z.coerce
         .number()

@@ -89,8 +89,8 @@ WITH board_post_tag_names AS (
 )
 `;
 
-const boardPostSearchWhereSql = `
-WHERE (
+const boardPostSearchConditionSql = `
+(
     $1::text IS NULL
     OR (
         $2::text = 'title'
@@ -119,6 +119,11 @@ WHERE (
 )
 `;
 
+const boardPostListWhereSql = `
+WHERE ($3::text IS NULL OR board_posts.dong_code = $3::text)
+    AND ${boardPostSearchConditionSql}
+`;
+
 @Injectable()
 export class BoardQueryService {
     constructor(
@@ -129,13 +134,15 @@ export class BoardQueryService {
     async getPostList(query: BoardPostListQuery): Promise<BoardPostListResponse> {
         const offset = (query.page - 1) * query.pageSize;
         const keyword = query.q ?? null;
+        const dongCode = query.dongCode ?? null;
         const [countRows, rows] = await Promise.all([
-            this.dataSource.query(this.createPostListCountSql(), [keyword, query.searchScope]) as Promise<
+            this.dataSource.query(this.createPostListCountSql(), [keyword, query.searchScope, dongCode]) as Promise<
                 BoardPostCountRow[]
             >,
             this.dataSource.query(this.createPostListSql(), [
                 keyword,
                 query.searchScope,
+                dongCode,
                 query.pageSize,
                 offset
             ]) as Promise<BoardPostListRow[]>
@@ -296,7 +303,7 @@ export class BoardQueryService {
         FROM board_posts
         LEFT JOIN board_post_tag_names
             ON board_post_tag_names.post_id = board_posts.id
-        ${boardPostSearchWhereSql}
+        ${boardPostListWhereSql}
         `;
     }
 
@@ -347,13 +354,13 @@ export class BoardQueryService {
             ON author_dongs.code = auth_users.residence_dong_code
         LEFT JOIN board_post_tag_names
             ON board_post_tag_names.post_id = board_posts.id
-        ${boardPostSearchWhereSql}
+        ${boardPostListWhereSql}
         ORDER BY
             search_rank DESC,
             board_posts.created_at DESC,
             board_posts.id DESC
-        LIMIT $3
-        OFFSET $4
+        LIMIT $4
+        OFFSET $5
         `;
     }
 
