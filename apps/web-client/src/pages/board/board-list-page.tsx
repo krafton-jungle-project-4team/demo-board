@@ -343,18 +343,18 @@ function BoardListPendingCard() {
 
 function getBoardTitle(dongName?: string | null) {
     if (dongName) {
-        return `${dongName} 게시판`;
+        return `${dongName} 동네 게시판`;
     }
 
-    return "송파 생활 게시판";
+    return "송파구 동네 게시판";
 }
 
 function getBoardDescription(dongName?: string | null) {
     if (dongName) {
-        return `${dongName} 이야기를 확인해보세요.`;
+        return `${dongName} 주민들이 남긴 이야기를 확인해보세요.`;
     }
 
-    return "송파 생활, 거주 고민, 동네 정보를 자유롭게 나눠보세요.";
+    return "송파구 13개 동의 이야기를 모아봤어요.";
 }
 
 function getErrorMessage(error: unknown) {

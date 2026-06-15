@@ -5,5 +5,9 @@ type BoardPostDongBadgeProps = {
 };
 
 export function BoardPostDongBadge({ dongName }: BoardPostDongBadgeProps) {
-    return <Badge variant="secondary">{dongName ?? "전체"}</Badge>;
+    if (!dongName) {
+        return null;
+    }
+
+    return <Badge variant="secondary">{dongName}</Badge>;
 }
