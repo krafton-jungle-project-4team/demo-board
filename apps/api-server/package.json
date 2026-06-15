@@ -4,6 +4,7 @@
     "private": true,
     "scripts": {
         "build": "nest build",
+        "estate:embeddings:sync": "tsx src/features/estate/scripts/estate-embedding-sync.ts",
         "typecheck": "tsc -p tsconfig.json --noEmit"
     },
     "dependencies": {

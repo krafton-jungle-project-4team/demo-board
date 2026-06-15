@@ -15,3 +15,12 @@ npm run dev
 ```sh
 npm run verify
 ```
+
+## 실거래 RAG 임베딩
+
+```sh
+npm run db:migrate
+npm run estate:embeddings:sync -- --limit 20
+```
+
+`OPENAI_API_KEY`가 있어야 임베딩을 생성한다.

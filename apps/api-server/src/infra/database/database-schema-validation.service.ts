@@ -61,6 +61,16 @@ const REQUIRED_TABLE_COLUMNS = {
         "building_use",
         "report_type",
         "brokered_agent_sgg_name"
+    ],
+    estate_transaction_embeddings: [
+        "id",
+        "transaction_id",
+        "content_hash",
+        "embedding_model",
+        "embedding_dimensions",
+        "embedding",
+        "created_at",
+        "updated_at"
     ]
 } as const;
 
@@ -73,7 +83,12 @@ const REQUIRED_INDEXES = [
     "idx_estate_transactions_source_row_number_unique",
     "idx_estate_transactions_contract_date",
     "idx_estate_transactions_district_legal_dong",
-    "idx_estate_transactions_building_use"
+    "idx_estate_transactions_building_use",
+    "idx_estate_transaction_embeddings_transaction_id_unique",
+    "idx_estate_transaction_embeddings_embedding_hnsw",
+    "idx_estate_transactions_building_name_trgm",
+    "idx_estate_transactions_legal_dong_name_trgm",
+    "idx_estate_transactions_building_use_trgm"
 ] as const;
 
 @Injectable()

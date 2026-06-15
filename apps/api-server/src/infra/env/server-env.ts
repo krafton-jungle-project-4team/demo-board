@@ -13,15 +13,43 @@ export type AuthEnv = {
     baseUrl: string;
 };
 
+export type AiEnv = {
+    embedding: {
+        provider: "openai";
+        openAiApiKey?: string;
+        openAiBaseUrl: string;
+        model: string;
+        dimensions: number;
+    };
+};
+
 export type ServerEnv = {
     app: AppEnv;
     auth: AuthEnv;
+    ai: AiEnv;
     database: DatabaseEnv;
 };
 
 const RequiredStringSchema = z.string().min(1);
 const NumberEnvSchema = RequiredStringSchema.transform(Number).pipe(z.number().finite());
 const BooleanEnvSchema = z.stringbool({ truthy: ["true"], falsy: ["false"], case: "sensitive" });
+const OptionalStringSchema = z.preprocess((value) => {
+    if (typeof value !== "string") {
+        return undefined;
+    }
+
+    const trimmedValue = value.trim();
+
+    return trimmedValue.length > 0 ? trimmedValue : undefined;
+}, z.string().min(1).optional());
+const EmbeddingProviderSchema = z.preprocess(
+    (value) => (value === undefined || value === "" ? "openai" : value),
+    z.literal("openai")
+);
+const EmbeddingDimensionsSchema = z.preprocess(
+    (value) => (value === undefined || value === "" ? "1536" : value),
+    NumberEnvSchema.pipe(z.number().int().positive())
+);
 
 const ServerEnvSchema = z.object({
     PORT: NumberEnvSchema,
@@ -35,7 +63,12 @@ const ServerEnvSchema = z.object({
     NMM_DB_PASSWORD: RequiredStringSchema,
     NMM_DB_DATABASE: RequiredStringSchema,
     NMM_DB_SYNCHRONIZE: BooleanEnvSchema,
-    NMM_DB_LOGGING: BooleanEnvSchema
+    NMM_DB_LOGGING: BooleanEnvSchema,
+    NMM_EMBEDDING_PROVIDER: EmbeddingProviderSchema,
+    NMM_EMBEDDING_MODEL: z.string().min(1).default("text-embedding-3-small"),
+    NMM_EMBEDDING_DIMENSIONS: EmbeddingDimensionsSchema,
+    NMM_OPENAI_BASE_URL: OptionalStringSchema,
+    OPENAI_API_KEY: OptionalStringSchema
 });
 
 function createServerEnv(): ServerEnv {
@@ -50,6 +83,15 @@ function createServerEnv(): ServerEnv {
         auth: {
             secret: env.NMM_AUTH_SECRET,
             baseUrl: env.NMM_AUTH_BASE_URL
+        },
+        ai: {
+            embedding: {
+                provider: env.NMM_EMBEDDING_PROVIDER,
+                openAiApiKey: env.OPENAI_API_KEY,
+                openAiBaseUrl: env.NMM_OPENAI_BASE_URL ?? "https://api.openai.com/v1",
+                model: env.NMM_EMBEDDING_MODEL,
+                dimensions: env.NMM_EMBEDDING_DIMENSIONS
+            }
         },
         database: {
             host: env.NMM_DB_HOST,
