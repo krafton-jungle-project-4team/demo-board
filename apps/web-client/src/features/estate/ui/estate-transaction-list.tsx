@@ -1,12 +1,25 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import type { EstateTransactionListQuery } from "@nmm/shared";
+import type { MouseEvent, ReactNode } from "react";
+import type { EstateTransactionListQuery, EstateTransactionListResponse } from "@nmm/shared";
 import { Alert, AlertDescription, AlertTitle } from "@nmm/ui/components/alert";
 import { Button } from "@nmm/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@nmm/ui/components/empty";
+import {
+    Pagination,
+    PaginationContent,
+    PaginationEllipsis,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious
+} from "@nmm/ui/components/pagination";
 import { Spinner } from "@nmm/ui/components/spinner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@nmm/ui/components/table";
 import { estateTransactionListQueryOptions } from "@/features/estate/api/estate-queries";
+
+const DISABLED_PAGINATION_LINK_CLASS_NAME = "pointer-events-none opacity-50";
+const MAX_VISIBLE_PAGE_COUNT = 5;
 
 export type AreaUnit = "squareMeter" | "pyeong";
 
@@ -14,13 +27,14 @@ type EstateTransactionListProps = {
     query: EstateTransactionListQuery;
     areaUnit: AreaUnit;
     onAreaUnitToggle: () => void;
+    onPageChange: (page: number) => void;
 };
 
-export function EstateTransactionList({ query, areaUnit, onAreaUnitToggle }: EstateTransactionListProps) {
+export function EstateTransactionList({ query, areaUnit, onAreaUnitToggle, onPageChange }: EstateTransactionListProps) {
     const transactionsQuery = useSuspenseQuery(estateTransactionListQueryOptions(query));
-    const transactions = transactionsQuery.data;
+    const transactionList = transactionsQuery.data;
 
-    if (transactions.length === 0) {
+    if (transactionList.items.length === 0) {
         return (
             <Empty>
                 <EmptyHeader>
@@ -35,9 +49,9 @@ export function EstateTransactionList({ query, areaUnit, onAreaUnitToggle }: Est
         <Card>
             <CardHeader>
                 <CardTitle>검색 결과</CardTitle>
-                <CardDescription>{transactions.length.toLocaleString("ko-KR")}개</CardDescription>
+                <CardDescription>{transactionList.totalItems.toLocaleString("ko-KR")}개</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-col gap-4">
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -61,7 +75,7 @@ export function EstateTransactionList({ query, areaUnit, onAreaUnitToggle }: Est
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {transactions.map((transaction) => (
+                        {transactionList.items.map((transaction) => (
                             <TableRow key={transaction.id}>
                                 <TableCell>{transaction.legalDongName}</TableCell>
                                 <TableCell>{transaction.buildingName ?? "-"}</TableCell>
@@ -78,9 +92,195 @@ export function EstateTransactionList({ query, areaUnit, onAreaUnitToggle }: Est
                         ))}
                     </TableBody>
                 </Table>
+                <EstateTransactionListPagination
+                    query={query}
+                    transactionList={transactionList}
+                    onPageChange={onPageChange}
+                />
             </CardContent>
         </Card>
     );
+}
+
+type EstateTransactionListPaginationProps = {
+    query: EstateTransactionListQuery;
+    transactionList: EstateTransactionListResponse;
+    onPageChange: (page: number) => void;
+};
+
+function EstateTransactionListPagination({
+    query,
+    transactionList,
+    onPageChange
+}: EstateTransactionListPaginationProps) {
+    if (transactionList.totalPages <= 1) {
+        return null;
+    }
+
+    const previousPage = Math.max(1, transactionList.page - 1);
+    const nextPage = Math.min(transactionList.totalPages, transactionList.page + 1);
+    const visiblePages = getVisiblePages(transactionList.page, transactionList.totalPages);
+
+    return (
+        <Pagination>
+            <PaginationContent>
+                <PaginationItem>
+                    <EstateTransactionPreviousPageLink
+                        query={query}
+                        page={previousPage}
+                        disabled={!transactionList.hasPreviousPage}
+                        onPageChange={onPageChange}
+                    />
+                </PaginationItem>
+                {visiblePages.map((pageItem) =>
+                    pageItem === "ellipsis" ? (
+                        <PaginationItem key={pageItem}>
+                            <PaginationEllipsis />
+                        </PaginationItem>
+                    ) : (
+                        <PaginationItem key={pageItem}>
+                            <EstateTransactionPageLink
+                                query={query}
+                                page={pageItem}
+                                isActive={pageItem === transactionList.page}
+                                onPageChange={onPageChange}
+                            >
+                                {pageItem}
+                            </EstateTransactionPageLink>
+                        </PaginationItem>
+                    )
+                )}
+                <PaginationItem>
+                    <EstateTransactionNextPageLink
+                        query={query}
+                        page={nextPage}
+                        disabled={!transactionList.hasNextPage}
+                        onPageChange={onPageChange}
+                    />
+                </PaginationItem>
+            </PaginationContent>
+        </Pagination>
+    );
+}
+
+type EstateTransactionPageLinkProps = {
+    query: EstateTransactionListQuery;
+    page: number;
+    isActive?: boolean;
+    disabled?: boolean;
+    onPageChange: (page: number) => void;
+    children?: ReactNode;
+};
+
+function EstateTransactionPageLink({
+    query,
+    page,
+    isActive,
+    disabled,
+    onPageChange,
+    children
+}: EstateTransactionPageLinkProps) {
+    function handleClick(event: MouseEvent<HTMLAnchorElement>) {
+        event.preventDefault();
+
+        if (disabled || isActive) {
+            return;
+        }
+
+        onPageChange(page);
+    }
+
+    return (
+        <PaginationLink
+            href={createEstateTransactionListPageHref(query, page)}
+            isActive={isActive}
+            aria-disabled={disabled}
+            tabIndex={disabled ? -1 : undefined}
+            className={disabled ? DISABLED_PAGINATION_LINK_CLASS_NAME : undefined}
+            onClick={handleClick}
+        >
+            {children}
+        </PaginationLink>
+    );
+}
+
+function EstateTransactionPreviousPageLink({ query, page, disabled, onPageChange }: EstateTransactionPageLinkProps) {
+    function handleClick(event: MouseEvent<HTMLAnchorElement>) {
+        event.preventDefault();
+
+        if (disabled) {
+            return;
+        }
+
+        onPageChange(page);
+    }
+
+    return (
+        <PaginationPrevious
+            href={createEstateTransactionListPageHref(query, page)}
+            aria-disabled={disabled}
+            tabIndex={disabled ? -1 : undefined}
+            className={disabled ? DISABLED_PAGINATION_LINK_CLASS_NAME : undefined}
+            onClick={handleClick}
+        />
+    );
+}
+
+function EstateTransactionNextPageLink({ query, page, disabled, onPageChange }: EstateTransactionPageLinkProps) {
+    function handleClick(event: MouseEvent<HTMLAnchorElement>) {
+        event.preventDefault();
+
+        if (disabled) {
+            return;
+        }
+
+        onPageChange(page);
+    }
+
+    return (
+        <PaginationNext
+            href={createEstateTransactionListPageHref(query, page)}
+            aria-disabled={disabled}
+            tabIndex={disabled ? -1 : undefined}
+            className={disabled ? DISABLED_PAGINATION_LINK_CLASS_NAME : undefined}
+            onClick={handleClick}
+        />
+    );
+}
+
+type VisiblePageItem = number | "ellipsis";
+
+function getVisiblePages(page: number, totalPages: number): VisiblePageItem[] {
+    if (totalPages <= MAX_VISIBLE_PAGE_COUNT) {
+        return Array.from({ length: totalPages }, createPageNumber);
+    }
+
+    if (page <= 3) {
+        return [1, 2, 3, 4, "ellipsis", totalPages];
+    }
+
+    if (page >= totalPages - 2) {
+        return [1, "ellipsis", totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    }
+
+    return [1, "ellipsis", page - 1, page, page + 1, "ellipsis", totalPages];
+}
+
+function createPageNumber(_: unknown, index: number) {
+    return index + 1;
+}
+
+function createEstateTransactionListPageHref(query: EstateTransactionListQuery, page: number) {
+    const searchParams = new URLSearchParams({
+        page: String(page),
+        pageSize: String(query.pageSize)
+    });
+
+    if (query.q) {
+        searchParams.set("q", query.q);
+    }
+
+    return `/estate?${searchParams.toString()}`;
 }
 
 function getAreaUnitLabel(areaUnit: AreaUnit) {

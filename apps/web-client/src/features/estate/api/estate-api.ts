@@ -18,6 +18,9 @@ function createEstateTransactionListPath(query: EstateTransactionListQuery) {
 function createEstateTransactionListSearchParams(query: EstateTransactionListQuery) {
     const searchParams = new URLSearchParams();
 
+    searchParams.set("page", String(query.page));
+    searchParams.set("pageSize", String(query.pageSize));
+
     if (query.q) {
         searchParams.set("q", query.q);
     }

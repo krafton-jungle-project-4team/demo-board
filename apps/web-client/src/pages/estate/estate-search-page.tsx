@@ -2,6 +2,7 @@ import { useQueryErrorResetBoundary } from "@tanstack/react-query";
 import { SearchIcon } from "lucide-react";
 import { Suspense, useState } from "react";
 import type { ChangeEvent, SubmitEvent } from "react";
+import { DEFAULT_ESTATE_TRANSACTION_LIST_QUERY } from "@nmm/shared";
 import type { EstateTransactionListQuery } from "@nmm/shared";
 import { Button } from "@nmm/ui/components/button";
 import { Field, FieldLabel } from "@nmm/ui/components/field";
@@ -17,7 +18,7 @@ import {
 export function EstateSearchPage() {
     const { reset } = useQueryErrorResetBoundary();
     const [searchKeywordInput, setSearchKeywordInput] = useState("");
-    const [query, setQuery] = useState<EstateTransactionListQuery>({});
+    const [query, setQuery] = useState<EstateTransactionListQuery>(DEFAULT_ESTATE_TRANSACTION_LIST_QUERY);
     const [areaUnit, setAreaUnit] = useState<AreaUnit>("squareMeter");
     const queryBoundaryKey = JSON.stringify(query);
 
@@ -26,7 +27,10 @@ export function EstateSearchPage() {
 
         const q = searchKeywordInput.trim();
 
-        setQuery(q.length > 0 ? { q } : {});
+        setQuery({
+            ...DEFAULT_ESTATE_TRANSACTION_LIST_QUERY,
+            q: q.length > 0 ? q : undefined
+        });
     }
 
     function handleSearchKeywordInputChange(event: ChangeEvent<HTMLInputElement>) {
@@ -35,6 +39,13 @@ export function EstateSearchPage() {
 
     function handleAreaUnitToggle() {
         setAreaUnit((currentAreaUnit) => (currentAreaUnit === "squareMeter" ? "pyeong" : "squareMeter"));
+    }
+
+    function handlePageChange(page: number) {
+        setQuery((currentQuery) => ({
+            ...currentQuery,
+            page
+        }));
     }
 
     return (
@@ -69,7 +80,12 @@ export function EstateSearchPage() {
 
             <AppErrorBoundary key={queryBoundaryKey} onReset={reset} fallback={renderEstateTransactionListError}>
                 <Suspense fallback={<EstateTransactionListLoading />}>
-                    <EstateTransactionList query={query} areaUnit={areaUnit} onAreaUnitToggle={handleAreaUnitToggle} />
+                    <EstateTransactionList
+                        query={query}
+                        areaUnit={areaUnit}
+                        onAreaUnitToggle={handleAreaUnitToggle}
+                        onPageChange={handlePageChange}
+                    />
                 </Suspense>
             </AppErrorBoundary>
         </section>

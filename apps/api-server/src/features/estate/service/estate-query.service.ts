@@ -16,7 +16,7 @@ export class EstateQueryService {
         private readonly estateTransactions: Repository<EstateTransactionEntity>
     ) {}
 
-    getTransactions(query: EstateTransactionListQuery): Promise<EstateTransactionListResponse> {
+    async getTransactions(query: EstateTransactionListQuery): Promise<EstateTransactionListResponse> {
         //조건으로 필터링
         const queryBuilder = this.estateTransactions.createQueryBuilder("estateTransaction");
 
@@ -38,18 +38,29 @@ export class EstateQueryService {
             });
         }
 
-        return queryBuilder
+        const [transactions, totalItems] = await queryBuilder
             .orderBy("estateTransaction.contractDate", "DESC")
             .addOrderBy("estateTransaction.id", "ASC")
-            .take(20)
-            .getMany()
-            .then((transactions) =>
-                EstateTransactionListResponseSchema.parse(transactions.map(toEstateTransactionListItem))
-            );
+            .skip((query.page - 1) * query.pageSize)
+            .take(query.pageSize)
+            .getManyAndCount();
+        const totalPages = Math.ceil(totalItems / query.pageSize);
+
+        return EstateTransactionListResponseSchema.parse({
+            items: transactions.map(toEstateTransactionListItem),
+            page: query.page,
+            pageSize: query.pageSize,
+            totalItems,
+            totalPages,
+            hasPreviousPage: query.page > 1,
+            hasNextPage: query.page < totalPages
+        });
     }
 }
 
-function toEstateTransactionListItem(transaction: EstateTransactionEntity): EstateTransactionListResponse[number] {
+function toEstateTransactionListItem(
+    transaction: EstateTransactionEntity
+): EstateTransactionListResponse["items"][number] {
     return {
         id: Number(transaction.id),
         legalDongName: transaction.legalDongName,
