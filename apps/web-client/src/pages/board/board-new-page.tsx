@@ -18,19 +18,15 @@ export function BoardNewPage({ query }: BoardNewPageProps) {
     const currentUser = currentUserQuery.data;
     const createPostMutation = useCreateBoardPostMutation();
     const errorMessage = createPostMutation.error ? getErrorMessage(createPostMutation.error) : undefined;
-    const canCreatePost = currentUser !== null && currentUser !== undefined;
+    const isSignedIn = currentUser !== null && currentUser !== undefined;
+    const canCreatePost = isSignedIn && Boolean(currentUser.residenceDongCode);
 
     async function handleSubmit(values: BoardPostFormValues) {
-        if (!values.postScope) {
-            return;
-        }
-
         try {
             const response = await createPostMutation.mutateAsync({
                 title: values.title,
                 content: values.content,
-                tags: values.tags,
-                postScope: values.postScope
+                tags: values.tags
             });
             toast.success("게시글을 작성했습니다.");
             await navigate({
@@ -49,25 +45,21 @@ export function BoardNewPage({ query }: BoardNewPageProps) {
         <section className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10 sm:px-6 lg:px-8">
             <Card>
                 <CardHeader>
-                    <CardTitle>새 게시글</CardTitle>
-                    <CardDescription>송파 생활 이야기를 자유롭게 남겨보세요.</CardDescription>
+                    <CardTitle>동네 게시글 작성</CardTitle>
+                    <CardDescription>현재 거주동 기준으로 동네 게시판에 등록됩니다.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     {currentUserQuery.isPending ? (
                         <p className="text-sm text-muted-foreground">작성 권한을 확인하는 중</p>
                     ) : canCreatePost ? (
                         <BoardPostForm
-                            postScopeOptions={{
-                                canCreateMyDongPost: Boolean(currentUser.residenceDongCode),
-                                residenceDongName: currentUser.residenceDongName
-                            }}
                             isSubmitting={createPostMutation.isPending}
                             submitLabel="작성"
                             errorMessage={errorMessage}
                             onSubmit={handleSubmit}
                         />
                     ) : (
-                        <BoardWriteLoginNotice />
+                        <BoardWriteSetup isSignedIn={isSignedIn} />
                     )}
                 </CardContent>
             </Card>
@@ -75,12 +67,23 @@ export function BoardNewPage({ query }: BoardNewPageProps) {
     );
 }
 
-function BoardWriteLoginNotice() {
+function BoardWriteSetup({ isSignedIn }: { isSignedIn: boolean }) {
+    if (!isSignedIn) {
+        return (
+            <div className="flex flex-col gap-4">
+                <p className="text-sm text-muted-foreground">로그인 후 글을 작성할 수 있어요.</p>
+                <Button asChild className="self-start">
+                    <Link to="/auth/login">로그인</Link>
+                </Button>
+            </div>
+        );
+    }
+
     return (
         <div className="flex flex-col gap-4">
-            <p className="text-sm text-muted-foreground">로그인 후 글을 작성할 수 있어요.</p>
+            <p className="text-sm text-muted-foreground">거주동을 설정한 뒤 동네 글을 작성할 수 있어요.</p>
             <Button asChild className="self-start">
-                <Link to="/auth/login">로그인</Link>
+                <Link to="/profile">거주동 설정</Link>
             </Button>
         </div>
     );

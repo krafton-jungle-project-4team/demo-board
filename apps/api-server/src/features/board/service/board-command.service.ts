@@ -28,7 +28,7 @@ export class BoardCommandService {
     ) {}
 
     async createPost(authUser: AuthUser, request: BoardPostCreateRequest): Promise<BoardCommandResponse> {
-        const dongCode = this.resolvePostDongCode(authUser, request.postScope);
+        const dongCode = this.resolvePostDongCode(authUser);
         const postId = await this.dataSource.transaction(async (manager) => {
             const post = await manager.save(
                 manager.create(BoardPostEntity, {
@@ -300,14 +300,7 @@ export class BoardCommandService {
         }
     }
 
-    private resolvePostDongCode(
-        authUser: AuthUser,
-        postScope: BoardPostCreateRequest["postScope"]
-    ): SongpaBoardDongCode | null {
-        if (postScope === "ALL") {
-            return null;
-        }
-
+    private resolvePostDongCode(authUser: AuthUser): SongpaBoardDongCode {
         if (!authUser.residenceDongCode) {
             throw createBoardError(BOARD_ERRORS.DONG_RESIDENCE_REQUIRED);
         }
