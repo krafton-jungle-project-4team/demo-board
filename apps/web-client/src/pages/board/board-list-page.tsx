@@ -4,7 +4,6 @@ import { PlusIcon } from "lucide-react";
 import { type ChangeEvent, type FormEvent, type MouseEvent, useEffect, useState } from "react";
 import {
     BoardPostSearchScopeSchema,
-    DEFAULT_BOARD_POST_LIST_QUERY,
     type BoardPostListItem,
     type BoardPostListQuery
 } from "@nmm/shared";
@@ -151,7 +150,7 @@ export function BoardListPage({ query }: BoardListPageProps) {
                     <p className="text-sm text-muted-foreground">검색과 태그로 게시글을 찾아보세요.</p>
                 </div>
                 <Button asChild>
-                    <Link to="/board/new" search={DEFAULT_BOARD_POST_LIST_QUERY}>
+                    <Link to="/board/new" search={query}>
                         <PlusIcon data-icon="inline-start" />새 게시글
                     </Link>
                 </Button>

@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { DEFAULT_BOARD_POST_LIST_QUERY } from "@nmm/shared";
+import type { BoardPostListQuery } from "@nmm/shared";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components/card";
 import { toast } from "@nmm/ui/components/sonner";
 import {
@@ -13,9 +13,10 @@ import { ApiClientError } from "@/shared/api/http-client";
 
 type BoardEditPageProps = {
     postId: number;
+    query: BoardPostListQuery;
 };
 
-export function BoardEditPage({ postId }: BoardEditPageProps) {
+export function BoardEditPage({ postId, query }: BoardEditPageProps) {
     const navigate = useNavigate();
     const postQuery = useSuspenseQuery(boardPostQueryOptions(postId));
     const updatePostMutation = useUpdateBoardPostMutation();
@@ -33,7 +34,7 @@ export function BoardEditPage({ postId }: BoardEditPageProps) {
                 params: {
                     postId: String(postId)
                 },
-                search: DEFAULT_BOARD_POST_LIST_QUERY
+                search: query
             });
         } catch (error) {
             toast.error(getErrorMessage(error));

@@ -1,7 +1,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { PencilIcon } from "lucide-react";
-import { DEFAULT_BOARD_POST_LIST_QUERY } from "@nmm/shared";
+import type { BoardPostListQuery } from "@nmm/shared";
 import { Badge } from "@nmm/ui/components/badge";
 import { Button } from "@nmm/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components/card";
@@ -9,6 +9,7 @@ import { BoardCommentSection, boardPostQueryOptions } from "@/features/board";
 
 type BoardDetailPageProps = {
     postId: number;
+    query: BoardPostListQuery;
 };
 
 const boardPostDetailDateFormatter = new Intl.DateTimeFormat("ko-KR", {
@@ -16,7 +17,7 @@ const boardPostDetailDateFormatter = new Intl.DateTimeFormat("ko-KR", {
     timeStyle: "short"
 });
 
-export function BoardDetailPage({ postId }: BoardDetailPageProps) {
+export function BoardDetailPage({ postId, query }: BoardDetailPageProps) {
     const postQuery = useSuspenseQuery(boardPostQueryOptions(postId));
     const post = postQuery.data;
 
@@ -37,7 +38,7 @@ export function BoardDetailPage({ postId }: BoardDetailPageProps) {
                                 params={{
                                     postId: String(post.id)
                                 }}
-                                search={DEFAULT_BOARD_POST_LIST_QUERY}
+                                search={query}
                             >
                                 <PencilIcon data-icon="inline-start" />
                                 수정
