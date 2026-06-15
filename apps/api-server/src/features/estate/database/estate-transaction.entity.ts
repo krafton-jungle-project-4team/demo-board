@@ -5,7 +5,6 @@ import { Column, Entity, Index, PrimaryGeneratedColumn } from "typeorm";
 @Index("idx_estate_transactions_contract_date", ["contractDate"])
 @Index("idx_estate_transactions_district_legal_dong", ["districtName", "legalDongName"])
 @Index("idx_estate_transactions_building_use", ["buildingUse"])
-@Index("idx_estate_transactions_property_id", ["propertyId"])
 export class EstateTransactionEntity {
     @PrimaryGeneratedColumn("increment", { type: "bigint" })
     id!: number;
@@ -75,7 +74,4 @@ export class EstateTransactionEntity {
 
     @Column({ name: "brokered_agent_sgg_name", type: "text", nullable: true })
     brokeredAgentSggName!: string | null;
-
-    @Column({ name: "property_id", type: "bigint", nullable: true })
-    propertyId!: number | null;
 }
