@@ -1,6 +1,10 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { All, Controller, Get, Req, Res, UseGuards } from "@nestjs/common";
-import type { CurrentUserResponse } from "@nmm/shared";
+import { All, Body, Controller, Get, Patch, Req, Res, UseGuards } from "@nestjs/common";
+import {
+    UpdateResidenceDongRequestSchema,
+    type CurrentUserResponse,
+    type UpdateResidenceDongRequest
+} from "@nmm/shared";
 import { SkipApiResponse } from "../../../infra/http";
 import { AuthUser } from "../decorator/auth-user.decorator";
 import { AuthGuard } from "../guard/auth.guard";
@@ -14,6 +18,17 @@ export class AuthController {
     @UseGuards(AuthGuard)
     getMe(@AuthUser() authUser: CurrentUserResponse): CurrentUserResponse {
         return authUser;
+    }
+
+    @Patch("me/residence-dong")
+    @UseGuards(AuthGuard)
+    updateResidenceDong(
+        @AuthUser() authUser: CurrentUserResponse,
+        @Body() body: unknown
+    ): Promise<CurrentUserResponse> {
+        const request: UpdateResidenceDongRequest = UpdateResidenceDongRequestSchema.parse(body);
+
+        return this.authService.updateResidenceDong(authUser, request);
     }
 
     @SkipApiResponse()
