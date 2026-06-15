@@ -27,8 +27,8 @@ export function Header() {
     }
 
     return (
-        <header className="border-b">
-            <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <header className="border-b border-border">
+            <div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-4 sm:px-6 lg:px-8">
                 <Button asChild variant="ghost" size="sm" className="font-semibold">
                     <Link to="/board" search={defaultBoardPostListSearch}>
                         송파 생활 게시판
