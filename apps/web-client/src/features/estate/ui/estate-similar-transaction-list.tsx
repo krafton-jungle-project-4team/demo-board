@@ -1,5 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
+import type { MouseEvent } from "react";
 import type { EstateSimilarTransactionItem } from "@nmm/shared";
 import { Alert, AlertDescription, AlertTitle } from "@nmm/ui/components/alert";
 import { Badge } from "@nmm/ui/components/badge";
@@ -80,20 +81,38 @@ export function EstateSimilarTransactionList({ transactionId }: EstateSimilarTra
 function EstateSimilarTransactionTableRow({ item }: { item: EstateSimilarTransactionItem }) {
     const navigate = useNavigate();
     const transaction = item.transaction;
+    const transactionDetailParams = {
+        transactionId: String(transaction.id)
+    };
 
     function handleClick() {
+        navigateToTransactionDetail();
+    }
+
+    function handleDetailLinkClick(event: MouseEvent<HTMLAnchorElement>) {
+        event.stopPropagation();
+    }
+
+    function navigateToTransactionDetail() {
         void navigate({
             to: "/estate/transactions/$transactionId",
-            params: {
-                transactionId: String(transaction.id)
-            }
+            params: transactionDetailParams
         });
     }
 
     return (
         <TableRow className="cursor-pointer" onClick={handleClick}>
             <TableCell>{transaction.legalDongName}</TableCell>
-            <TableCell>{transaction.buildingName ?? "-"}</TableCell>
+            <TableCell>
+                <Link
+                    to="/estate/transactions/$transactionId"
+                    params={transactionDetailParams}
+                    className="font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    onClick={handleDetailLinkClick}
+                >
+                    {transaction.buildingName ?? "건물명 없음"}
+                </Link>
+            </TableCell>
             <TableCell>{transaction.buildingUse}</TableCell>
             <TableCell className="min-w-32 text-center tabular-nums">
                 {formatArea(transaction.buildingAreaSquareMeter)}
