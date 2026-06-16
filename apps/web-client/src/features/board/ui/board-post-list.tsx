@@ -67,7 +67,7 @@ export function BoardPostList({
         />
     ));
 
-    return <div className="flex flex-col gap-2">{postCards}</div>;
+    return <div className="flex flex-col gap-4">{postCards}</div>;
 }
 
 type BoardPostCardProps = {
@@ -85,8 +85,9 @@ function BoardPostCard({ query, post, isDeleting, canManagePost, onDeletePost, o
     }
 
     return (
-        <Card className="gap-0 rounded-lg border-border bg-card p-4 shadow-none transition-shadow hover:shadow-sm">
-            <CardHeader className="gap-2 p-0">
+        <Card className="relative cursor-pointer gap-0 rounded-lg border-border bg-card p-5 shadow-none transition-colors hover:bg-muted/50 focus-within:border-ring focus-within:bg-muted/50 focus-within:ring-[3px] focus-within:ring-ring/50 sm:p-6">
+            <BoardPostDetailLink query={query} post={post} />
+            <CardHeader className="pointer-events-none relative z-10 gap-3 p-0">
                 <CardDescription className="flex min-w-0 flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                     <BoardPostDongBadge dongName={post.dongName} />
                     <span className="truncate">{post.author.name}</span>
@@ -94,7 +95,7 @@ function BoardPostCard({ query, post, isDeleting, canManagePost, onDeletePost, o
                     <time dateTime={post.createdAt}>{formatBoardPostRelativeTime(post.createdAt)}</time>
                 </CardDescription>
                 {canManagePost ? (
-                    <CardAction>
+                    <CardAction className="pointer-events-auto">
                         <BoardPostManagementActions
                             query={query}
                             post={post}
@@ -104,15 +105,11 @@ function BoardPostCard({ query, post, isDeleting, canManagePost, onDeletePost, o
                     </CardAction>
                 ) : null}
             </CardHeader>
-            <CardContent className="mt-2 flex flex-col gap-1 p-0">
+            <CardContent className="pointer-events-none relative z-10 mt-3 flex flex-col gap-2 p-0">
                 <CardTitle className="text-base leading-6 font-semibold text-foreground">
-                    <BoardPostDetailLink query={query} post={post} className="line-clamp-2">
-                        {post.title}
-                    </BoardPostDetailLink>
+                    <span className="line-clamp-2">{post.title}</span>
                 </CardTitle>
-                <BoardPostDetailLink query={query} post={post} className="truncate text-sm text-muted-foreground">
-                    {post.excerpt}
-                </BoardPostDetailLink>
+                <p className="line-clamp-3 text-sm text-muted-foreground sm:line-clamp-4">{post.excerpt}</p>
             </CardContent>
             <BoardPostTagsFooter post={post} onTagSearch={onTagSearch} />
         </Card>
@@ -122,11 +119,9 @@ function BoardPostCard({ query, post, isDeleting, canManagePost, onDeletePost, o
 type BoardPostDetailLinkProps = {
     query: BoardPostListQuery;
     post: BoardPostListItem;
-    className?: string;
-    children: string;
 };
 
-function BoardPostDetailLink({ query, post, className, children }: BoardPostDetailLinkProps) {
+function BoardPostDetailLink({ query, post }: BoardPostDetailLinkProps) {
     return (
         <Link
             to="/board/$postId"
@@ -134,10 +129,9 @@ function BoardPostDetailLink({ query, post, className, children }: BoardPostDeta
                 postId: String(post.id)
             }}
             search={query}
-            className={className}
-        >
-            {children}
-        </Link>
+            aria-label={`${post.title} 상세 보기`}
+            className="absolute inset-0 rounded-lg focus-visible:outline-none"
+        />
     );
 }
 
@@ -156,7 +150,9 @@ function BoardPostTagsFooter({
         <BoardPostTagSearchButton key={tag.id} tagName={tag.name} onTagSearch={onTagSearch} />
     ));
 
-    return <CardFooter className="mt-2 flex min-w-0 flex-wrap items-center gap-2 p-0">{tagItems}</CardFooter>;
+    return (
+        <CardFooter className="relative z-20 mt-4 flex min-w-0 flex-wrap items-center gap-2 p-0">{tagItems}</CardFooter>
+    );
 }
 
 type BoardPostTagSearchButtonProps = {

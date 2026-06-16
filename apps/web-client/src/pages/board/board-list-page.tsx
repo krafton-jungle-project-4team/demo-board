@@ -1,7 +1,7 @@
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
-import { type ChangeEvent, type FormEvent, type MouseEvent, useEffect, useState } from "react";
+import { Suspense, type ChangeEvent, type FormEvent, type MouseEvent, useEffect, useState, useTransition } from "react";
 import {
     BoardPostSearchScopeSchema,
     SONGPA_BOARD_DONGS,
@@ -23,6 +23,8 @@ import {
 } from "@nmm/ui/components/alert-dialog";
 import { Badge } from "@nmm/ui/components/badge";
 import { Button } from "@nmm/ui/components/button";
+import { Card, CardContent, CardHeader } from "@nmm/ui/components/card";
+import { Skeleton } from "@nmm/ui/components/skeleton";
 import { toast } from "@nmm/ui/components/sonner";
 import { Spinner } from "@nmm/ui/components/spinner";
 import { ToggleGroup, ToggleGroupItem } from "@nmm/ui/components/toggle-group";
@@ -41,6 +43,7 @@ type BoardListPageProps = {
 };
 
 const DONG_FILTER_ALL_VALUE = "ALL";
+const BOARD_POST_LIST_LOADING_CARD_KEYS = ["first", "second", "third"];
 const DONG_BOARD_FILTER_OPTIONS = [
     {
         value: DONG_FILTER_ALL_VALUE,
@@ -55,8 +58,8 @@ const DONG_BOARD_FILTER_OPTIONS = [
 export function BoardListPage({ query }: BoardListPageProps) {
     const navigate = useNavigate({ from: "/board" });
     const { data: currentUser, isPending: isCurrentUserPending } = useQuery(currentUserQueryOptions);
-    const { data: postList } = useSuspenseQuery(boardPostListQueryOptions(query));
     const deletePostMutation = useDeleteBoardPostMutation();
+    const [isListNavigationPending, startListNavigationTransition] = useTransition();
     const [keyword, setKeyword] = useState(query.q ?? "");
     const [searchScope, setSearchScope] = useState(query.searchScope);
     const [deleteTargetPost, setDeleteTargetPost] = useState<BoardPostListItem | null>(null);
@@ -65,7 +68,6 @@ export function BoardListPage({ query }: BoardListPageProps) {
     const boardTitle = getBoardTitle(selectedDongName);
     const boardDescription = getBoardDescription(selectedDongName);
     const isSignedIn = currentUser !== null && currentUser !== undefined;
-    const postTotalCount = postList.totalItems;
 
     useEffect(() => {
         setKeyword(query.q ?? "");
@@ -87,7 +89,7 @@ export function BoardListPage({ query }: BoardListPageProps) {
         const nextSearchScope = BoardPostSearchScopeSchema.parse(value);
 
         setSearchScope(nextSearchScope);
-        void navigateToSearch(nextSearchScope, keyword);
+        navigateToSearch(nextSearchScope, keyword);
     }
 
     function handleDongFilterChange(value: string) {
@@ -97,7 +99,7 @@ export function BoardListPage({ query }: BoardListPageProps) {
 
         const nextDongCode = value === DONG_FILTER_ALL_VALUE ? undefined : SongpaBoardDongCodeSchema.parse(value);
 
-        void navigateToList({
+        navigateToList({
             ...query,
             dongCode: nextDongCode,
             page: 1
@@ -107,18 +109,18 @@ export function BoardListPage({ query }: BoardListPageProps) {
     function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
 
-        void navigateToSearch(searchScope, keyword);
+        navigateToSearch(searchScope, keyword);
     }
 
     function handleClearSearch() {
         setKeyword("");
-        void navigateToSearch(searchScope, "");
+        navigateToSearch(searchScope, "");
     }
 
     function handleTagSearch(tagName: string) {
         setKeyword(tagName);
         setSearchScope("tag");
-        void navigateToSearch("tag", tagName);
+        navigateToSearch("tag", tagName);
     }
 
     function handlePageChange(page: number) {
@@ -126,7 +128,7 @@ export function BoardListPage({ query }: BoardListPageProps) {
             return;
         }
 
-        void navigateToList({
+        navigateToList({
             ...query,
             page
         });
@@ -161,9 +163,11 @@ export function BoardListPage({ query }: BoardListPageProps) {
     }
 
     function navigateToList(nextQuery: BoardPostListQuery) {
-        return navigate({
-            to: "/board",
-            search: nextQuery
+        startListNavigationTransition(() => {
+            void navigate({
+                to: "/board",
+                search: nextQuery
+            });
         });
     }
 
@@ -180,20 +184,19 @@ export function BoardListPage({ query }: BoardListPageProps) {
     }
 
     return (
-        <section className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 py-8 sm:px-6 lg:px-8">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <section className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex flex-col gap-1">
                     <div className="flex flex-wrap items-center gap-2">
-                        <h1 className="text-2xl font-semibold tracking-tight">{boardTitle}</h1>
-                        {postTotalCount !== undefined ? (
-                            <Badge variant="secondary">{postTotalCount.toLocaleString("ko-KR")}개</Badge>
-                        ) : null}
+                        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{boardTitle}</h1>
+                        <Suspense fallback={<BoardPostTotalCountBadgeFallback />}>
+                            <BoardPostTotalCountBadge query={query} />
+                        </Suspense>
                     </div>
                     <p className="text-sm text-muted-foreground">{boardDescription}</p>
                 </div>
                 <BoardCreateButton query={query} isPending={isCurrentUserPending} isSignedIn={isSignedIn} />
             </div>
-            <DongBoardFilter dongCode={query.dongCode} onDongFilterChange={handleDongFilterChange} />
             <BoardPostListSearchForm
                 keyword={keyword}
                 searchScope={searchScope}
@@ -202,15 +205,18 @@ export function BoardListPage({ query }: BoardListPageProps) {
                 onSubmit={handleSearchSubmit}
                 onClear={handleClearSearch}
             />
-            <BoardPostList
-                query={query}
-                postList={postList}
-                currentUserId={currentUser?.id}
-                deletingPostId={deletingPostId}
-                onDeletePost={handleDeletePost}
-                onTagSearch={handleTagSearch}
-            />
-            <BoardPostListPagination query={query} postList={postList} onPageChange={handlePageChange} />
+            <DongBoardFilter dongCode={query.dongCode} onDongFilterChange={handleDongFilterChange} />
+            <Suspense fallback={<BoardPostListResultsLoading />}>
+                <BoardPostListResults
+                    query={query}
+                    isPending={isListNavigationPending}
+                    currentUserId={currentUser?.id}
+                    deletingPostId={deletingPostId}
+                    onDeletePost={handleDeletePost}
+                    onTagSearch={handleTagSearch}
+                    onPageChange={handlePageChange}
+                />
+            </Suspense>
             <AlertDialog open={deleteTargetPost !== null} onOpenChange={handleDeleteDialogOpenChange}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -272,6 +278,91 @@ function BoardCreateButton({
     );
 }
 
+type BoardPostTotalCountBadgeProps = {
+    query: BoardPostListQuery;
+};
+
+function BoardPostTotalCountBadge({ query }: BoardPostTotalCountBadgeProps) {
+    const { data: postList } = useSuspenseQuery(boardPostListQueryOptions(query));
+
+    return <Badge variant="secondary">{postList.totalItems.toLocaleString("ko-KR")}개</Badge>;
+}
+
+function BoardPostTotalCountBadgeFallback() {
+    return <Skeleton className="h-6 w-14 rounded-full" />;
+}
+
+type BoardPostListResultsProps = {
+    query: BoardPostListQuery;
+    isPending: boolean;
+    currentUserId?: number;
+    deletingPostId?: number;
+    onDeletePost: (post: BoardPostListItem) => void;
+    onTagSearch: (tagName: string) => void;
+    onPageChange: (page: number) => void;
+};
+
+function BoardPostListResults({
+    query,
+    isPending,
+    currentUserId,
+    deletingPostId,
+    onDeletePost,
+    onTagSearch,
+    onPageChange
+}: BoardPostListResultsProps) {
+    const { data: postList } = useSuspenseQuery(boardPostListQueryOptions(query));
+    const contentClassName = isPending
+        ? "pointer-events-none flex flex-col gap-6 opacity-60 transition-opacity"
+        : "flex flex-col gap-6 transition-opacity";
+
+    return (
+        <div className={contentClassName} aria-busy={isPending}>
+            <BoardPostList
+                query={query}
+                postList={postList}
+                currentUserId={currentUserId}
+                deletingPostId={deletingPostId}
+                onDeletePost={onDeletePost}
+                onTagSearch={onTagSearch}
+            />
+            <BoardPostListPagination query={query} postList={postList} onPageChange={onPageChange} />
+        </div>
+    );
+}
+
+function BoardPostListResultsLoading() {
+    const loadingCards = BOARD_POST_LIST_LOADING_CARD_KEYS.map(renderBoardPostListLoadingCard);
+
+    return (
+        <div className="flex flex-col gap-4" aria-label="게시글 목록 불러오는 중">
+            <div className="flex flex-col gap-4">{loadingCards}</div>
+            <div className="flex justify-center">
+                <Skeleton className="h-9 w-56" />
+            </div>
+        </div>
+    );
+}
+
+function renderBoardPostListLoadingCard(key: string) {
+    return (
+        <Card key={key} className="gap-0 rounded-lg border-border bg-card p-5 shadow-none sm:p-6">
+            <CardHeader className="gap-3 p-0">
+                <div className="flex flex-wrap items-center gap-2">
+                    <Skeleton className="h-5 w-14 rounded-full" />
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-4 w-12" />
+                </div>
+            </CardHeader>
+            <CardContent className="mt-3 flex flex-col gap-2 p-0">
+                <Skeleton className="h-5 w-3/5" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-4/5" />
+            </CardContent>
+        </Card>
+    );
+}
+
 type DongBoardFilterProps = {
     dongCode?: string;
     onDongFilterChange: (value: string) => void;
@@ -289,7 +380,7 @@ function DongBoardFilter({ dongCode, onDongFilterChange }: DongBoardFilterProps)
             variant="default"
             size="sm"
             spacing={2}
-            className="flex w-full max-w-full flex-wrap justify-start gap-2"
+            className="flex w-full max-w-full flex-wrap justify-center gap-2"
             aria-label="동네 필터"
         >
             {filterItems}

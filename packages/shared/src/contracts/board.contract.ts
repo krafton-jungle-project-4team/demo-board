@@ -11,8 +11,8 @@ const DEFAULT_BOARD_POST_LIST_PAGE_SIZE = 10;
 const MAX_BOARD_POST_LIST_PAGE_SIZE = 50;
 const MAX_BOARD_POST_TAG_COUNT = 10;
 
-export const BOARD_POST_SEARCH_SCOPES = ["title", "content", "tag", "titleContent"] as const;
-export const DEFAULT_BOARD_POST_SEARCH_SCOPE = "titleContent";
+export const BOARD_POST_SEARCH_SCOPES = ["all", "title", "content", "tag", "titleContent"] as const;
+export const DEFAULT_BOARD_POST_SEARCH_SCOPE = "all";
 
 export const BoardIdSchema = z.number().int().positive();
 

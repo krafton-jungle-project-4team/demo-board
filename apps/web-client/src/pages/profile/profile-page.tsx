@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
-import { SONGPA_BOARD_DONGS, SongpaBoardDongCodeSchema } from "@nmm/shared";
+import { SONGPA_BOARD_DONGS, SongpaBoardDongCodeSchema, type BoardPostListQuery } from "@nmm/shared";
 import { Button } from "@nmm/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components/card";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@nmm/ui/components/field";
@@ -11,8 +11,17 @@ import { Spinner } from "@nmm/ui/components/spinner";
 import { currentUserQueryOptions, useUpdateResidenceDongMutation } from "@/features/auth";
 import { ApiClientError } from "@/shared/api/http-client";
 
-export function ProfilePage() {
+type ProfilePageQuery = BoardPostListQuery & {
+    redirectTo?: "boardNew";
+};
+
+type ProfilePageProps = {
+    query: ProfilePageQuery;
+};
+
+export function ProfilePage({ query }: ProfilePageProps) {
     const { data: currentUser, isPending: isCurrentUserPending } = useQuery(currentUserQueryOptions);
+    const boardNewRedirectQuery = getBoardNewRedirectQuery(query);
 
     if (isCurrentUserPending) {
         return (
@@ -53,6 +62,7 @@ export function ProfilePage() {
                     <ResidenceDongForm
                         key={currentUser.residenceDongCode ?? "empty-residence-dong"}
                         initialResidenceDongCode={currentUser.residenceDongCode ?? ""}
+                        redirectQuery={boardNewRedirectQuery}
                     />
                 </CardContent>
             </Card>
@@ -60,7 +70,14 @@ export function ProfilePage() {
     );
 }
 
-function ResidenceDongForm({ initialResidenceDongCode }: { initialResidenceDongCode: string }) {
+function ResidenceDongForm({
+    initialResidenceDongCode,
+    redirectQuery
+}: {
+    initialResidenceDongCode: string;
+    redirectQuery?: BoardPostListQuery;
+}) {
+    const navigate = useNavigate({ from: "/profile" });
     const updateResidenceDongMutation = useUpdateResidenceDongMutation();
     const [residenceDongCode, setResidenceDongCode] = useState(initialResidenceDongCode);
     const [formError, setFormError] = useState<string | undefined>();
@@ -86,6 +103,13 @@ function ResidenceDongForm({ initialResidenceDongCode }: { initialResidenceDongC
                 residenceDongCode: parsedResidenceDongCode.data
             });
             toast.success("거주동을 저장했습니다.");
+
+            if (redirectQuery) {
+                await navigate({
+                    to: "/board/new",
+                    search: redirectQuery
+                });
+            }
         } catch (error) {
             const errorMessage = getErrorMessage(error);
 
@@ -127,6 +151,20 @@ function ResidenceDongForm({ initialResidenceDongCode }: { initialResidenceDongC
             </Button>
         </form>
     );
+}
+
+function getBoardNewRedirectQuery(query: ProfilePageQuery): BoardPostListQuery | undefined {
+    if (query.redirectTo !== "boardNew") {
+        return undefined;
+    }
+
+    return {
+        dongCode: query.dongCode,
+        page: query.page,
+        pageSize: query.pageSize,
+        searchScope: query.searchScope,
+        q: query.q
+    };
 }
 
 function getErrorMessage(error: unknown) {

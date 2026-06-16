@@ -28,8 +28,8 @@ export function Header() {
 
     return (
         <header className="border-b border-border">
-            <div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-4 sm:px-6 lg:px-8">
-                <Button asChild variant="ghost" size="sm" className="font-semibold">
+            <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
+                <Button asChild variant="ghost" size="sm" className="-ml-3 text-base font-semibold sm:text-lg">
                     <Link to="/board" search={defaultBoardPostListSearch}>
                         송파 생활 게시판
                     </Link>
@@ -61,6 +61,7 @@ export function Header() {
                             <Button asChild variant="ghost" size="sm">
                                 <Link
                                     to="/profile"
+                                    search={defaultBoardPostListSearch}
                                     activeProps={{
                                         className: "bg-accent text-accent-foreground"
                                     }}
