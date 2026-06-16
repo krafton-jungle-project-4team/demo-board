@@ -5,6 +5,7 @@ export {
     estateTransactionQueryOptions,
     estateTransactionListQueryOptions
 } from "./api/estate-queries";
+export { useFindSimilarEstateTransactionsMutation } from "./api/estate-mutations";
 export {
     EstateTransactionList,
     EstateTransactionListLoading,
@@ -16,3 +17,4 @@ export {
     EstateSimilarTransactionListLoading,
     renderEstateSimilarTransactionListError
 } from "./ui/estate-similar-transaction-list";
+export { EstateTransactionChatSearch } from "./ui/estate-transaction-chat-search";

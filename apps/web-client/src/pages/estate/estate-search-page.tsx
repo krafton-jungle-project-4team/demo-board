@@ -11,6 +11,7 @@ import { NativeSelect, NativeSelectOption } from "@nmm/ui/components/native-sele
 import { AppErrorBoundary } from "@/app/providers/app-error-boundary";
 import {
     estateLegalDongListQueryOptions,
+    EstateTransactionChatSearch,
     EstateTransactionList,
     EstateTransactionListLoading,
     renderEstateTransactionListError,
@@ -60,6 +61,8 @@ export function EstateSearchPage() {
                 <h1 className="text-2xl font-semibold tracking-tight">실거래가 검색</h1>
                 <p className="text-sm text-muted-foreground">법정동, 건물명, 용도로 실거래가를 조회해보세요.</p>
             </div>
+
+            <EstateTransactionChatSearch />
 
             <form className="flex flex-col gap-2 sm:flex-row" onSubmit={handleSearchSubmit}>
                 <Field>
