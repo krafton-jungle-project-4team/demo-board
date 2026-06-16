@@ -43,7 +43,7 @@ type EstatePlannedStation = {
 const DEFAULT_TRANSPORT_TYPE: EstateTransportType = "subway";
 const DEFAULT_RADIUS_KM = 1;
 const DEFAULT_NEARBY_TRANSPORT_LIMIT = 5;
-const DEFAULT_WALK_CANDIDATE_COUNT = 3;
+const DEFAULT_WALK_CANDIDATE_COUNT = 5;
 const DEFAULT_WALK_SEARCH_OPTION: EstateWalkRouteSearchOption = "recommended";
 const PLANNED_STATION_KEYWORDS = ["개통예정", "개통 예정", "예정역", "미개통", "공사중", "공사 중", "계획", "가칭"];
 
@@ -114,11 +114,11 @@ export function EstateTransactionAccessibilityCard({ transactionId }: EstateTran
                 {!isLoading && !error && nearbyTransportResult.data ? (
                     <EstateNearbyTransportList transportPois={visibleTransportPois} />
                 ) : null}
-                {!isLoading && !error && nearbyTransportResult.data && walkTimeToTransportResult.data ? (
-                    <EstatePlannedStationList plannedStations={plannedStations} />
-                ) : null}
                 {!isLoading && !error && walkTimeToTransportResult.data ? (
                     <EstateWalkRouteCandidateList candidates={visibleWalkRouteCandidates} />
+                ) : null}
+                {!isLoading && !error && nearbyTransportResult.data && walkTimeToTransportResult.data ? (
+                    <EstatePlannedStationList plannedStations={plannedStations} />
                 ) : null}
                 {!isLoading && !error && walkTimeToTransportResult.data ? (
                     <p className="text-xs text-muted-foreground">{walkTimeToTransportResult.data.notice}</p>
