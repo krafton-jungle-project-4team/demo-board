@@ -45,6 +45,12 @@ type RouteMapCoordinate = {
     longitude: number;
 };
 
+type TransportViewText = {
+    nearbyTitle: string;
+    nearbyEmptyDescription: string;
+    walkEmptyDescription: string;
+};
+
 type TmapLatLng = object;
 
 type TmapMap = {
@@ -108,6 +114,24 @@ const TRANSPORT_TYPE_OPTIONS: TransportTypeOption[] = [
     { value: "all", label: "전체" }
 ];
 
+const TRANSPORT_VIEW_TEXT_BY_TYPE: Record<EstateTransportType, TransportViewText> = {
+    subway: {
+        nearbyTitle: "주변 지하철역",
+        nearbyEmptyDescription: "현재 반경 안에서 지하철역을 찾지 못했습니다.",
+        walkEmptyDescription: "반경 안에서 계산 가능한 지하철역 도보 경로를 찾지 못했습니다."
+    },
+    bus_stop: {
+        nearbyTitle: "주변 버스정류장",
+        nearbyEmptyDescription: "현재 반경 안에서 버스정류장을 찾지 못했습니다.",
+        walkEmptyDescription: "반경 안에서 계산 가능한 버스정류장 도보 경로를 찾지 못했습니다."
+    },
+    all: {
+        nearbyTitle: "주변 교통",
+        nearbyEmptyDescription: "현재 반경 안에서 지하철역 또는 버스정류장을 찾지 못했습니다.",
+        walkEmptyDescription: "반경 안에서 계산 가능한 도보 경로를 찾지 못했습니다."
+    }
+};
+
 export function EstateTransactionAccessibilityCard({ transactionId }: EstateTransactionAccessibilityCardProps) {
     const [transportType, setTransportType] = useState<EstateTransportType>(DEFAULT_TRANSPORT_TYPE);
     const nearbyTransportQuery = createNearbyTransportQuery(transportType);
@@ -126,6 +150,8 @@ export function EstateTransactionAccessibilityCard({ transactionId }: EstateTran
     const visibleTransportPois = transportPois.filter((transportPoi) => !isPlannedStationPoi(transportPoi));
     const visibleWalkRouteCandidates = walkRouteCandidates.filter((route) => !isPlannedStationRoute(route));
     const bestWalkRoute = selectBestWalkRoute(walkTimeToTransportResult.data?.best ?? null, visibleWalkRouteCandidates);
+    const transportViewText = getTransportViewText(transportType);
+    const shouldShowPlannedStations = transportType !== "bus_stop";
 
     function handleTransportTypeChange(value: string) {
         if (isEstateTransportType(value)) {
@@ -164,15 +190,19 @@ export function EstateTransactionAccessibilityCard({ transactionId }: EstateTran
                 {isLoading ? <EstateAccessibilityLoading /> : null}
                 {!isLoading && error ? <EstateAccessibilityError error={error} /> : null}
                 {!isLoading && !error && walkTimeToTransportResult.data ? (
-                    <EstateBestWalkRoute route={bestWalkRoute} />
+                    <EstateBestWalkRoute route={bestWalkRoute} viewText={transportViewText} />
                 ) : null}
                 {!isLoading && !error && nearbyTransportResult.data ? (
-                    <EstateNearbyTransportList transportPois={visibleTransportPois} />
+                    <EstateNearbyTransportList transportPois={visibleTransportPois} viewText={transportViewText} />
                 ) : null}
                 {!isLoading && !error && walkTimeToTransportResult.data ? (
                     <EstateWalkRouteCandidateList candidates={visibleWalkRouteCandidates} />
                 ) : null}
-                {!isLoading && !error && nearbyTransportResult.data && walkTimeToTransportResult.data ? (
+                {!isLoading &&
+                !error &&
+                shouldShowPlannedStations &&
+                nearbyTransportResult.data &&
+                walkTimeToTransportResult.data ? (
                     <EstatePlannedStationList plannedStations={plannedStations} />
                 ) : null}
                 {!isLoading && !error && walkTimeToTransportResult.data ? (
@@ -201,12 +231,12 @@ function EstateAccessibilityError({ error }: { error: Error }) {
     );
 }
 
-function EstateBestWalkRoute({ route }: { route: EstateWalkRoute | null }) {
+function EstateBestWalkRoute({ route, viewText }: { route: EstateWalkRoute | null; viewText: TransportViewText }) {
     if (!route) {
         return (
             <Alert>
                 <AlertTitle>도보 경로가 없습니다.</AlertTitle>
-                <AlertDescription>반경 안에서 계산 가능한 도보 경로를 찾지 못했습니다.</AlertDescription>
+                <AlertDescription>{viewText.walkEmptyDescription}</AlertDescription>
             </Alert>
         );
     }
@@ -362,12 +392,18 @@ function EstateWalkRouteMap({ route }: { route: EstateWalkRoute }) {
     );
 }
 
-function EstateNearbyTransportList({ transportPois }: { transportPois: EstateTransportPoi[] }) {
+function EstateNearbyTransportList({
+    transportPois,
+    viewText
+}: {
+    transportPois: EstateTransportPoi[];
+    viewText: TransportViewText;
+}) {
     if (transportPois.length === 0) {
         return (
             <Alert>
                 <AlertTitle>주변 교통 정보가 없습니다.</AlertTitle>
-                <AlertDescription>현재 반경 안에서 지하철역 또는 버스정류장을 찾지 못했습니다.</AlertDescription>
+                <AlertDescription>{viewText.nearbyEmptyDescription}</AlertDescription>
             </Alert>
         );
     }
@@ -375,7 +411,7 @@ function EstateNearbyTransportList({ transportPois }: { transportPois: EstateTra
     return (
         <section className="flex flex-col gap-3">
             <div className="flex items-center justify-between gap-3">
-                <h2 className="text-base font-semibold">주변 교통</h2>
+                <h2 className="text-base font-semibold">{viewText.nearbyTitle}</h2>
                 <Badge variant="secondary">{transportPois.length}개</Badge>
             </div>
             <Table>
@@ -507,6 +543,10 @@ function createWalkTimeToTransportQuery(transportType: EstateTransportType): Est
 
 function isEstateTransportType(value: string): value is EstateTransportType {
     return value === "subway" || value === "bus_stop" || value === "all";
+}
+
+function getTransportViewText(transportType: EstateTransportType): TransportViewText {
+    return TRANSPORT_VIEW_TEXT_BY_TYPE[transportType];
 }
 
 function selectBestWalkRoute(bestRoute: EstateWalkRoute | null, visibleCandidates: EstateWalkRoute[]) {
