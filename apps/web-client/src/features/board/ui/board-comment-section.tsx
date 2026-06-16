@@ -75,6 +75,10 @@ export function BoardCommentSection({ postId, page, createPageHref, onPageChange
         await createCommentMutation.mutateAsync({
             content
         });
+
+        if (page !== 1) {
+            onPageChange(1);
+        }
     }
 
     return (
