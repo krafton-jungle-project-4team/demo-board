@@ -14,7 +14,7 @@ npm run dev:mcp
 
 - `NMM_MCP_PORT`: MCP 서버 포트. 기본값 `3002`.
 - `NMM_MCP_API_BASE_URL`: API 서버 base URL. Docker 기본값 `http://api-server:3000/api`.
-- `NMM_MCP_BEARER_TOKEN`: MCP 요청 bearer token.
+- `NMM_MCP_BEARER_TOKEN`: MCP 요청 검증과 API 서버 호출에 사용할 bearer token.
 - `NMM_MCP_ALLOWED_ORIGINS`: 허용할 Origin 목록. 쉼표로 구분한다.
 - `NMM_MCP_REQUEST_TIMEOUT_MS`: API 서버 요청 timeout. 기본값 `5000`.
 

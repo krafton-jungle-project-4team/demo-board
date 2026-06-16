@@ -79,6 +79,7 @@ function createApiUrl(path: string, searchParams: URLSearchParams | undefined) {
 function createHeaders(options: ApiRequestOptions) {
     return {
         Accept: "application/json",
+        Authorization: `Bearer ${mcpServerEnv.bearerToken}`,
         ...(options.body === undefined ? {} : { "Content-Type": "application/json" })
     };
 }
