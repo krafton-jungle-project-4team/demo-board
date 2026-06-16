@@ -147,8 +147,6 @@ export function EstateTransactionAccessibilityCard({ transactionId }: EstateTran
     const walkTimeToTransportResult = useQuery(
         estateWalkTimeToTransportByTransactionQueryOptions(transactionId, walkTimeToTransportQuery)
     );
-    const isLoading = nearbyTransportResult.isLoading || walkTimeToTransportResult.isLoading;
-    const error = nearbyTransportResult.error ?? walkTimeToTransportResult.error;
     const transportPois = nearbyTransportResult.data?.transportPois ?? [];
     const walkRouteCandidates = walkTimeToTransportResult.data?.candidates ?? [];
     const plannedStations = createPlannedStations(transportPois, walkRouteCandidates);
@@ -159,6 +157,10 @@ export function EstateTransactionAccessibilityCard({ transactionId }: EstateTran
     const walkRouteByDestinationKey = createWalkRouteByDestinationKey(visibleWalkRouteCandidates);
     const transportViewText = getTransportViewText(transportType);
     const shouldShowPlannedStations = transportType !== "bus_stop";
+    const isWalkRouteReady =
+        !walkTimeToTransportResult.isLoading && !walkTimeToTransportResult.error && walkTimeToTransportResult.data;
+    const isNearbyTransportReady =
+        !nearbyTransportResult.isLoading && !nearbyTransportResult.error && nearbyTransportResult.data;
 
     useEffect(() => {
         const nextSelectedWalkRouteKey = selectedWalkRoute ? createWalkRouteKey(selectedWalkRoute) : null;
@@ -206,16 +208,28 @@ export function EstateTransactionAccessibilityCard({ transactionId }: EstateTran
                 </div>
             </CardHeader>
             <CardContent className="flex flex-col gap-6">
-                {isLoading ? <EstateAccessibilityLoading /> : null}
-                {!isLoading && error ? <EstateAccessibilityError error={error} /> : null}
-                {!isLoading && !error && walkTimeToTransportResult.data ? (
+                {walkTimeToTransportResult.isLoading ? <EstateWalkRouteLoading /> : null}
+                {!walkTimeToTransportResult.isLoading && walkTimeToTransportResult.error ? (
+                    <EstateAccessibilityError
+                        title="도보 경로를 불러오지 못했습니다."
+                        error={walkTimeToTransportResult.error}
+                    />
+                ) : null}
+                {isWalkRouteReady ? (
                     <EstateSelectedWalkRoute
                         route={selectedWalkRoute}
                         bestRoute={bestWalkRoute}
                         viewText={transportViewText}
                     />
                 ) : null}
-                {!isLoading && !error && nearbyTransportResult.data ? (
+                {nearbyTransportResult.isLoading ? <EstateNearbyTransportLoading /> : null}
+                {!nearbyTransportResult.isLoading && nearbyTransportResult.error ? (
+                    <EstateAccessibilityError
+                        title="주변 교통 정보를 불러오지 못했습니다."
+                        error={nearbyTransportResult.error}
+                    />
+                ) : null}
+                {isNearbyTransportReady ? (
                     <EstateNearbyTransportList
                         transportPois={visibleTransportPois}
                         walkRouteByDestinationKey={walkRouteByDestinationKey}
@@ -224,21 +238,17 @@ export function EstateTransactionAccessibilityCard({ transactionId }: EstateTran
                         onRouteSelect={handleWalkRouteSelect}
                     />
                 ) : null}
-                {!isLoading && !error && walkTimeToTransportResult.data ? (
+                {isWalkRouteReady ? (
                     <EstateWalkRouteCandidateList
                         candidates={visibleWalkRouteCandidates}
                         selectedRouteKey={selectedWalkRouteKey}
                         onRouteSelect={handleWalkRouteSelect}
                     />
                 ) : null}
-                {!isLoading &&
-                !error &&
-                shouldShowPlannedStations &&
-                nearbyTransportResult.data &&
-                walkTimeToTransportResult.data ? (
+                {isNearbyTransportReady && shouldShowPlannedStations ? (
                     <EstatePlannedStationList plannedStations={plannedStations} />
                 ) : null}
-                {!isLoading && !error && walkTimeToTransportResult.data ? (
+                {isWalkRouteReady ? (
                     <p className="text-xs text-muted-foreground">{walkTimeToTransportResult.data.notice}</p>
                 ) : null}
             </CardContent>
@@ -246,19 +256,26 @@ export function EstateTransactionAccessibilityCard({ transactionId }: EstateTran
     );
 }
 
-function EstateAccessibilityLoading() {
+function EstateWalkRouteLoading() {
     return (
-        <div className="flex flex-col gap-4" aria-label="교통 접근성 불러오는 중">
-            <Skeleton className="h-24 w-full" />
+        <div aria-label="도보 경로 불러오는 중">
+            <Skeleton className="h-64 w-full" />
+        </div>
+    );
+}
+
+function EstateNearbyTransportLoading() {
+    return (
+        <div aria-label="주변 교통 정보 불러오는 중">
             <Skeleton className="h-36 w-full" />
         </div>
     );
 }
 
-function EstateAccessibilityError({ error }: { error: Error }) {
+function EstateAccessibilityError({ title, error }: { title: string; error: Error }) {
     return (
         <Alert variant="destructive">
-            <AlertTitle>교통 정보를 불러오지 못했습니다.</AlertTitle>
+            <AlertTitle>{title}</AlertTitle>
             <AlertDescription>{error.message}</AlertDescription>
         </Alert>
     );
