@@ -99,6 +99,7 @@ const REQUIRED_TABLE_COLUMNS = {
 const REQUIRED_INDEXES = [
     "idx_board_posts_title_trgm",
     "idx_board_posts_content_trgm",
+    "idx_board_posts_dong_code",
     "idx_auth_users_residence_dong_code",
     "idx_board_tags_name_trgm",
     "idx_board_tags_normalized_name_unique",

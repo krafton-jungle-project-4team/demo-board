@@ -120,8 +120,7 @@ const boardPostSearchConditionSql = `
 `;
 
 const boardPostListWhereSql = `
-WHERE board_posts.dong_code IS NOT NULL
-    AND ($3::text IS NULL OR board_posts.dong_code = $3::text)
+WHERE ($3::text IS NULL OR board_posts.dong_code = $3::text)
     AND ${boardPostSearchConditionSql}
 `;
 

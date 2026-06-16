@@ -10,8 +10,8 @@ export class BoardPostEntity {
     @Column({ name: "author_id", type: "bigint" })
     authorId!: number;
 
-    @Column({ name: "dong_code", type: "varchar", length: 5, nullable: true })
-    dongCode!: SongpaBoardDongCode | null;
+    @Column({ name: "dong_code", type: "varchar", length: 5 })
+    dongCode!: SongpaBoardDongCode;
 
     @Column({ type: "text" })
     title!: string;
