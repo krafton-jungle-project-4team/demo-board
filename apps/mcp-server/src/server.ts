@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import express, { type Request, type Response } from "express";
 import { mcpServerEnv } from "./env.js";
+import { registerEstateTools } from "./tools/estate-tools.js";
 
 const MCP_ENDPOINT = "/mcp";
 
@@ -18,10 +19,14 @@ export function createMcpHttpApp() {
 }
 
 function createMcpServer() {
-    return new McpServer({
+    const server = new McpServer({
         name: "estate-mcp-server",
         version: "0.0.0"
     });
+
+    registerEstateTools(server);
+
+    return server;
 }
 
 async function handleMcpPostRequest(request: Request, response: Response) {
