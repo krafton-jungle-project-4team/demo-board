@@ -50,6 +50,11 @@ type BoardModerationBatchResult = {
 type BoardModerationRunResult = "idle" | "processed" | "retry";
 type BoardPostProcessResult = "visible" | "held" | "failed" | "stale";
 
+type PendingBoardPost = {
+    post: BoardPostEntity;
+    updatedAtVersion: string;
+};
+
 type OpenAiResponsesApiResponse = {
     output?: unknown;
 };
@@ -148,18 +153,18 @@ export class BoardModerationWorkerService implements OnApplicationBootstrap, OnA
         this.isProcessing = true;
 
         try {
-            const posts = await this.findPendingPosts();
+            const pendingPosts = await this.findPendingPosts();
 
-            if (posts.length === 0) {
+            if (pendingPosts.length === 0) {
                 return "idle";
             }
 
-            this.logger.log(`Auto-Mod processing ${posts.length} pending board posts.`);
+            this.logger.log(`Auto-Mod processing ${pendingPosts.length} pending board posts.`);
 
             const batchResult = createEmptyBatchResult();
 
-            for (const post of posts) {
-                const result = await this.processPost(post);
+            for (const pendingPost of pendingPosts) {
+                const result = await this.processPost(pendingPost);
                 incrementBatchResult(batchResult, result);
             }
 
@@ -181,7 +186,7 @@ export class BoardModerationWorkerService implements OnApplicationBootstrap, OnA
                 return "retry";
             }
 
-            if (posts.length === BOARD_MODERATION_BATCH_SIZE) {
+            if (pendingPosts.length === BOARD_MODERATION_BATCH_SIZE) {
                 return "processed";
             }
 
@@ -191,9 +196,10 @@ export class BoardModerationWorkerService implements OnApplicationBootstrap, OnA
         }
     }
 
-    private findPendingPosts() {
-        return this.posts
+    private async findPendingPosts(): Promise<PendingBoardPost[]> {
+        const { entities, raw } = await this.posts
             .createQueryBuilder("post")
+            .addSelect("post.updated_at::text", "updated_at_version")
             .where("post.moderationStatus <> :heldStatus", {
                 heldStatus: BOARD_POST_MODERATION_STATUS_HELD
             })
@@ -201,10 +207,16 @@ export class BoardModerationWorkerService implements OnApplicationBootstrap, OnA
             .orderBy("post.createdAt", "ASC")
             .addOrderBy("post.id", "ASC")
             .take(BOARD_MODERATION_BATCH_SIZE)
-            .getMany();
+            .getRawAndEntities();
+
+        return entities.map((post, index) => ({
+            post,
+            updatedAtVersion: parseUpdatedAtVersion(raw[index])
+        }));
     }
 
-    private async processPost(post: BoardPostEntity): Promise<BoardPostProcessResult> {
+    private async processPost(pendingPost: PendingBoardPost): Promise<BoardPostProcessResult> {
+        const { post, updatedAtVersion } = pendingPost;
         const postId = Number(post.id);
 
         try {
@@ -222,6 +234,9 @@ export class BoardModerationWorkerService implements OnApplicationBootstrap, OnA
                     heldStatus: BOARD_POST_MODERATION_STATUS_HELD
                 })
                 .andWhere("moderation_checked_at IS NULL")
+                .andWhere("updated_at = CAST(:updatedAtVersion AS timestamptz)", {
+                    updatedAtVersion
+                })
                 .execute();
 
             if ((updateResult.affected ?? 0) === 0) {
@@ -343,6 +358,14 @@ export class BoardModerationWorkerService implements OnApplicationBootstrap, OnA
 
 function createBoardPostModerationInput(post: BoardPostEntity) {
     return [`게시글 ID: ${Number(post.id)}`, `제목: ${post.title}`, `본문:\n${post.content}`].join("\n");
+}
+
+function parseUpdatedAtVersion(rawRow: unknown) {
+    if (isRecord(rawRow) && typeof rawRow.updated_at_version === "string") {
+        return rawRow.updated_at_version;
+    }
+
+    throw new Error("Board post moderation query did not include updated_at version.");
 }
 
 function getNextRunDelayMs(runResult: BoardModerationRunResult) {
