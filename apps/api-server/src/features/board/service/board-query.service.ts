@@ -116,6 +116,17 @@ const boardPostSearchConditionSql = `
             OR board_posts.content %> $1
         )
     )
+    OR (
+        $2::text = 'all'
+        AND (
+            board_posts.title % $1
+            OR board_posts.title %> $1
+            OR board_posts.content % $1
+            OR board_posts.content %> $1
+            OR COALESCE(board_post_tag_names.tag_text, '') % $1
+            OR COALESCE(board_post_tag_names.tag_text, '') %> $1
+        )
+    )
 )
 `;
 
@@ -343,6 +354,14 @@ export class BoardQueryService {
                     word_similarity($1, board_posts.title),
                     similarity(board_posts.content, $1),
                     word_similarity($1, board_posts.content)
+                )
+                WHEN $2::text = 'all' THEN GREATEST(
+                    similarity(board_posts.title, $1),
+                    word_similarity($1, board_posts.title),
+                    similarity(board_posts.content, $1),
+                    word_similarity($1, board_posts.content),
+                    similarity(COALESCE(board_post_tag_names.tag_text, ''), $1),
+                    word_similarity($1, COALESCE(board_post_tag_names.tag_text, ''))
                 )
                 ELSE 0
             END AS search_rank
