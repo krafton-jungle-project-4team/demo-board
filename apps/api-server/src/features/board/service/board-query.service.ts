@@ -216,7 +216,7 @@ export class BoardQueryService {
                     ON author_dongs.code = auth_users.residence_dong_code
                 WHERE board_comments.post_id = $1
                     AND board_comments.parent_comment_id IS NULL
-                ORDER BY board_comments.created_at ASC, board_comments.id ASC
+                ORDER BY board_comments.created_at DESC, board_comments.id DESC
                 LIMIT $2
                 OFFSET $3
                 `,

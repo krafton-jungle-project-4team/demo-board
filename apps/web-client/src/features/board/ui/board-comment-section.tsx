@@ -1,17 +1,31 @@
-import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { MessageCircleIcon, PencilIcon, ReplyIcon, Trash2Icon } from "lucide-react";
-import { type FormEvent, useState } from "react";
-import type { BoardAuthor, BoardCommentReplyResponse, BoardCommentResponse } from "@nmm/shared";
+import { type FormEvent, type MouseEvent, type ReactNode, useState } from "react";
+import type {
+    BoardAuthor,
+    BoardCommentListResponse,
+    BoardCommentPageInfo,
+    BoardCommentReplyResponse,
+    BoardCommentResponse
+} from "@nmm/shared";
 import { Alert, AlertDescription } from "@nmm/ui/components/alert";
 import { Button } from "@nmm/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@nmm/ui/components/empty";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@nmm/ui/components/field";
+import {
+    Pagination,
+    PaginationContent,
+    PaginationEllipsis,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious
+} from "@nmm/ui/components/pagination";
 import { Separator } from "@nmm/ui/components/separator";
 import { Spinner } from "@nmm/ui/components/spinner";
 import { Textarea } from "@nmm/ui/components/textarea";
-import { boardCommentsQueryOptions } from "../api/board-queries";
 import {
     useCreateBoardCommentMutation,
     useCreateBoardCommentReplyMutation,
@@ -21,11 +35,16 @@ import {
 import { currentUserQueryOptions } from "@/features/auth";
 import { BoardAuthorLabel } from "./board-author-label";
 
-const BOARD_COMMENT_PAGE_SIZE = 20;
+const DISABLED_COMMENT_PAGINATION_LINK_CLASS_NAME = "pointer-events-none opacity-50";
 const EMPTY_COMMENT_FORM_VALUE = "";
+const MAX_VISIBLE_COMMENT_PAGE_COUNT = 5;
 
 type BoardCommentSectionProps = {
     postId: number;
+    comments: BoardCommentListResponse;
+    createPageHref: (page: number) => string;
+    onPageSelect: (page: number) => void;
+    onCommentCreateSuccess: () => void;
 };
 
 const boardCommentDateFormatter = new Intl.DateTimeFormat("ko-KR", {
@@ -33,15 +52,16 @@ const boardCommentDateFormatter = new Intl.DateTimeFormat("ko-KR", {
     timeStyle: "short"
 });
 
-export function BoardCommentSection({ postId }: BoardCommentSectionProps) {
-    const commentsQuery = useSuspenseQuery(
-        boardCommentsQueryOptions(postId, {
-            page: 1,
-            pageSize: BOARD_COMMENT_PAGE_SIZE
-        })
-    );
+export function BoardCommentSection({
+    postId,
+    comments,
+    createPageHref,
+    onPageSelect,
+    onCommentCreateSuccess
+}: BoardCommentSectionProps) {
     const { data: currentUser, isPending: isCurrentUserPending } = useQuery(currentUserQueryOptions);
     const createCommentMutation = useCreateBoardCommentMutation(postId);
+    const pageInfo = comments.pageInfo;
     const commentWriteState = getCommentWriteState({
         isSignedIn: currentUser !== null && currentUser !== undefined,
         isCheckingUser: isCurrentUserPending
@@ -52,13 +72,15 @@ export function BoardCommentSection({ postId }: BoardCommentSectionProps) {
         await createCommentMutation.mutateAsync({
             content
         });
+
+        onCommentCreateSuccess();
     }
 
     return (
         <Card>
             <CardHeader>
                 <CardTitle>댓글</CardTitle>
-                <CardDescription>{commentsQuery.data.pageInfo.totalCount.toLocaleString("ko-KR")}개</CardDescription>
+                <CardDescription>{pageInfo.totalCount.toLocaleString("ko-KR")}개</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-6">
                 {commentWriteState === "checking" ? (
@@ -75,9 +97,9 @@ export function BoardCommentSection({ postId }: BoardCommentSectionProps) {
                     <BoardCommentWriteNotice state={commentWriteState} />
                 )}
                 <Separator />
-                {commentsQuery.data.items.length > 0 ? (
+                {comments.items.length > 0 ? (
                     <div className="flex flex-col gap-4">
-                        {commentsQuery.data.items.map((comment) => (
+                        {comments.items.map((comment) => (
                             <BoardCommentItem
                                 key={comment.id}
                                 comment={comment}
@@ -89,6 +111,11 @@ export function BoardCommentSection({ postId }: BoardCommentSectionProps) {
                 ) : (
                     <BoardCommentEmpty />
                 )}
+                <BoardCommentPagination
+                    pageInfo={pageInfo}
+                    createPageHref={createPageHref}
+                    onPageSelect={onPageSelect}
+                />
             </CardContent>
         </Card>
     );
@@ -143,6 +170,179 @@ function BoardCommentEmpty() {
             </EmptyHeader>
         </Empty>
     );
+}
+
+type BoardCommentPaginationProps = {
+    pageInfo: BoardCommentPageInfo;
+    createPageHref: (page: number) => string;
+    onPageSelect: (page: number) => void;
+};
+
+function BoardCommentPagination({ pageInfo, createPageHref, onPageSelect }: BoardCommentPaginationProps) {
+    if (pageInfo.totalPages <= 1) {
+        return null;
+    }
+
+    const currentPage = clampPage(pageInfo.page, pageInfo.totalPages);
+    const previousPage = Math.max(1, currentPage - 1);
+    const nextPage = Math.min(pageInfo.totalPages, currentPage + 1);
+    const visiblePages = getVisibleCommentPages(currentPage, pageInfo.totalPages);
+
+    return (
+        <Pagination>
+            <PaginationContent>
+                <PaginationItem>
+                    <BoardCommentPreviousPageLink
+                        page={previousPage}
+                        disabled={currentPage <= 1}
+                        createPageHref={createPageHref}
+                        onPageSelect={onPageSelect}
+                    />
+                </PaginationItem>
+                {visiblePages.map((pageItem, index) =>
+                    pageItem === "ellipsis" ? (
+                        <PaginationItem key={createCommentPaginationItemKey(pageItem, index)}>
+                            <PaginationEllipsis />
+                        </PaginationItem>
+                    ) : (
+                        <PaginationItem key={createCommentPaginationItemKey(pageItem, index)}>
+                            <BoardCommentPageLink
+                                page={pageItem}
+                                isActive={pageItem === currentPage}
+                                createPageHref={createPageHref}
+                                onPageSelect={onPageSelect}
+                            >
+                                {pageItem}
+                            </BoardCommentPageLink>
+                        </PaginationItem>
+                    )
+                )}
+                <PaginationItem>
+                    <BoardCommentNextPageLink
+                        page={nextPage}
+                        disabled={currentPage >= pageInfo.totalPages}
+                        createPageHref={createPageHref}
+                        onPageSelect={onPageSelect}
+                    />
+                </PaginationItem>
+            </PaginationContent>
+        </Pagination>
+    );
+}
+
+type BoardCommentPageLinkProps = {
+    page: number;
+    isActive?: boolean;
+    disabled?: boolean;
+    createPageHref: (page: number) => string;
+    onPageSelect: (page: number) => void;
+    children?: ReactNode;
+};
+
+function BoardCommentPageLink({
+    page,
+    isActive,
+    disabled,
+    createPageHref,
+    onPageSelect,
+    children
+}: BoardCommentPageLinkProps) {
+    function handleClick(event: MouseEvent<HTMLAnchorElement>) {
+        event.preventDefault();
+
+        if (disabled || isActive) {
+            return;
+        }
+
+        onPageSelect(page);
+    }
+
+    return (
+        <PaginationLink
+            href={createPageHref(page)}
+            isActive={isActive}
+            aria-disabled={disabled}
+            tabIndex={disabled ? -1 : undefined}
+            className={disabled ? DISABLED_COMMENT_PAGINATION_LINK_CLASS_NAME : undefined}
+            onClick={handleClick}
+        >
+            {children}
+        </PaginationLink>
+    );
+}
+
+function BoardCommentPreviousPageLink({ page, disabled, createPageHref, onPageSelect }: BoardCommentPageLinkProps) {
+    function handleClick(event: MouseEvent<HTMLAnchorElement>) {
+        event.preventDefault();
+
+        if (disabled) {
+            return;
+        }
+
+        onPageSelect(page);
+    }
+
+    return (
+        <PaginationPrevious
+            href={createPageHref(page)}
+            aria-disabled={disabled}
+            tabIndex={disabled ? -1 : undefined}
+            className={disabled ? DISABLED_COMMENT_PAGINATION_LINK_CLASS_NAME : undefined}
+            onClick={handleClick}
+        />
+    );
+}
+
+function BoardCommentNextPageLink({ page, disabled, createPageHref, onPageSelect }: BoardCommentPageLinkProps) {
+    function handleClick(event: MouseEvent<HTMLAnchorElement>) {
+        event.preventDefault();
+
+        if (disabled) {
+            return;
+        }
+
+        onPageSelect(page);
+    }
+
+    return (
+        <PaginationNext
+            href={createPageHref(page)}
+            aria-disabled={disabled}
+            tabIndex={disabled ? -1 : undefined}
+            className={disabled ? DISABLED_COMMENT_PAGINATION_LINK_CLASS_NAME : undefined}
+            onClick={handleClick}
+        />
+    );
+}
+
+type VisibleCommentPageItem = number | "ellipsis";
+
+function getVisibleCommentPages(page: number, totalPages: number): VisibleCommentPageItem[] {
+    if (totalPages <= MAX_VISIBLE_COMMENT_PAGE_COUNT) {
+        return Array.from({ length: totalPages }, createCommentPageNumber);
+    }
+
+    if (page <= 3) {
+        return [1, 2, 3, 4, "ellipsis", totalPages];
+    }
+
+    if (page >= totalPages - 2) {
+        return [1, "ellipsis", totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    }
+
+    return [1, "ellipsis", page - 1, page, page + 1, "ellipsis", totalPages];
+}
+
+function createCommentPageNumber(_: unknown, index: number) {
+    return index + 1;
+}
+
+function createCommentPaginationItemKey(pageItem: VisibleCommentPageItem, index: number) {
+    return `${pageItem}-${index}`;
+}
+
+function clampPage(page: number, totalPages: number) {
+    return Math.min(Math.max(page, 1), totalPages);
 }
 
 function BoardCommentItem({
