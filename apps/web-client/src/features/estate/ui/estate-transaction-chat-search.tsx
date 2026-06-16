@@ -17,14 +17,16 @@ import { ApiClientError } from "@/shared/api/http-client";
 
 const RECOMMENDED_TRANSACTION_LIMIT = 5;
 const SQUARE_METERS_PER_PYEONG = 3.305785;
+const DETAIL_COMMAND_REGEX = /(\d+)\s*번.*(?:상세|열어|보여|이동|페이지)/;
+const COMPARISON_COMMAND_REGEX = /(?:비교|차이|뭐가\s*더|어느\s*게|나아|낫)/;
+const EXPLANATION_COMMAND_REGEX = /(?:왜|이유|근거|설명)/;
+const RANK_COMMAND_REGEX = /(\d+)\s*번/g;
 
 export function EstateTransactionChatSearch() {
     const [promptInput, setPromptInput] = useState("");
     const [submittedPrompt, setSubmittedPrompt] = useState("");
     const [lastRecommendations, setLastRecommendations] = useState<EstateSimilarTransactionItem[]>([]);
-    const [commandErrorMessage, setCommandErrorMessage] = useState("");
-    const [recommendationExplanation, setRecommendationExplanation] = useState<RecommendationExplanation | null>(null);
-    const [recommendationComparison, setRecommendationComparison] = useState<RecommendationComparison | null>(null);
+    const [commandPanel, setCommandPanel] = useState<CommandPanel | null>(null);
     const navigate = useNavigate();
     const recommendationMutation = useFindSimilarEstateTransactionsMutation();
     const trimmedPrompt = promptInput.trim();
@@ -62,9 +64,7 @@ export function EstateTransactionChatSearch() {
             return;
         }
 
-        setCommandErrorMessage("");
-        setRecommendationExplanation(null);
-        setRecommendationComparison(null);
+        setCommandPanel(null);
         setSubmittedPrompt(trimmedPrompt);
         setLastRecommendations([]);
         recommendationMutation.reset();
@@ -86,15 +86,14 @@ export function EstateTransactionChatSearch() {
         const recommendation = lastRecommendations[rank - 1];
 
         if (!recommendation) {
-            setCommandErrorMessage(`${rank}번 추천 후보가 없습니다. 먼저 후보를 검색해주세요.`);
-            setRecommendationExplanation(null);
-            setRecommendationComparison(null);
+            setCommandPanel({
+                type: "error",
+                message: `${rank}번 추천 후보가 없습니다. 먼저 후보를 검색해주세요.`
+            });
             return;
         }
 
-        setCommandErrorMessage("");
-        setRecommendationExplanation(null);
-        setRecommendationComparison(null);
+        setCommandPanel(null);
         void navigate({
             to: "/estate/transactions/$transactionId",
             params: {
@@ -107,15 +106,17 @@ export function EstateTransactionChatSearch() {
         const recommendation = lastRecommendations[rank - 1];
 
         if (!recommendation) {
-            setCommandErrorMessage(`${rank}번 추천 후보가 없습니다. 먼저 후보를 검색해주세요.`);
-            setRecommendationExplanation(null);
-            setRecommendationComparison(null);
+            setCommandPanel({
+                type: "error",
+                message: `${rank}번 추천 후보가 없습니다. 먼저 후보를 검색해주세요.`
+            });
             return;
         }
 
-        setCommandErrorMessage("");
-        setRecommendationComparison(null);
-        setRecommendationExplanation(createRecommendationExplanation(rank, recommendation));
+        setCommandPanel({
+            type: "explanation",
+            explanation: createRecommendationExplanation(rank, recommendation)
+        });
     }
 
     function compareRecommendations(ranks: [number, number]) {
@@ -124,17 +125,17 @@ export function EstateTransactionChatSearch() {
         const rightRecommendation = lastRecommendations[rightRank - 1];
 
         if (!leftRecommendation || !rightRecommendation) {
-            setCommandErrorMessage(`${leftRank}번과 ${rightRank}번 중 없는 추천 후보가 있습니다.`);
-            setRecommendationExplanation(null);
-            setRecommendationComparison(null);
+            setCommandPanel({
+                type: "error",
+                message: `${leftRank}번과 ${rightRank}번 중 없는 추천 후보가 있습니다.`
+            });
             return;
         }
 
-        setCommandErrorMessage("");
-        setRecommendationExplanation(null);
-        setRecommendationComparison(
-            createRecommendationComparison(leftRank, leftRecommendation, rightRank, rightRecommendation)
-        );
+        setCommandPanel({
+            type: "comparison",
+            comparison: createRecommendationComparison(leftRank, leftRecommendation, rightRank, rightRecommendation)
+        });
     }
 
     return (
@@ -174,20 +175,7 @@ export function EstateTransactionChatSearch() {
                     </FieldGroup>
                 </form>
 
-                {commandErrorMessage ? (
-                    <Alert variant="destructive">
-                        <AlertTitle>명령을 실행하지 못했습니다.</AlertTitle>
-                        <AlertDescription>{commandErrorMessage}</AlertDescription>
-                    </Alert>
-                ) : null}
-
-                {recommendationExplanation ? (
-                    <RecommendationExplanationAlert explanation={recommendationExplanation} />
-                ) : null}
-
-                {recommendationComparison ? (
-                    <RecommendationComparisonAlert comparison={recommendationComparison} />
-                ) : null}
+                {commandPanel ? <RecommendationCommandPanel commandPanel={commandPanel} /> : null}
 
                 <EstateTransactionRecommendationResult
                     items={recommendationMutation.data?.items ?? []}
@@ -221,6 +209,20 @@ type RecommendationComparison = {
         rightValue: string;
     }>;
 };
+
+type CommandPanel =
+    | {
+          type: "error";
+          message: string;
+      }
+    | {
+          type: "explanation";
+          explanation: RecommendationExplanation;
+      }
+    | {
+          type: "comparison";
+          comparison: RecommendationComparison;
+      };
 
 type EstateTransactionRecommendationResultProps = {
     items: EstateSimilarTransactionItem[];
@@ -333,7 +335,7 @@ function EstateTransactionRecommendationRow({ item, rank }: { item: EstateSimila
 }
 
 function parseDetailCommandRank(prompt: string) {
-    const detailCommandMatch = /(\d+)\s*번.*(?:상세|열어|보여|이동|페이지)/.exec(prompt);
+    const detailCommandMatch = DETAIL_COMMAND_REGEX.exec(prompt);
 
     if (!detailCommandMatch) {
         return null;
@@ -343,13 +345,13 @@ function parseDetailCommandRank(prompt: string) {
 }
 
 function parseComparisonCommandRanks(prompt: string): [number, number] | null {
-    const isComparisonCommand = /(?:비교|차이|뭐가\s*더|어느\s*게|나아|낫)/.test(prompt);
+    const isComparisonCommand = COMPARISON_COMMAND_REGEX.test(prompt);
 
     if (!isComparisonCommand) {
         return null;
     }
 
-    const ranks = Array.from(prompt.matchAll(/(\d+)\s*번/g), (match) => Number(match[1]));
+    const ranks = Array.from(prompt.matchAll(RANK_COMMAND_REGEX), (match) => Number(match[1]));
 
     if (ranks.length < 2) {
         return null;
@@ -365,15 +367,32 @@ function parseComparisonCommandRanks(prompt: string): [number, number] | null {
 }
 
 function parseExplanationCommandRank(prompt: string) {
-    const isExplanationCommand = /(?:왜|이유|근거|설명)/.test(prompt);
+    const isExplanationCommand = EXPLANATION_COMMAND_REGEX.test(prompt);
 
     if (!isExplanationCommand) {
         return null;
     }
 
-    const rankMatch = /(\d+)\s*번/.exec(prompt);
+    const rankMatch = Array.from(prompt.matchAll(RANK_COMMAND_REGEX))[0];
 
     return rankMatch ? Number(rankMatch[1]) : 1;
+}
+
+function RecommendationCommandPanel({ commandPanel }: { commandPanel: CommandPanel }) {
+    if (commandPanel.type === "error") {
+        return (
+            <Alert variant="destructive">
+                <AlertTitle>명령을 실행하지 못했습니다.</AlertTitle>
+                <AlertDescription>{commandPanel.message}</AlertDescription>
+            </Alert>
+        );
+    }
+
+    if (commandPanel.type === "explanation") {
+        return <RecommendationExplanationAlert explanation={commandPanel.explanation} />;
+    }
+
+    return <RecommendationComparisonAlert comparison={commandPanel.comparison} />;
 }
 
 function RecommendationExplanationAlert({ explanation }: { explanation: RecommendationExplanation }) {
