@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 import { type ChangeEvent, type FormEvent, type MouseEvent, useEffect, useState } from "react";
@@ -43,12 +43,8 @@ const DONG_FILTER_ALL_VALUE = "ALL";
 export function BoardListPage({ query }: BoardListPageProps) {
     const navigate = useNavigate({ from: "/board" });
     const { data: currentUser, isPending: isCurrentUserPending } = useQuery(currentUserQueryOptions);
-    const {
-        data: postList,
-        error: postListError,
-        isError: isPostListError,
-        isPending: isPostListPending
-    } = useQuery(boardPostListQueryOptions(query));
+    const postListQuery = useSuspenseQuery(boardPostListQueryOptions(query));
+    const postList = postListQuery.data;
     const deletePostMutation = useDeleteBoardPostMutation();
     const [keyword, setKeyword] = useState(query.q ?? "");
     const [searchScope, setSearchScope] = useState(query.searchScope);
@@ -170,10 +166,6 @@ export function BoardListPage({ query }: BoardListPageProps) {
         });
     }
 
-    if (isPostListError) {
-        throw postListError;
-    }
-
     return (
         <section className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10 sm:px-6 lg:px-8">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -192,28 +184,22 @@ export function BoardListPage({ query }: BoardListPageProps) {
                 onSubmit={handleSearchSubmit}
                 onClear={handleClearSearch}
             />
-            {isPostListPending ? (
-                <BoardListPendingCard />
-            ) : postList ? (
-                <>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>목록</CardTitle>
-                            <CardDescription>총 {postList.totalItems.toLocaleString("ko-KR")}개</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <BoardPostList
-                                query={query}
-                                postList={postList}
-                                currentUserId={currentUser?.id}
-                                deletingPostId={deletingPostId}
-                                onDeletePost={handleDeletePost}
-                            />
-                        </CardContent>
-                    </Card>
-                    <BoardPostListPagination query={query} postList={postList} onPageChange={handlePageChange} />
-                </>
-            ) : null}
+            <Card>
+                <CardHeader>
+                    <CardTitle>목록</CardTitle>
+                    <CardDescription>총 {postList.totalItems.toLocaleString("ko-KR")}개</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <BoardPostList
+                        query={query}
+                        postList={postList}
+                        currentUserId={currentUser?.id}
+                        deletingPostId={deletingPostId}
+                        onDeletePost={handleDeletePost}
+                    />
+                </CardContent>
+            </Card>
+            <BoardPostListPagination query={query} postList={postList} onPageChange={handlePageChange} />
             <AlertDialog open={deleteTargetPost !== null} onOpenChange={handleDeleteDialogOpenChange}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -333,14 +319,6 @@ function DongBoardFilterButton({
         >
             {label}
         </Button>
-    );
-}
-
-function BoardListPendingCard() {
-    return (
-        <Card>
-            <CardContent className="text-sm text-muted-foreground">게시글을 불러오는 중</CardContent>
-        </Card>
     );
 }
 
