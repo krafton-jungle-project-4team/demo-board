@@ -11,6 +11,7 @@ import { AppErrorBoundary } from "@/app/providers/app-error-boundary";
 import {
     EstateSimilarTransactionList,
     EstateSimilarTransactionListLoading,
+    EstateTransactionAccessibilityCard,
     estateTransactionQueryOptions,
     renderEstateSimilarTransactionListError
 } from "@/features/estate";
@@ -86,6 +87,8 @@ export function EstateTransactionDetailPage({ transactionId }: EstateTransaction
                     </dl>
                 </CardContent>
             </Card>
+
+            <EstateTransactionAccessibilityCard transactionId={transactionId} />
 
             <AppErrorBoundary key={transaction.id} fallback={renderEstateSimilarTransactionListError} onReset={reset}>
                 <Suspense fallback={<EstateSimilarTransactionListLoading />}>
