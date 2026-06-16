@@ -108,7 +108,7 @@ const PLANNED_STATION_KEYWORDS = ["개통예정", "개통 예정", "예정역", 
 const TMAP_DEFAULT_ZOOM = 15;
 const TMAP_LOAD_ERROR_MESSAGE = "TMAP JS V2 SDK 로드에 실패했습니다.";
 const TMAP_SDK_SCRIPT_ID = "nmm-tmap-js-v2-sdk";
-const TMAP_SDK_SCRIPT_SRC = "https://topopentile2.tmap.co.kr/scriptSDKV2/tmapjs2.min.js?version=20231206";
+const TMAP_SDK_SCRIPT_BASE_URL = "https://apis.openapi.sk.com/tmap/jsv2";
 const TMAP_SDK_READY_TIMEOUT_MS = 5000;
 const TMAP_SDK_READY_POLL_INTERVAL_MS = 50;
 
@@ -831,15 +831,18 @@ function loadTmapSdk(appKey: string) {
     window.nmmTmapJsV2SdkAppKey = appKey;
     window.nmmTmapJsV2SdkPromise = new Promise<TmapSdk>((resolve, reject) => {
         const startedAt = Date.now();
-        const scriptElement = getOrCreateTmapSdkScript();
+        const restoreDocumentWrite = patchDocumentWriteForTmapSdk();
+        const scriptElement = getOrCreateTmapSdkScript(appKey);
 
         function resolveWhenReady() {
             if (isTmapSdkReady(window.Tmapv2)) {
+                restoreDocumentWrite();
                 resolve(window.Tmapv2);
                 return;
             }
 
             if (Date.now() - startedAt >= TMAP_SDK_READY_TIMEOUT_MS) {
+                restoreDocumentWrite();
                 reject(new Error(TMAP_LOAD_ERROR_MESSAGE));
                 return;
             }
@@ -850,6 +853,7 @@ function loadTmapSdk(appKey: string) {
         scriptElement.addEventListener("error", handleScriptError, { once: true });
 
         function handleScriptError() {
+            restoreDocumentWrite();
             reject(new Error(TMAP_LOAD_ERROR_MESSAGE));
         }
 
@@ -864,7 +868,7 @@ function loadTmapSdk(appKey: string) {
     return window.nmmTmapJsV2SdkPromise;
 }
 
-function getOrCreateTmapSdkScript() {
+function getOrCreateTmapSdkScript(appKey: string) {
     const existingScript = document.getElementById(TMAP_SDK_SCRIPT_ID);
 
     if (existingScript instanceof HTMLScriptElement) {
@@ -872,12 +876,67 @@ function getOrCreateTmapSdkScript() {
     }
 
     const scriptElement = document.createElement("script");
+    const scriptSearchParams = new URLSearchParams({
+        version: "1",
+        appKey
+    });
 
     scriptElement.id = TMAP_SDK_SCRIPT_ID;
-    scriptElement.src = TMAP_SDK_SCRIPT_SRC;
+    scriptElement.src = `${TMAP_SDK_SCRIPT_BASE_URL}?${scriptSearchParams}`;
     document.head.append(scriptElement);
 
     return scriptElement;
+}
+
+function patchDocumentWriteForTmapSdk() {
+    const originalWrite = document.write;
+    const originalWriteln = document.writeln;
+
+    // TMAP JS V2 wrapper still calls document.write, so redirect those writes during dynamic loading.
+    function writeReplacement(...contents: string[]) {
+        appendTmapDocumentWriteContents(contents.join(""));
+    }
+
+    document.write = writeReplacement;
+    document.writeln = writeReplacement;
+
+    return () => {
+        if (document.write === writeReplacement) {
+            document.write = originalWrite;
+        }
+
+        if (document.writeln === writeReplacement) {
+            document.writeln = originalWriteln;
+        }
+    };
+}
+
+function appendTmapDocumentWriteContents(html: string) {
+    const template = document.createElement("template");
+
+    template.innerHTML = html;
+    template.content.childNodes.forEach((node) => {
+        if (node instanceof HTMLScriptElement) {
+            appendTmapDocumentWriteScript(node);
+            return;
+        }
+
+        document.body.append(node);
+    });
+}
+
+function appendTmapDocumentWriteScript(sourceScript: HTMLScriptElement) {
+    const scriptElement = document.createElement("script");
+
+    sourceScript.getAttributeNames().forEach((attributeName) => {
+        const attributeValue = sourceScript.getAttribute(attributeName);
+
+        if (attributeValue !== null) {
+            scriptElement.setAttribute(attributeName, attributeValue);
+        }
+    });
+    scriptElement.text = sourceScript.text;
+    document.head.append(scriptElement);
 }
 
 function isTmapSdkReady(tmap: TmapSdk | undefined): tmap is TmapSdk {
