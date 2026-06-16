@@ -12,6 +12,7 @@ import type {
 } from "@nmm/shared";
 import { Alert, AlertDescription, AlertTitle } from "@nmm/ui/components/alert";
 import { Badge } from "@nmm/ui/components/badge";
+import { Button } from "@nmm/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components/card";
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from "@nmm/ui/components/empty";
 import { Separator } from "@nmm/ui/components/separator";
@@ -134,6 +135,7 @@ const TRANSPORT_VIEW_TEXT_BY_TYPE: Record<EstateTransportType, TransportViewText
 
 export function EstateTransactionAccessibilityCard({ transactionId }: EstateTransactionAccessibilityCardProps) {
     const [transportType, setTransportType] = useState<EstateTransportType>(DEFAULT_TRANSPORT_TYPE);
+    const [selectedWalkRouteKey, setSelectedWalkRouteKey] = useState<string | null>(null);
     const nearbyTransportQuery = createNearbyTransportQuery(transportType);
     const walkTimeToTransportQuery = createWalkTimeToTransportQuery(transportType);
     const nearbyTransportResult = useQuery(
@@ -150,13 +152,27 @@ export function EstateTransactionAccessibilityCard({ transactionId }: EstateTran
     const visibleTransportPois = transportPois.filter((transportPoi) => !isPlannedStationPoi(transportPoi));
     const visibleWalkRouteCandidates = walkRouteCandidates.filter((route) => !isPlannedStationRoute(route));
     const bestWalkRoute = selectBestWalkRoute(walkTimeToTransportResult.data?.best ?? null, visibleWalkRouteCandidates);
+    const selectedWalkRoute = selectSelectedWalkRoute(selectedWalkRouteKey, visibleWalkRouteCandidates, bestWalkRoute);
+    const walkRouteByDestinationKey = createWalkRouteByDestinationKey(visibleWalkRouteCandidates);
     const transportViewText = getTransportViewText(transportType);
     const shouldShowPlannedStations = transportType !== "bus_stop";
+
+    useEffect(() => {
+        const nextSelectedWalkRouteKey = selectedWalkRoute ? createWalkRouteKey(selectedWalkRoute) : null;
+
+        if (selectedWalkRouteKey !== nextSelectedWalkRouteKey) {
+            setSelectedWalkRouteKey(nextSelectedWalkRouteKey);
+        }
+    }, [selectedWalkRoute, selectedWalkRouteKey]);
 
     function handleTransportTypeChange(value: string) {
         if (isEstateTransportType(value)) {
             setTransportType(value);
         }
+    }
+
+    function handleWalkRouteSelect(route: EstateWalkRoute) {
+        setSelectedWalkRouteKey(createWalkRouteKey(route));
     }
 
     return (
@@ -190,13 +206,27 @@ export function EstateTransactionAccessibilityCard({ transactionId }: EstateTran
                 {isLoading ? <EstateAccessibilityLoading /> : null}
                 {!isLoading && error ? <EstateAccessibilityError error={error} /> : null}
                 {!isLoading && !error && walkTimeToTransportResult.data ? (
-                    <EstateBestWalkRoute route={bestWalkRoute} viewText={transportViewText} />
+                    <EstateSelectedWalkRoute
+                        route={selectedWalkRoute}
+                        bestRoute={bestWalkRoute}
+                        viewText={transportViewText}
+                    />
                 ) : null}
                 {!isLoading && !error && nearbyTransportResult.data ? (
-                    <EstateNearbyTransportList transportPois={visibleTransportPois} viewText={transportViewText} />
+                    <EstateNearbyTransportList
+                        transportPois={visibleTransportPois}
+                        walkRouteByDestinationKey={walkRouteByDestinationKey}
+                        selectedRouteKey={selectedWalkRouteKey}
+                        viewText={transportViewText}
+                        onRouteSelect={handleWalkRouteSelect}
+                    />
                 ) : null}
                 {!isLoading && !error && walkTimeToTransportResult.data ? (
-                    <EstateWalkRouteCandidateList candidates={visibleWalkRouteCandidates} />
+                    <EstateWalkRouteCandidateList
+                        candidates={visibleWalkRouteCandidates}
+                        selectedRouteKey={selectedWalkRouteKey}
+                        onRouteSelect={handleWalkRouteSelect}
+                    />
                 ) : null}
                 {!isLoading &&
                 !error &&
@@ -231,7 +261,15 @@ function EstateAccessibilityError({ error }: { error: Error }) {
     );
 }
 
-function EstateBestWalkRoute({ route, viewText }: { route: EstateWalkRoute | null; viewText: TransportViewText }) {
+function EstateSelectedWalkRoute({
+    route,
+    bestRoute,
+    viewText
+}: {
+    route: EstateWalkRoute | null;
+    bestRoute: EstateWalkRoute | null;
+    viewText: TransportViewText;
+}) {
     if (!route) {
         return (
             <Alert>
@@ -241,11 +279,15 @@ function EstateBestWalkRoute({ route, viewText }: { route: EstateWalkRoute | nul
         );
     }
 
+    const isBestRoute = bestRoute ? createWalkRouteKey(bestRoute) === createWalkRouteKey(route) : false;
+
     return (
-        <div className="grid gap-4 rounded-md border p-4 lg:grid-cols-[minmax(0,0.85fr)_minmax(18rem,1fr)] lg:items-stretch">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between lg:flex-col lg:items-start">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,0.85fr)_minmax(18rem,1fr)] lg:items-stretch">
+            <div className="flex flex-col gap-4 rounded-md border p-4 sm:flex-row sm:items-center sm:justify-between lg:flex-col lg:items-start">
                 <div className="flex flex-col gap-1">
-                    <span className="text-sm text-muted-foreground">가장 가까운 도보 경로</span>
+                    <span className="text-sm text-muted-foreground">
+                        {isBestRoute ? "가장 가까운 도보 경로" : "선택한 도보 경로"}
+                    </span>
                     <strong className="text-xl font-semibold">{route.destination.name}</strong>
                     <span className="text-sm text-muted-foreground">{formatRouteDistance(route.totalDistanceM)}</span>
                 </div>
@@ -394,9 +436,15 @@ function EstateWalkRouteMap({ route }: { route: EstateWalkRoute }) {
 
 function EstateNearbyTransportList({
     transportPois,
+    walkRouteByDestinationKey,
+    selectedRouteKey,
+    onRouteSelect,
     viewText
 }: {
     transportPois: EstateTransportPoi[];
+    walkRouteByDestinationKey: Map<string, EstateWalkRoute>;
+    selectedRouteKey: string | null;
+    onRouteSelect: (route: EstateWalkRoute) => void;
     viewText: TransportViewText;
 }) {
     if (transportPois.length === 0) {
@@ -423,18 +471,60 @@ function EstateNearbyTransportList({
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {transportPois.map((transportPoi) => (
-                        <TableRow key={createTransportPoiKey(transportPoi)}>
-                            <TableCell>{transportPoi.name}</TableCell>
-                            <TableCell>{formatTransportPoiCategory(transportPoi.category)}</TableCell>
-                            <TableCell className="text-right tabular-nums">
-                                {formatOptionalDistance(transportPoi.straightDistanceM)}
-                            </TableCell>
-                        </TableRow>
-                    ))}
+                    {transportPois.map((transportPoi) => {
+                        const matchedRoute = walkRouteByDestinationKey.get(createTransportDestinationKey(transportPoi));
+                        const matchedRouteKey = matchedRoute ? createWalkRouteKey(matchedRoute) : null;
+                        const isSelected = selectedRouteKey !== null && selectedRouteKey === matchedRouteKey;
+
+                        return (
+                            <EstateNearbyTransportRow
+                                key={createTransportPoiKey(transportPoi)}
+                                transportPoi={transportPoi}
+                                matchedRoute={matchedRoute}
+                                isSelected={isSelected}
+                                onRouteSelect={onRouteSelect}
+                            />
+                        );
+                    })}
                 </TableBody>
             </Table>
         </section>
+    );
+}
+
+function EstateNearbyTransportRow({
+    transportPoi,
+    matchedRoute,
+    isSelected,
+    onRouteSelect
+}: {
+    transportPoi: EstateTransportPoi;
+    matchedRoute: EstateWalkRoute | undefined;
+    isSelected: boolean;
+    onRouteSelect: (route: EstateWalkRoute) => void;
+}) {
+    function handleRouteSelect() {
+        if (matchedRoute) {
+            onRouteSelect(matchedRoute);
+        }
+    }
+
+    return (
+        <TableRow className={isSelected ? "bg-muted/50" : undefined}>
+            <TableCell>
+                {matchedRoute ? (
+                    <Button type="button" variant="link" className="h-auto p-0 text-left" onClick={handleRouteSelect}>
+                        {transportPoi.name}
+                    </Button>
+                ) : (
+                    transportPoi.name
+                )}
+            </TableCell>
+            <TableCell>{formatTransportPoiCategory(transportPoi.category)}</TableCell>
+            <TableCell className="text-right tabular-nums">
+                {formatOptionalDistance(transportPoi.straightDistanceM)}
+            </TableCell>
+        </TableRow>
     );
 }
 
@@ -483,7 +573,15 @@ function EstatePlannedStationList({ plannedStations }: { plannedStations: Estate
     );
 }
 
-function EstateWalkRouteCandidateList({ candidates }: { candidates: EstateWalkRoute[] }) {
+function EstateWalkRouteCandidateList({
+    candidates,
+    selectedRouteKey,
+    onRouteSelect
+}: {
+    candidates: EstateWalkRoute[];
+    selectedRouteKey: string | null;
+    onRouteSelect: (route: EstateWalkRoute) => void;
+}) {
     if (candidates.length === 0) {
         return null;
     }
@@ -504,23 +602,51 @@ function EstateWalkRouteCandidateList({ candidates }: { candidates: EstateWalkRo
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {candidates.map((candidate) => (
-                        <TableRow key={createWalkRouteKey(candidate)}>
-                            <TableCell>
-                                <div className="flex items-center gap-2">
-                                    {getTransportCategoryIcon(candidate.destination.category)}
-                                    <span>{candidate.destination.name}</span>
-                                </div>
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums">{candidate.totalTimeMin}분</TableCell>
-                            <TableCell className="text-right tabular-nums">
-                                {formatRouteDistance(candidate.totalDistanceM)}
-                            </TableCell>
-                        </TableRow>
-                    ))}
+                    {candidates.map((candidate) => {
+                        const candidateKey = createWalkRouteKey(candidate);
+                        const isSelected = selectedRouteKey === candidateKey;
+
+                        return (
+                            <EstateWalkRouteCandidateRow
+                                key={candidateKey}
+                                candidate={candidate}
+                                isSelected={isSelected}
+                                onRouteSelect={onRouteSelect}
+                            />
+                        );
+                    })}
                 </TableBody>
             </Table>
         </section>
+    );
+}
+
+function EstateWalkRouteCandidateRow({
+    candidate,
+    isSelected,
+    onRouteSelect
+}: {
+    candidate: EstateWalkRoute;
+    isSelected: boolean;
+    onRouteSelect: (route: EstateWalkRoute) => void;
+}) {
+    function handleRouteSelect() {
+        onRouteSelect(candidate);
+    }
+
+    return (
+        <TableRow className={isSelected ? "bg-muted/50" : undefined}>
+            <TableCell>
+                <Button type="button" variant="link" className="h-auto p-0 text-left" onClick={handleRouteSelect}>
+                    <span className="flex items-center gap-2">
+                        {getTransportCategoryIcon(candidate.destination.category)}
+                        <span>{candidate.destination.name}</span>
+                    </span>
+                </Button>
+            </TableCell>
+            <TableCell className="text-right tabular-nums">{candidate.totalTimeMin}분</TableCell>
+            <TableCell className="text-right tabular-nums">{formatRouteDistance(candidate.totalDistanceM)}</TableCell>
+        </TableRow>
     );
 }
 
@@ -555,6 +681,26 @@ function selectBestWalkRoute(bestRoute: EstateWalkRoute | null, visibleCandidate
     }
 
     return visibleCandidates[0] ?? null;
+}
+
+function selectSelectedWalkRoute(
+    selectedRouteKey: string | null,
+    visibleCandidates: EstateWalkRoute[],
+    bestRoute: EstateWalkRoute | null
+) {
+    if (selectedRouteKey) {
+        const selectedRoute = visibleCandidates.find((candidate) => createWalkRouteKey(candidate) === selectedRouteKey);
+
+        if (selectedRoute) {
+            return selectedRoute;
+        }
+    }
+
+    return bestRoute ?? visibleCandidates[0] ?? null;
+}
+
+function createWalkRouteByDestinationKey(walkRoutes: EstateWalkRoute[]) {
+    return new Map(walkRoutes.map((walkRoute) => [createWalkRouteDestinationKey(walkRoute), walkRoute]));
 }
 
 function createPlannedStations(transportPois: EstateTransportPoi[], walkRouteCandidates: EstateWalkRoute[]) {
@@ -622,6 +768,14 @@ function createTransportPoiKey(transportPoi: EstateTransportPoi) {
 
 function createPlannedStationKey(name: string, latitude: number, longitude: number) {
     return `${name}:${latitude}:${longitude}`;
+}
+
+function createTransportDestinationKey(transportPoi: EstateTransportPoi) {
+    return `${transportPoi.category}:${transportPoi.name}:${transportPoi.latitude}:${transportPoi.longitude}`;
+}
+
+function createWalkRouteDestinationKey(route: EstateWalkRoute) {
+    return `${route.destination.category}:${route.destination.name}:${route.destination.latitude}:${route.destination.longitude}`;
 }
 
 function createWalkRouteKey(route: EstateWalkRoute) {
