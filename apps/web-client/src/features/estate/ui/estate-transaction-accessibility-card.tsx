@@ -95,6 +95,7 @@ declare global {
     interface Window {
         Tmapv2?: TmapSdk;
         nmmTmapJsV2SdkPromise?: Promise<TmapSdk>;
+        nmmTmapJsV2SdkAppKey?: string;
     }
 }
 
@@ -106,6 +107,7 @@ const DEFAULT_WALK_SEARCH_OPTION: EstateWalkRouteSearchOption = "recommended";
 const PLANNED_STATION_KEYWORDS = ["개통예정", "개통 예정", "예정역", "미개통", "공사중", "공사 중", "계획", "가칭"];
 const TMAP_DEFAULT_ZOOM = 15;
 const TMAP_LOAD_ERROR_MESSAGE = "TMAP JS V2 SDK 로드에 실패했습니다.";
+const TMAP_SDK_SCRIPT_ID = "nmm-tmap-js-v2-sdk";
 const TMAP_SDK_READY_TIMEOUT_MS = 5000;
 const TMAP_SDK_READY_POLL_INTERVAL_MS = 50;
 
@@ -322,7 +324,7 @@ function EstateWalkRouteMap({ route }: { route: EstateWalkRoute }) {
 
         setStatus("loading");
 
-        loadTmapSdk()
+        loadTmapSdk(tmapAppKey)
             .then((tmap) => {
                 if (!isMounted || !mapContainer) {
                     return;
@@ -799,17 +801,19 @@ function createRouteMapCoordinates(route: EstateWalkRoute): RouteMapCoordinate[]
     ];
 }
 
-function loadTmapSdk() {
+function loadTmapSdk(appKey: string) {
     if (isTmapSdkReady(window.Tmapv2)) {
         return Promise.resolve(window.Tmapv2);
     }
 
-    if (window.nmmTmapJsV2SdkPromise) {
+    if (window.nmmTmapJsV2SdkPromise && window.nmmTmapJsV2SdkAppKey === appKey) {
         return window.nmmTmapJsV2SdkPromise;
     }
 
+    window.nmmTmapJsV2SdkAppKey = appKey;
     window.nmmTmapJsV2SdkPromise = new Promise<TmapSdk>((resolve, reject) => {
         const startedAt = Date.now();
+        const scriptElement = getOrCreateTmapSdkScript(appKey);
 
         function resolveWhenReady() {
             if (isTmapSdkReady(window.Tmapv2)) {
@@ -825,14 +829,42 @@ function loadTmapSdk() {
             window.setTimeout(resolveWhenReady, TMAP_SDK_READY_POLL_INTERVAL_MS);
         }
 
+        scriptElement.addEventListener("error", handleScriptError, { once: true });
+
+        function handleScriptError() {
+            reject(new Error(TMAP_LOAD_ERROR_MESSAGE));
+        }
+
         resolveWhenReady();
     }).catch((error: unknown) => {
         window.nmmTmapJsV2SdkPromise = undefined;
+        window.nmmTmapJsV2SdkAppKey = undefined;
 
         throw error;
     });
 
     return window.nmmTmapJsV2SdkPromise;
+}
+
+function getOrCreateTmapSdkScript(appKey: string) {
+    const existingScript = document.getElementById(TMAP_SDK_SCRIPT_ID);
+
+    if (existingScript instanceof HTMLScriptElement) {
+        return existingScript;
+    }
+
+    const scriptElement = document.createElement("script");
+    const scriptSearchParams = new URLSearchParams({
+        version: "1",
+        appKey
+    });
+
+    scriptElement.id = TMAP_SDK_SCRIPT_ID;
+    scriptElement.async = false;
+    scriptElement.src = `https://apis.openapi.sk.com/tmap/jsv2?${scriptSearchParams}`;
+    document.head.append(scriptElement);
+
+    return scriptElement;
 }
 
 function isTmapSdkReady(tmap: TmapSdk | undefined): tmap is TmapSdk {
