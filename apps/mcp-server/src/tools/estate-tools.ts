@@ -1,9 +1,29 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { EstateTransactionListQuerySchema } from "@nmm/shared";
-import { getEstateLegalDongs, getEstateTransactions } from "../api/estate-api.js";
+import {
+    EstateMarketSummaryRequestSchema,
+    EstateSimilarTransactionRequestSchema,
+    EstateTransactionListQuerySchema
+} from "@nmm/shared";
+import {
+    findSimilarEstateTransactions,
+    getEstateLegalDongs,
+    getEstateTransactions,
+    summarizeEstateMarket
+} from "../api/estate-api.js";
 import { createToolErrorResult, createToolSuccessResult } from "./tool-result.js";
-import { createLegalDongListOutput, formatLegalDongList, formatTransactionList } from "./estate-formatters.js";
-import { EstateListLegalDongsToolInputSchema, EstateSearchTransactionsToolInputSchema } from "./estate-tool-schemas.js";
+import {
+    createLegalDongListOutput,
+    formatLegalDongList,
+    formatMarketSummary,
+    formatSimilarTransactions,
+    formatTransactionList
+} from "./estate-formatters.js";
+import {
+    EstateFindSimilarTransactionsToolInputSchema,
+    EstateListLegalDongsToolInputSchema,
+    EstateSearchTransactionsToolInputSchema,
+    EstateSummarizeMarketToolInputSchema
+} from "./estate-tool-schemas.js";
 
 const READ_ONLY_TOOL_ANNOTATIONS = {
     readOnlyHint: true,
@@ -15,6 +35,8 @@ const READ_ONLY_TOOL_ANNOTATIONS = {
 export function registerEstateTools(server: McpServer) {
     registerSearchTransactionsTool(server);
     registerListLegalDongsTool(server);
+    registerFindSimilarTransactionsTool(server);
+    registerSummarizeMarketTool(server);
 }
 
 function registerSearchTransactionsTool(server: McpServer) {
@@ -59,6 +81,52 @@ function registerListLegalDongsTool(server: McpServer) {
                 const output = createLegalDongListOutput(filteredLegalDongs, input.limit, input.offset);
 
                 return createToolSuccessResult(formatLegalDongList(output), toStructuredContent(output));
+            } catch (error) {
+                return createToolErrorResult(error);
+            }
+        }
+    );
+}
+
+function registerFindSimilarTransactionsTool(server: McpServer) {
+    server.registerTool(
+        "estate_find_similar_transactions",
+        {
+            title: "Find Similar Estate Transactions",
+            description:
+                "RAG 기반으로 유사 실거래를 찾습니다. referenceTransactionId 또는 queryText 중 정확히 하나를 받고, API 서버의 POST /api/estate/ai/transactions/similar를 호출합니다.",
+            inputSchema: EstateFindSimilarTransactionsToolInputSchema,
+            annotations: READ_ONLY_TOOL_ANNOTATIONS
+        },
+        async (input) => {
+            try {
+                const request = EstateSimilarTransactionRequestSchema.parse(input);
+                const response = await findSimilarEstateTransactions(request);
+
+                return createToolSuccessResult(formatSimilarTransactions(response), toStructuredContent(response));
+            } catch (error) {
+                return createToolErrorResult(error);
+            }
+        }
+    );
+}
+
+function registerSummarizeMarketTool(server: McpServer) {
+    server.registerTool(
+        "estate_summarize_market",
+        {
+            title: "Summarize Estate Market",
+            description:
+                "조건에 맞는 실거래의 거래 수, 최근 거래일, 가격/면적 집계를 요약합니다. API 서버의 GET /api/estate/ai/market-summary를 호출합니다.",
+            inputSchema: EstateSummarizeMarketToolInputSchema,
+            annotations: READ_ONLY_TOOL_ANNOTATIONS
+        },
+        async (input) => {
+            try {
+                const query = EstateMarketSummaryRequestSchema.parse(input);
+                const response = await summarizeEstateMarket(query);
+
+                return createToolSuccessResult(formatMarketSummary(response), toStructuredContent(response));
             } catch (error) {
                 return createToolErrorResult(error);
             }

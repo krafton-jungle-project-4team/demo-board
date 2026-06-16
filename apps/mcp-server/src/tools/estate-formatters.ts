@@ -1,4 +1,8 @@
-import type { EstateTransactionListResponse } from "@nmm/shared";
+import type {
+    EstateMarketSummaryResponse,
+    EstateSimilarTransactionResponse,
+    EstateTransactionListResponse
+} from "@nmm/shared";
 
 type LegalDongListOutput = {
     items: string[];
@@ -52,9 +56,46 @@ export function formatLegalDongList(output: LegalDongListOutput) {
     ].join("\n");
 }
 
+export function formatSimilarTransactions(response: EstateSimilarTransactionResponse) {
+    if (response.items.length === 0) {
+        return "유사 실거래 검색 결과가 없습니다.";
+    }
+
+    return [
+        `유사 실거래 ${response.items.length.toLocaleString("ko-KR")}건을 반환했습니다.`,
+        ...response.items.slice(0, TEXT_ITEM_LIMIT).map((item) => {
+            const transaction = item.transaction;
+            const buildingName = transaction.buildingName ?? "건물명 없음";
+
+            return `- #${transaction.id} ${transaction.legalDongName} ${buildingName}, ${transaction.buildingUse}, ${transaction.buildingAreaSquareMeter}㎡, ${transaction.dealAmount10kKrw.toLocaleString("ko-KR")}만원, score=${formatPercent(item.score)}`;
+        })
+    ].join("\n");
+}
+
+export function formatMarketSummary(response: EstateMarketSummaryResponse) {
+    if (response.totalCount === 0) {
+        return "조건에 맞는 실거래가 없어 시세 요약을 만들 수 없습니다.";
+    }
+
+    return [
+        `실거래 ${response.totalCount.toLocaleString("ko-KR")}건 기준 시세 요약입니다.`,
+        `최근 거래일: ${response.latestContractDate ?? "없음"}`,
+        `거래금액: 최소 ${formatNullableNumber(response.dealAmount10kKrw.min)}만원, 최대 ${formatNullableNumber(response.dealAmount10kKrw.max)}만원, 평균 ${formatNullableNumber(response.dealAmount10kKrw.average)}만원, 중간값 ${formatNullableNumber(response.dealAmount10kKrw.median)}만원`,
+        `면적: 최소 ${formatNullableNumber(response.buildingAreaSquareMeter.min)}㎡, 최대 ${formatNullableNumber(response.buildingAreaSquareMeter.max)}㎡, 평균 ${formatNullableNumber(response.buildingAreaSquareMeter.average)}㎡`
+    ].join("\n");
+}
+
 function formatTransactionListItem(transaction: EstateTransactionListResponse["items"][number]) {
     const buildingName = transaction.buildingName ?? "건물명 없음";
     const floor = transaction.floor === null ? "층 정보 없음" : `${transaction.floor}층`;
 
     return `- #${transaction.id} ${transaction.legalDongName} ${buildingName}, ${transaction.buildingUse}, ${transaction.buildingAreaSquareMeter}㎡, ${floor}, ${transaction.dealAmount10kKrw.toLocaleString("ko-KR")}만원, ${transaction.contractDate}`;
+}
+
+function formatPercent(value: number) {
+    return `${(value * 100).toFixed(1)}%`;
+}
+
+function formatNullableNumber(value: number | null) {
+    return value === null ? "없음" : Math.round(value).toLocaleString("ko-KR");
 }
