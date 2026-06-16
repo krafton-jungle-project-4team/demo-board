@@ -14,6 +14,7 @@ declare module "lucide-react/dist/esm/icons/*.mjs" {
 
 interface ImportMetaEnv {
     readonly VITE_NMM_API_ORIGIN: string;
+    readonly VITE_NMM_TMAP_APP_KEY?: string;
 }
 
 interface ImportMeta {

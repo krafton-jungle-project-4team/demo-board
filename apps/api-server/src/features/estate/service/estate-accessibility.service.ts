@@ -256,6 +256,7 @@ export class EstateAccessibilityService {
             totalDistanceM: routeSummary.totalDistanceM,
             totalTimeSec: routeSummary.totalTimeSec,
             totalTimeMin: Math.ceil(routeSummary.totalTimeSec / 60),
+            routePath: routeSummary.routePath,
             searchOption,
             cached: false,
             computedAt: new Date().toISOString(),
@@ -410,6 +411,7 @@ function toWalkRouteCacheEntry(route: EstateWalkRoute): EstateWalkRouteCacheEntr
         totalDistanceM: route.totalDistanceM,
         totalTimeSec: route.totalTimeSec,
         totalTimeMin: route.totalTimeMin,
+        routePath: route.routePath,
         searchOption: route.searchOption,
         computedAt: route.computedAt,
         notice: route.notice

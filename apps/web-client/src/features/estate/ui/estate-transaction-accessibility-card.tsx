@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { BusFrontIcon, FootprintsIcon, TrainFrontIcon } from "lucide-react";
-import { useState } from "react";
+import { BusFrontIcon, FootprintsIcon, MapPinIcon, TrainFrontIcon } from "lucide-react";
+import { useEffect, useId, useRef, useState } from "react";
 import type {
     EstateNearbyTransportQuery,
     EstateTransportPoi,
@@ -40,12 +40,67 @@ type EstatePlannedStation = {
     walkTimeMin?: number;
 };
 
+type RouteMapCoordinate = {
+    latitude: number;
+    longitude: number;
+};
+
+type TmapLatLng = object;
+
+type TmapMap = {
+    fitBounds?: (bounds: TmapLatLngBounds) => void;
+    on?: (eventName: string, handler: () => void) => void;
+    panToBounds?: (bounds: TmapLatLngBounds) => void;
+    setCenter?: (center: TmapLatLng) => void;
+    zoomOut?: () => void;
+};
+
+type TmapLatLngBounds = {
+    extend: (point: TmapLatLng) => void;
+};
+
+type TmapMapOverlay = {
+    setMap: (map: TmapMap | null) => void;
+};
+
+type TmapSdk = {
+    LatLng: new (latitude: number, longitude: number) => TmapLatLng;
+    LatLngBounds?: new () => TmapLatLngBounds;
+    Map: new (
+        containerId: string,
+        options: {
+            center: TmapLatLng;
+            width: string;
+            height: string;
+            zoom: number;
+        }
+    ) => TmapMap;
+    Marker: new (options: { position: TmapLatLng; map: TmapMap; title: string }) => TmapMapOverlay;
+    Polyline: new (options: {
+        path: TmapLatLng[];
+        strokeColor: string;
+        strokeWeight: number;
+        map: TmapMap;
+    }) => TmapMapOverlay;
+};
+
+declare global {
+    interface Window {
+        Tmapv2?: TmapSdk;
+        nmmTmapJsV2SdkPromise?: Promise<TmapSdk>;
+    }
+}
+
 const DEFAULT_TRANSPORT_TYPE: EstateTransportType = "subway";
 const DEFAULT_RADIUS_KM = 1;
 const DEFAULT_NEARBY_TRANSPORT_LIMIT = 5;
 const DEFAULT_WALK_CANDIDATE_COUNT = 5;
 const DEFAULT_WALK_SEARCH_OPTION: EstateWalkRouteSearchOption = "recommended";
 const PLANNED_STATION_KEYWORDS = ["개통예정", "개통 예정", "예정역", "미개통", "공사중", "공사 중", "계획", "가칭"];
+const TMAP_DEFAULT_ZOOM = 15;
+const TMAP_LOAD_ERROR_MESSAGE = "TMAP JS V2 SDK 로드에 실패했습니다.";
+const TMAP_SDK_READY_TIMEOUT_MS = 5000;
+const TMAP_SDK_READY_POLL_INTERVAL_MS = 50;
 
 const TRANSPORT_TYPE_OPTIONS: TransportTypeOption[] = [
     { value: "subway", label: "지하철" },
@@ -157,16 +212,152 @@ function EstateBestWalkRoute({ route }: { route: EstateWalkRoute | null }) {
     }
 
     return (
-        <div className="flex flex-col gap-4 rounded-md border p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-col gap-1">
-                <span className="text-sm text-muted-foreground">가장 가까운 도보 경로</span>
-                <strong className="text-xl font-semibold">{route.destination.name}</strong>
-                <span className="text-sm text-muted-foreground">{formatRouteDistance(route.totalDistanceM)}</span>
+        <div className="grid gap-4 rounded-md border p-4 lg:grid-cols-[minmax(0,0.85fr)_minmax(18rem,1fr)] lg:items-stretch">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between lg:flex-col lg:items-start">
+                <div className="flex flex-col gap-1">
+                    <span className="text-sm text-muted-foreground">가장 가까운 도보 경로</span>
+                    <strong className="text-xl font-semibold">{route.destination.name}</strong>
+                    <span className="text-sm text-muted-foreground">{formatRouteDistance(route.totalDistanceM)}</span>
+                </div>
+                <div className="flex items-baseline gap-1 tabular-nums">
+                    <strong className="text-3xl font-semibold">{route.totalTimeMin}</strong>
+                    <span className="text-sm text-muted-foreground">분</span>
+                </div>
             </div>
-            <div className="flex items-baseline gap-1 tabular-nums">
-                <strong className="text-3xl font-semibold">{route.totalTimeMin}</strong>
-                <span className="text-sm text-muted-foreground">분</span>
-            </div>
+            <EstateWalkRouteMap route={route} />
+        </div>
+    );
+}
+
+function EstateWalkRouteMap({ route }: { route: EstateWalkRoute }) {
+    const mapId = useId();
+    const mapElementId = `estate-walk-route-map-${mapId.replace(/[^a-zA-Z0-9_-]/g, "")}`;
+    const mapContainerRef = useRef<HTMLDivElement | null>(null);
+    const [status, setStatus] = useState<"ready" | "loading" | "missing-key" | "error">("loading");
+    const tmapAppKey = import.meta.env.VITE_NMM_TMAP_APP_KEY;
+
+    useEffect(() => {
+        if (!tmapAppKey) {
+            setStatus("missing-key");
+
+            return undefined;
+        }
+
+        let isMounted = true;
+        const mapOverlays: TmapMapOverlay[] = [];
+        const routeCoordinates = createRouteMapCoordinates(route);
+        const mapContainer = mapContainerRef.current;
+
+        setStatus("loading");
+
+        loadTmapSdk()
+            .then((tmap) => {
+                if (!isMounted || !mapContainer) {
+                    return;
+                }
+
+                mapContainer.replaceChildren();
+                const routePoints = routeCoordinates.map(
+                    (coordinate) => new tmap.LatLng(coordinate.latitude, coordinate.longitude)
+                );
+                const centerPoint = routePoints[Math.floor(routePoints.length / 2)];
+                const startPoint = routePoints[0];
+                const endPoint = routePoints.at(-1);
+
+                if (!centerPoint || !startPoint || !endPoint) {
+                    setStatus("error");
+
+                    return;
+                }
+
+                const routeStartPoint = startPoint;
+                const routeEndPoint = endPoint;
+                const map = new tmap.Map(mapElementId, {
+                    center: centerPoint,
+                    width: "100%",
+                    height: "100%",
+                    zoom: TMAP_DEFAULT_ZOOM
+                });
+
+                function drawRoute() {
+                    if (!isMounted) {
+                        return;
+                    }
+
+                    try {
+                        mapOverlays.push(
+                            new tmap.Marker({
+                                position: routeStartPoint,
+                                map,
+                                title: route.origin.name
+                            })
+                        );
+                        mapOverlays.push(
+                            new tmap.Marker({
+                                position: routeEndPoint,
+                                map,
+                                title: route.destination.name
+                            })
+                        );
+
+                        if (routePoints.length > 1) {
+                            mapOverlays.push(
+                                new tmap.Polyline({
+                                    path: routePoints,
+                                    strokeColor: "#2563eb",
+                                    strokeWeight: 5,
+                                    map
+                                })
+                            );
+                        }
+
+                        fitTmapBounds(tmap, map, routePoints);
+                        setStatus("ready");
+                    } catch (error) {
+                        console.error("Failed to draw TMAP walk route overlays.", error);
+                        setStatus("error");
+                    }
+                }
+
+                if (map.on) {
+                    map.on("ConfigLoad", drawRoute);
+                } else {
+                    drawRoute();
+                }
+            })
+            .catch((error: unknown) => {
+                console.error("Failed to render TMAP walk route map.", error);
+
+                if (isMounted) {
+                    setStatus("error");
+                }
+            });
+
+        return () => {
+            isMounted = false;
+            mapOverlays.forEach((overlay) => {
+                overlay.setMap(null);
+            });
+            mapContainer?.replaceChildren();
+        };
+    }, [mapElementId, route, tmapAppKey]);
+
+    return (
+        <div className="relative min-h-64 overflow-hidden rounded-md border bg-muted">
+            <div
+                id={mapElementId}
+                ref={mapContainerRef}
+                className="h-64 w-full lg:h-full"
+                aria-label={`${route.origin.name}에서 ${route.destination.name}까지 도보 경로 지도`}
+            />
+            {status !== "ready" ? (
+                <div className="absolute inset-0 flex items-center justify-center bg-muted/90 p-4 text-center text-sm text-muted-foreground">
+                    <div className="flex max-w-64 flex-col items-center gap-2">
+                        <MapPinIcon aria-hidden="true" />
+                        <span>{formatMapStatus(status)}</span>
+                    </div>
+                </div>
+            ) : null}
         </div>
     );
 }
@@ -397,6 +588,87 @@ function createWalkRouteKey(route: EstateWalkRoute) {
     return `${route.destination.name}:${route.destination.latitude}:${route.destination.longitude}:${route.searchOption}`;
 }
 
+function createRouteMapCoordinates(route: EstateWalkRoute): RouteMapCoordinate[] {
+    if (route.routePath.length > 1) {
+        return route.routePath;
+    }
+
+    return [
+        {
+            latitude: route.origin.latitude,
+            longitude: route.origin.longitude
+        },
+        {
+            latitude: route.destination.latitude,
+            longitude: route.destination.longitude
+        }
+    ];
+}
+
+function loadTmapSdk() {
+    if (isTmapSdkReady(window.Tmapv2)) {
+        return Promise.resolve(window.Tmapv2);
+    }
+
+    if (window.nmmTmapJsV2SdkPromise) {
+        return window.nmmTmapJsV2SdkPromise;
+    }
+
+    window.nmmTmapJsV2SdkPromise = new Promise<TmapSdk>((resolve, reject) => {
+        const startedAt = Date.now();
+
+        function resolveWhenReady() {
+            if (isTmapSdkReady(window.Tmapv2)) {
+                resolve(window.Tmapv2);
+                return;
+            }
+
+            if (Date.now() - startedAt >= TMAP_SDK_READY_TIMEOUT_MS) {
+                reject(new Error(TMAP_LOAD_ERROR_MESSAGE));
+                return;
+            }
+
+            window.setTimeout(resolveWhenReady, TMAP_SDK_READY_POLL_INTERVAL_MS);
+        }
+
+        resolveWhenReady();
+    }).catch((error: unknown) => {
+        window.nmmTmapJsV2SdkPromise = undefined;
+
+        throw error;
+    });
+
+    return window.nmmTmapJsV2SdkPromise;
+}
+
+function isTmapSdkReady(tmap: TmapSdk | undefined): tmap is TmapSdk {
+    return (
+        typeof tmap?.LatLng === "function" &&
+        typeof tmap.Map === "function" &&
+        typeof tmap.Marker === "function" &&
+        typeof tmap.Polyline === "function"
+    );
+}
+
+function fitTmapBounds(tmap: TmapSdk, map: TmapMap, routePoints: TmapLatLng[]) {
+    if (tmap.LatLngBounds && map.fitBounds) {
+        const bounds = new tmap.LatLngBounds();
+
+        routePoints.forEach((routePoint) => {
+            bounds.extend(routePoint);
+        });
+        map.fitBounds(bounds);
+
+        return;
+    }
+
+    const centerPoint = routePoints[Math.floor(routePoints.length / 2)];
+
+    if (centerPoint) {
+        map.setCenter?.(centerPoint);
+    }
+}
+
 function getTransportCategoryIcon(category: EstateTransportPoiCategory) {
     if (category === "bus_stop") {
         return <BusFrontIcon aria-hidden="true" />;
@@ -435,6 +707,18 @@ function formatOptionalWalkSummary(walkTimeMin: number | undefined, walkDistance
     }
 
     return `${walkTimeMin}분 / ${formatRouteDistance(walkDistanceM)}`;
+}
+
+function formatMapStatus(status: "ready" | "loading" | "missing-key" | "error") {
+    if (status === "missing-key") {
+        return "지도 키가 설정되지 않았습니다.";
+    }
+
+    if (status === "error") {
+        return "지도를 불러오지 못했습니다.";
+    }
+
+    return "지도를 불러오는 중입니다.";
 }
 
 function formatRouteDistance(distanceM: number) {

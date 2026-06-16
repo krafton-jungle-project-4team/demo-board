@@ -223,6 +223,13 @@ export type EstatePropertyListQuery = z.infer<typeof EstatePropertyListQuerySche
 const EstateLatitudeSchema = z.number().min(-90).max(90);
 const EstateLongitudeSchema = z.number().min(-180).max(180);
 
+export const EstateRouteCoordinateSchema = z.object({
+    latitude: EstateLatitudeSchema,
+    longitude: EstateLongitudeSchema
+});
+
+export type EstateRouteCoordinate = z.infer<typeof EstateRouteCoordinateSchema>;
+
 export const EstateTransportTypeSchema = z.enum(["subway", "bus_stop", "all"]).default("all");
 
 export type EstateTransportType = z.infer<typeof EstateTransportTypeSchema>;
@@ -320,6 +327,7 @@ export const EstateWalkRouteSchema = z.object({
     totalDistanceM: z.number().int().min(0),
     totalTimeSec: z.number().int().min(0),
     totalTimeMin: z.number().int().min(0),
+    routePath: z.array(EstateRouteCoordinateSchema).default([]),
     searchOption: EstateWalkRouteSearchOptionSchema,
     cached: z.boolean(),
     computedAt: z.string().datetime(),

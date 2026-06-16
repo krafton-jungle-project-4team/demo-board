@@ -1,5 +1,6 @@
 import {
     EstateTransportPoiSchema,
+    type EstateRouteCoordinate,
     type EstateTransportPoi,
     type EstateTransportPoiCategory,
     type EstateTransportType,
@@ -34,6 +35,7 @@ type TmapPedestrianRouteRequest = {
 export type TmapPedestrianRouteSummary = {
     totalDistanceM: number;
     totalTimeSec: number;
+    routePath: EstateRouteCoordinate[];
 };
 
 const TMAP_PLANNED_STATION_KEYWORDS = [
@@ -100,6 +102,7 @@ export class TmapClientService {
         });
         const totalDistanceM = findNumberByKey(responseBody, "totalDistance");
         const totalTimeSec = findNumberByKey(responseBody, "totalTime");
+        const routePath = readRoutePath(responseBody);
 
         if (totalDistanceM === null || totalTimeSec === null) {
             throw createEstateError(ESTATE_ERRORS.NO_WALK_ROUTE_FOUND);
@@ -107,7 +110,8 @@ export class TmapClientService {
 
         return {
             totalDistanceM: Math.round(totalDistanceM),
-            totalTimeSec: Math.round(totalTimeSec)
+            totalTimeSec: Math.round(totalTimeSec),
+            routePath
         };
     }
 
@@ -322,6 +326,77 @@ function findNumberByKey(value: unknown, targetKey: string): number | null {
     }
 
     return null;
+}
+
+function readRoutePath(responseBody: unknown) {
+    return dedupeConsecutiveCoordinates(readGeometryCoordinates(responseBody));
+}
+
+function readGeometryCoordinates(value: unknown): EstateRouteCoordinate[] {
+    if (Array.isArray(value)) {
+        return value.flatMap(readGeometryCoordinates);
+    }
+
+    const record = toRecord(value);
+
+    if (!record) {
+        return [];
+    }
+
+    if (record.type === "LineString") {
+        return readLineStringCoordinates(record.coordinates);
+    }
+
+    if (record.type === "MultiLineString") {
+        return readMultiLineStringCoordinates(record.coordinates);
+    }
+
+    return Object.values(record).flatMap(readGeometryCoordinates);
+}
+
+function readMultiLineStringCoordinates(value: unknown) {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    return value.flatMap(readLineStringCoordinates);
+}
+
+function readLineStringCoordinates(value: unknown) {
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    return value.flatMap((coordinate) => {
+        if (!Array.isArray(coordinate)) {
+            return [];
+        }
+
+        const longitude = toNumber(coordinate[0]);
+        const latitude = toNumber(coordinate[1]);
+
+        if (latitude === null || longitude === null || !isValidCoordinate(latitude, longitude)) {
+            return [];
+        }
+
+        return [{ latitude, longitude }];
+    });
+}
+
+function dedupeConsecutiveCoordinates(coordinates: EstateRouteCoordinate[]) {
+    return coordinates.filter((coordinate, index) => {
+        const previousCoordinate = coordinates[index - 1];
+
+        return (
+            !previousCoordinate ||
+            previousCoordinate.latitude !== coordinate.latitude ||
+            previousCoordinate.longitude !== coordinate.longitude
+        );
+    });
+}
+
+function isValidCoordinate(latitude: number, longitude: number) {
+    return latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180;
 }
 
 function readString(record: Record<string, unknown>, keys: string[]) {
