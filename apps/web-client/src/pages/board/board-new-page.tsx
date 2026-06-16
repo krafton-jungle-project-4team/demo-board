@@ -41,11 +41,15 @@ export function BoardNewPage({ query }: BoardNewPageProps) {
     }
 
     return (
-        <section className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10 sm:px-6 lg:px-8">
-            <Card>
+        <section className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10 sm:px-6 lg:px-8">
+            <div className="flex flex-col gap-1">
+                <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">동네 게시글 작성</h1>
+                <p className="text-sm text-muted-foreground">현재 거주동 기준으로 동네 게시판에 등록됩니다.</p>
+            </div>
+            <Card className="w-full max-w-3xl">
                 <CardHeader>
-                    <CardTitle>동네 게시글 작성</CardTitle>
-                    <CardDescription>현재 거주동 기준으로 동네 게시판에 등록됩니다.</CardDescription>
+                    <CardTitle>글 내용</CardTitle>
+                    <CardDescription>제목, 내용, 태그를 입력하세요.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     {isCurrentUserPending ? (
@@ -58,7 +62,7 @@ export function BoardNewPage({ query }: BoardNewPageProps) {
                             onSubmit={handleSubmit}
                         />
                     ) : (
-                        <BoardWriteSetup isSignedIn={isSignedIn} />
+                        <BoardWriteSetup query={query} isSignedIn={isSignedIn} />
                     )}
                 </CardContent>
             </Card>
@@ -66,7 +70,7 @@ export function BoardNewPage({ query }: BoardNewPageProps) {
     );
 }
 
-function BoardWriteSetup({ isSignedIn }: { isSignedIn: boolean }) {
+function BoardWriteSetup({ query, isSignedIn }: { query: BoardPostListQuery; isSignedIn: boolean }) {
     if (!isSignedIn) {
         return (
             <div className="flex flex-col gap-4">
@@ -82,7 +86,15 @@ function BoardWriteSetup({ isSignedIn }: { isSignedIn: boolean }) {
         <div className="flex flex-col gap-4">
             <p className="text-sm text-muted-foreground">거주동을 설정한 뒤 동네 글을 작성할 수 있어요.</p>
             <Button asChild className="self-start">
-                <Link to="/profile">거주동 설정</Link>
+                <Link
+                    to="/profile"
+                    search={{
+                        ...query,
+                        redirectTo: "boardNew"
+                    }}
+                >
+                    거주동 설정
+                </Link>
             </Button>
         </div>
     );

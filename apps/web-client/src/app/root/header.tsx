@@ -61,6 +61,7 @@ export function Header() {
                             <Button asChild variant="ghost" size="sm">
                                 <Link
                                     to="/profile"
+                                    search={defaultBoardPostListSearch}
                                     activeProps={{
                                         className: "bg-accent text-accent-foreground"
                                     }}
