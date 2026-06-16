@@ -135,17 +135,30 @@ export const EstateTransactionResponseSchema = z.object({
 
 export type EstateTransactionResponse = z.infer<typeof EstateTransactionResponseSchema>;
 
-export const EstateSimilarTransactionRequestSchema = z.object({
-    referenceTransactionId: z.coerce.number().int().positive().optional(),
-    queryText: OptionalEstateQueryTextSchema,
-    filters: EstateTransactionFilterSchema.default({}),
-    limit: z.coerce
-        .number()
-        .int()
-        .min(1)
-        .max(MAX_ESTATE_SIMILAR_TRANSACTION_LIMIT)
-        .default(DEFAULT_ESTATE_SIMILAR_TRANSACTION_LIMIT)
-});
+export const EstateSimilarTransactionRequestSchema = z
+    .object({
+        referenceTransactionId: z.coerce.number().int().positive().optional(),
+        queryText: OptionalEstateQueryTextSchema,
+        filters: EstateTransactionFilterSchema.default({}),
+        limit: z.coerce
+            .number()
+            .int()
+            .min(1)
+            .max(MAX_ESTATE_SIMILAR_TRANSACTION_LIMIT)
+            .default(DEFAULT_ESTATE_SIMILAR_TRANSACTION_LIMIT)
+    })
+    .superRefine((request, context) => {
+        const hasReferenceTransactionId = request.referenceTransactionId !== undefined;
+        const hasQueryText = request.queryText !== undefined;
+
+        if (hasReferenceTransactionId === hasQueryText) {
+            context.addIssue({
+                code: "custom",
+                path: ["referenceTransactionId"],
+                message: "referenceTransactionId와 queryText 중 정확히 하나만 입력해야 합니다."
+            });
+        }
+    });
 
 export type EstateSimilarTransactionRequest = z.infer<typeof EstateSimilarTransactionRequestSchema>;
 
