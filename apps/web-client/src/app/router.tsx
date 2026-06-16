@@ -39,6 +39,15 @@ function stringifySearch(search: Record<string, unknown>): string {
             continue;
         }
 
+        if (Array.isArray(value)) {
+            for (const item of value) {
+                if (item !== undefined) {
+                    searchParams.append(key, String(item));
+                }
+            }
+            continue;
+        }
+
         searchParams.set(key, String(value));
     }
 
