@@ -21,6 +21,12 @@ export type AiEnv = {
         model: string;
         dimensions: number;
     };
+    moderation: {
+        provider: "openai";
+        openAiApiKey?: string;
+        openAiBaseUrl: string;
+        model: string;
+    };
 };
 
 export type ServerEnv = {
@@ -67,6 +73,7 @@ const ServerEnvSchema = z.object({
     NMM_EMBEDDING_PROVIDER: EmbeddingProviderSchema,
     NMM_EMBEDDING_MODEL: z.string().min(1).default("text-embedding-3-small"),
     NMM_EMBEDDING_DIMENSIONS: EmbeddingDimensionsSchema,
+    NMM_MODERATION_MODEL: z.string().min(1).default("gpt-4.1-mini"),
     NMM_OPENAI_BASE_URL: OptionalStringSchema,
     OPENAI_API_KEY: OptionalStringSchema
 });
@@ -91,6 +98,12 @@ function createServerEnv(): ServerEnv {
                 openAiBaseUrl: env.NMM_OPENAI_BASE_URL ?? "https://api.openai.com/v1",
                 model: env.NMM_EMBEDDING_MODEL,
                 dimensions: env.NMM_EMBEDDING_DIMENSIONS
+            },
+            moderation: {
+                provider: "openai",
+                openAiApiKey: env.OPENAI_API_KEY,
+                openAiBaseUrl: env.NMM_OPENAI_BASE_URL ?? "https://api.openai.com/v1",
+                model: env.NMM_MODERATION_MODEL
             }
         },
         database: {

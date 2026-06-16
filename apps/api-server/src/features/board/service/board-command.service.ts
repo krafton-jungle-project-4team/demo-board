@@ -11,7 +11,13 @@ import {
 } from "@nmm/shared";
 import { DataSource, IsNull, Repository, type EntityManager } from "typeorm";
 import { BOARD_ERRORS, createBoardError } from "../board.errors";
-import { BoardCommentEntity, BoardPostEntity, BoardPostTagEntity, BoardTagEntity } from "../database";
+import {
+    BOARD_POST_MODERATION_STATUS_UNCHECKED,
+    BoardCommentEntity,
+    BoardPostEntity,
+    BoardPostTagEntity,
+    BoardTagEntity
+} from "../database";
 import { isUniqueConstraintError } from "./query-error";
 
 type UpsertedBoardTag = {
@@ -35,7 +41,10 @@ export class BoardCommandService {
                     authorId: authUser.id,
                     dongCode,
                     title: request.title,
-                    content: request.content
+                    content: request.content,
+                    moderationStatus: BOARD_POST_MODERATION_STATUS_UNCHECKED,
+                    moderationHeldReason: null,
+                    moderationCheckedAt: null
                 })
             );
 
@@ -58,6 +67,9 @@ export class BoardCommandService {
 
             post.title = request.title;
             post.content = request.content;
+            post.moderationStatus = BOARD_POST_MODERATION_STATUS_UNCHECKED;
+            post.moderationHeldReason = null;
+            post.moderationCheckedAt = null;
 
             await manager.save(post);
             await this.replacePostTags(manager, postId, request.tags);

@@ -4,6 +4,7 @@ import { AuthModule } from "../auth";
 import { BoardController } from "./controller/board.controller";
 import { BoardCommentEntity, BoardPostEntity, BoardPostTagEntity, BoardTagEntity } from "./database";
 import { BoardCommandService } from "./service/board-command.service";
+import { BoardModerationWorkerService } from "./service/board-moderation-worker.service";
 import { BoardQueryService } from "./service/board-query.service";
 
 @Module({
@@ -12,6 +13,6 @@ import { BoardQueryService } from "./service/board-query.service";
         TypeOrmModule.forFeature([BoardPostEntity, BoardTagEntity, BoardPostTagEntity, BoardCommentEntity])
     ],
     controllers: [BoardController],
-    providers: [BoardQueryService, BoardCommandService]
+    providers: [BoardQueryService, BoardCommandService, BoardModerationWorkerService]
 })
 export class BoardModule {}
