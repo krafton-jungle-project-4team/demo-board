@@ -2,15 +2,18 @@ import { mcpServerEnv } from "./env.js";
 import { createMcpHttpApp } from "./server.js";
 
 const app = createMcpHttpApp();
-const server = app.listen(mcpServerEnv.port, "0.0.0.0", () => {
-    console.error(`MCP server listening on http://localhost:${mcpServerEnv.port}/mcp`);
+
+await app.listen({ port: mcpServerEnv.port, host: "0.0.0.0" });
+console.error(`MCP server listening on http://localhost:${mcpServerEnv.port}/mcp`);
+
+process.on("SIGINT", () => {
+    void closeServer();
+});
+process.on("SIGTERM", () => {
+    void closeServer();
 });
 
-process.on("SIGINT", closeServer);
-process.on("SIGTERM", closeServer);
-
-function closeServer() {
-    server.close(() => {
-        process.exit(0);
-    });
+async function closeServer() {
+    await app.close();
+    process.exit(0);
 }

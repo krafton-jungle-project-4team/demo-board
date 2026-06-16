@@ -13,11 +13,10 @@
         "@modelcontextprotocol/sdk": "^1.29.0",
         "@nmm/shared": "file:../../packages/shared",
         "dotenv": "^17.4.2",
-        "express": "latest",
+        "fastify": "^5.8.5",
         "zod": "^4.4.3"
     },
     "devDependencies": {
-        "@types/express": "latest",
         "@types/node": "latest",
         "tsx": "^4.22.4",
         "typescript": "latest"
