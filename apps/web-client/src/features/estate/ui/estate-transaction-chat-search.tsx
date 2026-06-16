@@ -23,6 +23,7 @@ export function EstateTransactionChatSearch() {
     const [submittedPrompt, setSubmittedPrompt] = useState("");
     const [lastRecommendations, setLastRecommendations] = useState<EstateSimilarTransactionItem[]>([]);
     const [commandErrorMessage, setCommandErrorMessage] = useState("");
+    const [recommendationExplanation, setRecommendationExplanation] = useState<RecommendationExplanation | null>(null);
     const navigate = useNavigate();
     const recommendationMutation = useFindSimilarEstateTransactionsMutation();
     const trimmedPrompt = promptInput.trim();
@@ -46,7 +47,15 @@ export function EstateTransactionChatSearch() {
             return;
         }
 
+        const explanationRank = parseExplanationCommandRank(trimmedPrompt);
+
+        if (explanationRank !== null) {
+            explainRecommendation(explanationRank);
+            return;
+        }
+
         setCommandErrorMessage("");
+        setRecommendationExplanation(null);
         setSubmittedPrompt(trimmedPrompt);
         setLastRecommendations([]);
         recommendationMutation.reset();
@@ -69,16 +78,31 @@ export function EstateTransactionChatSearch() {
 
         if (!recommendation) {
             setCommandErrorMessage(`${rank}번 추천 후보가 없습니다. 먼저 후보를 검색해주세요.`);
+            setRecommendationExplanation(null);
             return;
         }
 
         setCommandErrorMessage("");
+        setRecommendationExplanation(null);
         void navigate({
             to: "/estate/transactions/$transactionId",
             params: {
                 transactionId: String(recommendation.transaction.id)
             }
         });
+    }
+
+    function explainRecommendation(rank: number) {
+        const recommendation = lastRecommendations[rank - 1];
+
+        if (!recommendation) {
+            setCommandErrorMessage(`${rank}번 추천 후보가 없습니다. 먼저 후보를 검색해주세요.`);
+            setRecommendationExplanation(null);
+            return;
+        }
+
+        setCommandErrorMessage("");
+        setRecommendationExplanation(createRecommendationExplanation(rank, recommendation));
     }
 
     return (
@@ -125,6 +149,10 @@ export function EstateTransactionChatSearch() {
                     </Alert>
                 ) : null}
 
+                {recommendationExplanation ? (
+                    <RecommendationExplanationAlert explanation={recommendationExplanation} />
+                ) : null}
+
                 <EstateTransactionRecommendationResult
                     items={recommendationMutation.data?.items ?? []}
                     prompt={submittedPrompt}
@@ -137,6 +165,15 @@ export function EstateTransactionChatSearch() {
         </Card>
     );
 }
+
+type RecommendationExplanation = {
+    title: string;
+    description: string;
+    scores: Array<{
+        label: string;
+        value: string;
+    }>;
+};
 
 type EstateTransactionRecommendationResultProps = {
     items: EstateSimilarTransactionItem[];
@@ -256,6 +293,75 @@ function parseDetailCommandRank(prompt: string) {
     }
 
     return Number(detailCommandMatch[1]);
+}
+
+function parseExplanationCommandRank(prompt: string) {
+    const isExplanationCommand = /(?:왜|이유|근거|설명)/.test(prompt);
+
+    if (!isExplanationCommand) {
+        return null;
+    }
+
+    const rankMatch = /(\d+)\s*번/.exec(prompt);
+
+    return rankMatch ? Number(rankMatch[1]) : 1;
+}
+
+function RecommendationExplanationAlert({ explanation }: { explanation: RecommendationExplanation }) {
+    return (
+        <Alert>
+            <AlertTitle>{explanation.title}</AlertTitle>
+            <AlertDescription>
+                <div className="grid gap-2">
+                    <p>{explanation.description}</p>
+                    <dl className="grid gap-1 text-sm">
+                        {explanation.scores.map((score) => (
+                            <div key={score.label} className="flex justify-between gap-3">
+                                <dt className="text-muted-foreground">{score.label}</dt>
+                                <dd className="font-medium tabular-nums">{score.value}</dd>
+                            </div>
+                        ))}
+                    </dl>
+                </div>
+            </AlertDescription>
+        </Alert>
+    );
+}
+
+function createRecommendationExplanation(rank: number, item: EstateSimilarTransactionItem): RecommendationExplanation {
+    const transaction = item.transaction;
+    const transactionName = transaction.buildingName ?? `${transaction.legalDongName} ${transaction.buildingUse}`;
+
+    return {
+        title: `${rank}번 추천 이유`,
+        description: `${transactionName}은 검색 문장과 실거래 정보의 임베딩 유사도, 가격, 면적, 법정동, 건물 용도 점수를 함께 반영해 추천됐습니다.`,
+        scores: [
+            {
+                label: "전체 추천도",
+                value: formatScore(item.score)
+            },
+            {
+                label: "문맥 유사도",
+                value: formatScore(item.vectorSimilarity)
+            },
+            {
+                label: "가격 조건",
+                value: formatScore(item.priceScore)
+            },
+            {
+                label: "면적 조건",
+                value: formatScore(item.areaScore)
+            },
+            {
+                label: "법정동 조건",
+                value: formatScore(item.legalDongScore)
+            },
+            {
+                label: "건물 용도",
+                value: formatScore(item.buildingUseScore)
+            }
+        ]
+    };
 }
 
 function getRecommendationErrorMessage(error: Error | null) {
