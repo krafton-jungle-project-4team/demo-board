@@ -24,6 +24,7 @@ export function EstateTransactionChatSearch() {
     const [lastRecommendations, setLastRecommendations] = useState<EstateSimilarTransactionItem[]>([]);
     const [commandErrorMessage, setCommandErrorMessage] = useState("");
     const [recommendationExplanation, setRecommendationExplanation] = useState<RecommendationExplanation | null>(null);
+    const [recommendationComparison, setRecommendationComparison] = useState<RecommendationComparison | null>(null);
     const navigate = useNavigate();
     const recommendationMutation = useFindSimilarEstateTransactionsMutation();
     const trimmedPrompt = promptInput.trim();
@@ -37,6 +38,13 @@ export function EstateTransactionChatSearch() {
         event.preventDefault();
 
         if (!canSubmit) {
+            return;
+        }
+
+        const comparisonRanks = parseComparisonCommandRanks(trimmedPrompt);
+
+        if (comparisonRanks !== null) {
+            compareRecommendations(comparisonRanks);
             return;
         }
 
@@ -56,6 +64,7 @@ export function EstateTransactionChatSearch() {
 
         setCommandErrorMessage("");
         setRecommendationExplanation(null);
+        setRecommendationComparison(null);
         setSubmittedPrompt(trimmedPrompt);
         setLastRecommendations([]);
         recommendationMutation.reset();
@@ -79,11 +88,13 @@ export function EstateTransactionChatSearch() {
         if (!recommendation) {
             setCommandErrorMessage(`${rank}번 추천 후보가 없습니다. 먼저 후보를 검색해주세요.`);
             setRecommendationExplanation(null);
+            setRecommendationComparison(null);
             return;
         }
 
         setCommandErrorMessage("");
         setRecommendationExplanation(null);
+        setRecommendationComparison(null);
         void navigate({
             to: "/estate/transactions/$transactionId",
             params: {
@@ -98,11 +109,32 @@ export function EstateTransactionChatSearch() {
         if (!recommendation) {
             setCommandErrorMessage(`${rank}번 추천 후보가 없습니다. 먼저 후보를 검색해주세요.`);
             setRecommendationExplanation(null);
+            setRecommendationComparison(null);
             return;
         }
 
         setCommandErrorMessage("");
+        setRecommendationComparison(null);
         setRecommendationExplanation(createRecommendationExplanation(rank, recommendation));
+    }
+
+    function compareRecommendations(ranks: [number, number]) {
+        const [leftRank, rightRank] = ranks;
+        const leftRecommendation = lastRecommendations[leftRank - 1];
+        const rightRecommendation = lastRecommendations[rightRank - 1];
+
+        if (!leftRecommendation || !rightRecommendation) {
+            setCommandErrorMessage(`${leftRank}번과 ${rightRank}번 중 없는 추천 후보가 있습니다.`);
+            setRecommendationExplanation(null);
+            setRecommendationComparison(null);
+            return;
+        }
+
+        setCommandErrorMessage("");
+        setRecommendationExplanation(null);
+        setRecommendationComparison(
+            createRecommendationComparison(leftRank, leftRecommendation, rightRank, rightRecommendation)
+        );
     }
 
     return (
@@ -153,6 +185,10 @@ export function EstateTransactionChatSearch() {
                     <RecommendationExplanationAlert explanation={recommendationExplanation} />
                 ) : null}
 
+                {recommendationComparison ? (
+                    <RecommendationComparisonAlert comparison={recommendationComparison} />
+                ) : null}
+
                 <EstateTransactionRecommendationResult
                     items={recommendationMutation.data?.items ?? []}
                     prompt={submittedPrompt}
@@ -172,6 +208,17 @@ type RecommendationExplanation = {
     scores: Array<{
         label: string;
         value: string;
+    }>;
+};
+
+type RecommendationComparison = {
+    title: string;
+    leftLabel: string;
+    rightLabel: string;
+    rows: Array<{
+        label: string;
+        leftValue: string;
+        rightValue: string;
     }>;
 };
 
@@ -295,6 +342,28 @@ function parseDetailCommandRank(prompt: string) {
     return Number(detailCommandMatch[1]);
 }
 
+function parseComparisonCommandRanks(prompt: string): [number, number] | null {
+    const isComparisonCommand = /(?:비교|차이|뭐가\s*더|어느\s*게|나아|낫)/.test(prompt);
+
+    if (!isComparisonCommand) {
+        return null;
+    }
+
+    const ranks = Array.from(prompt.matchAll(/(\d+)\s*번/g), (match) => Number(match[1]));
+
+    if (ranks.length < 2) {
+        return null;
+    }
+
+    const [leftRank, rightRank] = ranks;
+
+    if (leftRank === undefined || rightRank === undefined) {
+        return null;
+    }
+
+    return [leftRank, rightRank];
+}
+
 function parseExplanationCommandRank(prompt: string) {
     const isExplanationCommand = /(?:왜|이유|근거|설명)/.test(prompt);
 
@@ -322,6 +391,36 @@ function RecommendationExplanationAlert({ explanation }: { explanation: Recommen
                             </div>
                         ))}
                     </dl>
+                </div>
+            </AlertDescription>
+        </Alert>
+    );
+}
+
+function RecommendationComparisonAlert({ comparison }: { comparison: RecommendationComparison }) {
+    return (
+        <Alert>
+            <AlertTitle>{comparison.title}</AlertTitle>
+            <AlertDescription>
+                <div className="w-full overflow-x-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>항목</TableHead>
+                                <TableHead>{comparison.leftLabel}</TableHead>
+                                <TableHead>{comparison.rightLabel}</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {comparison.rows.map((row) => (
+                                <TableRow key={row.label}>
+                                    <TableCell className="text-muted-foreground">{row.label}</TableCell>
+                                    <TableCell className="font-medium tabular-nums">{row.leftValue}</TableCell>
+                                    <TableCell className="font-medium tabular-nums">{row.rightValue}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
                 </div>
             </AlertDescription>
         </Alert>
@@ -359,6 +458,85 @@ function createRecommendationExplanation(rank: number, item: EstateSimilarTransa
             {
                 label: "건물 용도",
                 value: formatScore(item.buildingUseScore)
+            }
+        ]
+    };
+}
+
+function createRecommendationComparison(
+    leftRank: number,
+    leftItem: EstateSimilarTransactionItem,
+    rightRank: number,
+    rightItem: EstateSimilarTransactionItem
+): RecommendationComparison {
+    const leftTransaction = leftItem.transaction;
+    const rightTransaction = rightItem.transaction;
+
+    return {
+        title: `${leftRank}번과 ${rightRank}번 비교`,
+        leftLabel: `${leftRank}번`,
+        rightLabel: `${rightRank}번`,
+        rows: [
+            {
+                label: "건물명",
+                leftValue: leftTransaction.buildingName ?? "건물명 없음",
+                rightValue: rightTransaction.buildingName ?? "건물명 없음"
+            },
+            {
+                label: "법정동",
+                leftValue: leftTransaction.legalDongName,
+                rightValue: rightTransaction.legalDongName
+            },
+            {
+                label: "용도",
+                leftValue: leftTransaction.buildingUse,
+                rightValue: rightTransaction.buildingUse
+            },
+            {
+                label: "거래금액",
+                leftValue: formatDealAmount(leftTransaction.dealAmount10kKrw),
+                rightValue: formatDealAmount(rightTransaction.dealAmount10kKrw)
+            },
+            {
+                label: "면적",
+                leftValue: formatArea(leftTransaction.buildingAreaSquareMeter),
+                rightValue: formatArea(rightTransaction.buildingAreaSquareMeter)
+            },
+            {
+                label: "평당가",
+                leftValue: formatPricePerPyeong(
+                    leftTransaction.dealAmount10kKrw,
+                    leftTransaction.buildingAreaSquareMeter
+                ),
+                rightValue: formatPricePerPyeong(
+                    rightTransaction.dealAmount10kKrw,
+                    rightTransaction.buildingAreaSquareMeter
+                )
+            },
+            {
+                label: "층",
+                leftValue: formatFloor(leftTransaction.floor),
+                rightValue: formatFloor(rightTransaction.floor)
+            },
+            {
+                label: "준공년도",
+                leftValue: `${leftTransaction.builtYear}년`,
+                rightValue: `${rightTransaction.builtYear}년`
+            },
+            {
+                label: "계약일",
+                leftValue: leftTransaction.contractDate,
+                rightValue: rightTransaction.contractDate
+            },
+            {
+                label: "추천도",
+                leftValue: formatScore(leftItem.score),
+                rightValue: formatScore(rightItem.score)
+            },
+            {
+                label: "문맥 유사도",
+                leftValue: formatScore(leftItem.vectorSimilarity),
+                rightValue: formatScore(rightItem.vectorSimilarity)
             }
         ]
     };
@@ -404,6 +582,19 @@ function formatArea(squareMeter: number) {
 
 function formatDealAmount(dealAmount10kKrw: number) {
     return `${dealAmount10kKrw.toLocaleString("ko-KR")}만원`;
+}
+
+function formatPricePerPyeong(dealAmount10kKrw: number, squareMeter: number) {
+    const pyeong = squareMeter / SQUARE_METERS_PER_PYEONG;
+    const pricePerPyeong = dealAmount10kKrw / pyeong;
+
+    return `${pricePerPyeong.toLocaleString("ko-KR", {
+        maximumFractionDigits: 0
+    })}만원/평`;
+}
+
+function formatFloor(floor: number | null) {
+    return floor === null ? "-" : `${floor}층`;
 }
 
 function formatScore(score: number) {
