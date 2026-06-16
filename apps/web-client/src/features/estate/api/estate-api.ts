@@ -1,8 +1,11 @@
 import {
     EstateLegalDongListResponseSchema,
-    EstateTransactionResponseSchema,
+    EstateSimilarTransactionResponseSchema,
     EstateTransactionListResponseSchema,
+    EstateTransactionResponseSchema,
     type EstateLegalDongListResponse,
+    type EstateSimilarTransactionRequest,
+    type EstateSimilarTransactionResponse,
     type EstateTransactionResponse,
     type EstateTransactionListQuery,
     type EstateTransactionListResponse
@@ -19,6 +22,15 @@ export function getEstateTransaction(transactionId: number): Promise<EstateTrans
 
 export function getEstateLegalDongs(): Promise<EstateLegalDongListResponse> {
     return requestApiData("estate/legal-dongs", EstateLegalDongListResponseSchema);
+}
+
+export function findSimilarEstateTransactions(
+    request: EstateSimilarTransactionRequest
+): Promise<EstateSimilarTransactionResponse> {
+    return requestApiData("estate/ai/transactions/similar", EstateSimilarTransactionResponseSchema, {
+        method: "POST",
+        json: request
+    });
 }
 
 function createEstateTransactionListPath(query: EstateTransactionListQuery) {
