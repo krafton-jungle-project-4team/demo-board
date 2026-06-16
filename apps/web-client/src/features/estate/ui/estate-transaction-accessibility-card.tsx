@@ -108,6 +108,7 @@ const PLANNED_STATION_KEYWORDS = ["개통예정", "개통 예정", "예정역", 
 const TMAP_DEFAULT_ZOOM = 15;
 const TMAP_LOAD_ERROR_MESSAGE = "TMAP JS V2 SDK 로드에 실패했습니다.";
 const TMAP_SDK_SCRIPT_ID = "nmm-tmap-js-v2-sdk";
+const TMAP_SDK_SCRIPT_SRC = "https://topopentile2.tmap.co.kr/scriptSDKV2/tmapjs2.min.js?version=20231206";
 const TMAP_SDK_READY_TIMEOUT_MS = 5000;
 const TMAP_SDK_READY_POLL_INTERVAL_MS = 50;
 
@@ -813,7 +814,7 @@ function loadTmapSdk(appKey: string) {
     window.nmmTmapJsV2SdkAppKey = appKey;
     window.nmmTmapJsV2SdkPromise = new Promise<TmapSdk>((resolve, reject) => {
         const startedAt = Date.now();
-        const scriptElement = getOrCreateTmapSdkScript(appKey);
+        const scriptElement = getOrCreateTmapSdkScript();
 
         function resolveWhenReady() {
             if (isTmapSdkReady(window.Tmapv2)) {
@@ -846,7 +847,7 @@ function loadTmapSdk(appKey: string) {
     return window.nmmTmapJsV2SdkPromise;
 }
 
-function getOrCreateTmapSdkScript(appKey: string) {
+function getOrCreateTmapSdkScript() {
     const existingScript = document.getElementById(TMAP_SDK_SCRIPT_ID);
 
     if (existingScript instanceof HTMLScriptElement) {
@@ -854,14 +855,9 @@ function getOrCreateTmapSdkScript(appKey: string) {
     }
 
     const scriptElement = document.createElement("script");
-    const scriptSearchParams = new URLSearchParams({
-        version: "1",
-        appKey
-    });
 
     scriptElement.id = TMAP_SDK_SCRIPT_ID;
-    scriptElement.async = false;
-    scriptElement.src = `https://apis.openapi.sk.com/tmap/jsv2?${scriptSearchParams}`;
+    scriptElement.src = TMAP_SDK_SCRIPT_SRC;
     document.head.append(scriptElement);
 
     return scriptElement;
