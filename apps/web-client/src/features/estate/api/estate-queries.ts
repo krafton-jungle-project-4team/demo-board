@@ -1,8 +1,14 @@
 import { queryOptions } from "@tanstack/react-query";
-import type { EstateTransactionListQuery } from "@nmm/shared";
-import { getEstateLegalDongs, getEstateTransaction, getEstateTransactions } from "./estate-api";
+import type { EstateSimilarTransactionRequest, EstateTransactionListQuery } from "@nmm/shared";
+import {
+    findSimilarEstateTransactions,
+    getEstateLegalDongs,
+    getEstateTransaction,
+    getEstateTransactions
+} from "./estate-api";
 
 const estateQueryKeyRoot = ["estate"] as const; //리액트 쿼리로 부동산 관련 데이터인걸 입력
+const ESTATE_SIMILAR_TRANSACTION_LIMIT = 5;
 
 //리액트쿼리 캐시에 붙일 분류라벨 만드는 함수
 export const estateQueryKeys = {
@@ -10,7 +16,9 @@ export const estateQueryKeys = {
     legalDongList: () => [...estateQueryKeyRoot, "legal-dongs", "list"] as const,
     transactionList: (query: EstateTransactionListQuery) =>
         [...estateQueryKeyRoot, "transactions", "list", query] as const,
-    transaction: (transactionId: number) => [...estateQueryKeyRoot, "transactions", transactionId] as const
+    transaction: (transactionId: number) => [...estateQueryKeyRoot, "transactions", transactionId] as const,
+    similarTransactions: (transactionId: number) =>
+        [...estateQueryKeyRoot, "transactions", transactionId, "similar"] as const
 };
 
 //어떤 데이터를 받아올지 설정
@@ -32,5 +40,18 @@ export function estateLegalDongListQueryOptions() {
     return queryOptions({
         queryKey: estateQueryKeys.legalDongList(),
         queryFn: getEstateLegalDongs
+    });
+}
+
+export function estateSimilarTransactionsQueryOptions(transactionId: number) {
+    const request: EstateSimilarTransactionRequest = {
+        referenceTransactionId: transactionId,
+        filters: {},
+        limit: ESTATE_SIMILAR_TRANSACTION_LIMIT
+    };
+
+    return queryOptions({
+        queryKey: estateQueryKeys.similarTransactions(transactionId),
+        queryFn: () => findSimilarEstateTransactions(request)
     });
 }

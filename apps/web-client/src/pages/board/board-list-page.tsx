@@ -57,10 +57,10 @@ export function BoardListPage({ query }: BoardListPageProps) {
     const navigate = useNavigate({ from: "/board" });
     const { data: currentUser, isPending: isCurrentUserPending } = useQuery(currentUserQueryOptions);
     const {
-        data: postList,
-        error: postListError,
-        isError: isPostListError,
-        isPending: isPostListPending
+      data: postList,
+      error: postListError,
+      isError: isPostListError,
+      isPending: isPostListPending
     } = useQuery(boardPostListQueryOptions(query));
     const deletePostMutation = useDeleteBoardPostMutation();
     const [keyword, setKeyword] = useState(query.q ?? "");

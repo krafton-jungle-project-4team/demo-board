@@ -1,8 +1,14 @@
-import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { MessageCircleIcon, PencilIcon, ReplyIcon, Trash2Icon } from "lucide-react";
-import { type FormEvent, type MouseEvent, type ReactNode, useEffect, useState } from "react";
-import type { BoardAuthor, BoardCommentPageInfo, BoardCommentReplyResponse, BoardCommentResponse } from "@nmm/shared";
+import { type FormEvent, type MouseEvent, type ReactNode, useState } from "react";
+import type {
+    BoardAuthor,
+    BoardCommentListResponse,
+    BoardCommentPageInfo,
+    BoardCommentReplyResponse,
+    BoardCommentResponse
+} from "@nmm/shared";
 import { Alert, AlertDescription } from "@nmm/ui/components/alert";
 import { Button } from "@nmm/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components/card";
@@ -20,7 +26,6 @@ import {
 import { Separator } from "@nmm/ui/components/separator";
 import { Spinner } from "@nmm/ui/components/spinner";
 import { Textarea } from "@nmm/ui/components/textarea";
-import { boardCommentsQueryOptions } from "../api/board-queries";
 import {
     useCreateBoardCommentMutation,
     useCreateBoardCommentReplyMutation,
@@ -30,16 +35,16 @@ import {
 import { currentUserQueryOptions } from "@/features/auth";
 import { BoardAuthorLabel } from "./board-author-label";
 
-const BOARD_COMMENT_PAGE_SIZE = 20;
 const DISABLED_COMMENT_PAGINATION_LINK_CLASS_NAME = "pointer-events-none opacity-50";
 const EMPTY_COMMENT_FORM_VALUE = "";
 const MAX_VISIBLE_COMMENT_PAGE_COUNT = 5;
 
 type BoardCommentSectionProps = {
     postId: number;
-    page: number;
+    comments: BoardCommentListResponse;
     createPageHref: (page: number) => string;
-    onPageChange: (page: number) => void;
+    onPageSelect: (page: number) => void;
+    onCommentCreateSuccess: () => void;
 };
 
 const boardCommentDateFormatter = new Intl.DateTimeFormat("ko-KR", {
@@ -47,34 +52,28 @@ const boardCommentDateFormatter = new Intl.DateTimeFormat("ko-KR", {
     timeStyle: "short"
 });
 
-export function BoardCommentSection({ postId, page, createPageHref, onPageChange }: BoardCommentSectionProps) {
-    const commentsQuery = useSuspenseQuery(
-        boardCommentsQueryOptions(postId, {
-            page,
-            pageSize: BOARD_COMMENT_PAGE_SIZE
-        })
-    );
+export function BoardCommentSection({
+    postId,
+    comments,
+    createPageHref,
+    onPageSelect,
+    onCommentCreateSuccess
+}: BoardCommentSectionProps) {
     const { data: currentUser, isPending: isCurrentUserPending } = useQuery(currentUserQueryOptions);
     const createCommentMutation = useCreateBoardCommentMutation(postId);
-    const pageInfo = commentsQuery.data.pageInfo;
+    const pageInfo = comments.pageInfo;
     const commentWriteState = getCommentWriteState({
         isSignedIn: currentUser !== null && currentUser !== undefined,
         isCheckingUser: isCurrentUserPending
     });
     const canCreateComment = commentWriteState === "can";
 
-    useEffect(() => {
-        const lastAvailablePage = Math.max(1, pageInfo.totalPages);
-
-        if (page > lastAvailablePage) {
-            onPageChange(lastAvailablePage);
-        }
-    }, [onPageChange, page, pageInfo.totalPages]);
-
     async function handleCreateComment(content: string) {
         await createCommentMutation.mutateAsync({
             content
         });
+
+        onCommentCreateSuccess();
     }
 
     return (
@@ -98,9 +97,9 @@ export function BoardCommentSection({ postId, page, createPageHref, onPageChange
                     <BoardCommentWriteNotice state={commentWriteState} />
                 )}
                 <Separator />
-                {commentsQuery.data.items.length > 0 ? (
+                {comments.items.length > 0 ? (
                     <div className="flex flex-col gap-4">
-                        {commentsQuery.data.items.map((comment) => (
+                        {comments.items.map((comment) => (
                             <BoardCommentItem
                                 key={comment.id}
                                 comment={comment}
@@ -115,7 +114,7 @@ export function BoardCommentSection({ postId, page, createPageHref, onPageChange
                 <BoardCommentPagination
                     pageInfo={pageInfo}
                     createPageHref={createPageHref}
-                    onPageChange={onPageChange}
+                    onPageSelect={onPageSelect}
                 />
             </CardContent>
         </Card>
@@ -176,10 +175,10 @@ function BoardCommentEmpty() {
 type BoardCommentPaginationProps = {
     pageInfo: BoardCommentPageInfo;
     createPageHref: (page: number) => string;
-    onPageChange: (page: number) => void;
+    onPageSelect: (page: number) => void;
 };
 
-function BoardCommentPagination({ pageInfo, createPageHref, onPageChange }: BoardCommentPaginationProps) {
+function BoardCommentPagination({ pageInfo, createPageHref, onPageSelect }: BoardCommentPaginationProps) {
     if (pageInfo.totalPages <= 1) {
         return null;
     }
@@ -197,7 +196,7 @@ function BoardCommentPagination({ pageInfo, createPageHref, onPageChange }: Boar
                         page={previousPage}
                         disabled={currentPage <= 1}
                         createPageHref={createPageHref}
-                        onPageChange={onPageChange}
+                        onPageSelect={onPageSelect}
                     />
                 </PaginationItem>
                 {visiblePages.map((pageItem, index) =>
@@ -211,7 +210,7 @@ function BoardCommentPagination({ pageInfo, createPageHref, onPageChange }: Boar
                                 page={pageItem}
                                 isActive={pageItem === currentPage}
                                 createPageHref={createPageHref}
-                                onPageChange={onPageChange}
+                                onPageSelect={onPageSelect}
                             >
                                 {pageItem}
                             </BoardCommentPageLink>
@@ -223,7 +222,7 @@ function BoardCommentPagination({ pageInfo, createPageHref, onPageChange }: Boar
                         page={nextPage}
                         disabled={currentPage >= pageInfo.totalPages}
                         createPageHref={createPageHref}
-                        onPageChange={onPageChange}
+                        onPageSelect={onPageSelect}
                     />
                 </PaginationItem>
             </PaginationContent>
@@ -236,7 +235,7 @@ type BoardCommentPageLinkProps = {
     isActive?: boolean;
     disabled?: boolean;
     createPageHref: (page: number) => string;
-    onPageChange: (page: number) => void;
+    onPageSelect: (page: number) => void;
     children?: ReactNode;
 };
 
@@ -245,7 +244,7 @@ function BoardCommentPageLink({
     isActive,
     disabled,
     createPageHref,
-    onPageChange,
+    onPageSelect,
     children
 }: BoardCommentPageLinkProps) {
     function handleClick(event: MouseEvent<HTMLAnchorElement>) {
@@ -255,7 +254,7 @@ function BoardCommentPageLink({
             return;
         }
 
-        onPageChange(page);
+        onPageSelect(page);
     }
 
     return (
@@ -272,7 +271,7 @@ function BoardCommentPageLink({
     );
 }
 
-function BoardCommentPreviousPageLink({ page, disabled, createPageHref, onPageChange }: BoardCommentPageLinkProps) {
+function BoardCommentPreviousPageLink({ page, disabled, createPageHref, onPageSelect }: BoardCommentPageLinkProps) {
     function handleClick(event: MouseEvent<HTMLAnchorElement>) {
         event.preventDefault();
 
@@ -280,7 +279,7 @@ function BoardCommentPreviousPageLink({ page, disabled, createPageHref, onPageCh
             return;
         }
 
-        onPageChange(page);
+        onPageSelect(page);
     }
 
     return (
@@ -294,7 +293,7 @@ function BoardCommentPreviousPageLink({ page, disabled, createPageHref, onPageCh
     );
 }
 
-function BoardCommentNextPageLink({ page, disabled, createPageHref, onPageChange }: BoardCommentPageLinkProps) {
+function BoardCommentNextPageLink({ page, disabled, createPageHref, onPageSelect }: BoardCommentPageLinkProps) {
     function handleClick(event: MouseEvent<HTMLAnchorElement>) {
         event.preventDefault();
 
@@ -302,7 +301,7 @@ function BoardCommentNextPageLink({ page, disabled, createPageHref, onPageChange
             return;
         }
 
-        onPageChange(page);
+        onPageSelect(page);
     }
 
     return (

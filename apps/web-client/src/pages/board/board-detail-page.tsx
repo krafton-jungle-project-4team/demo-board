@@ -1,18 +1,27 @@
-import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQueries } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { PencilIcon } from "lucide-react";
+import { useEffect } from "react";
 import type { BoardPostListQuery } from "@nmm/shared";
 import { Badge } from "@nmm/ui/components/badge";
 import { Button } from "@nmm/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components/card";
 import { currentUserQueryOptions } from "@/features/auth";
-import { BoardAuthorLabel, BoardCommentSection, BoardPostDongBadge, boardPostQueryOptions } from "@/features/board";
+import {
+    BoardAuthorLabel,
+    BoardCommentSection,
+    BoardPostDongBadge,
+    boardCommentsQueryOptions,
+    boardPostQueryOptions
+} from "@/features/board";
 
 type BoardDetailPageProps = {
     postId: number;
     query: BoardPostListQuery;
     commentPage: number;
 };
+
+const BOARD_COMMENT_PAGE_SIZE = 20;
 
 const boardPostDetailDateFormatter = new Intl.DateTimeFormat("ko-KR", {
     dateStyle: "medium",
@@ -21,12 +30,50 @@ const boardPostDetailDateFormatter = new Intl.DateTimeFormat("ko-KR", {
 
 export function BoardDetailPage({ postId, query, commentPage }: BoardDetailPageProps) {
     const navigate = useNavigate({ from: "/board/$postId" });
-    const postQuery = useSuspenseQuery(boardPostQueryOptions(postId));
+    const [postQuery, commentsQuery] = useSuspenseQueries({
+        queries: [
+            boardPostQueryOptions(postId),
+            boardCommentsQueryOptions(postId, {
+                page: commentPage,
+                pageSize: BOARD_COMMENT_PAGE_SIZE
+            })
+        ]
+    });
     const { data: currentUser } = useQuery(currentUserQueryOptions);
     const post = postQuery.data;
+    const comments = commentsQuery.data;
+    const lastAvailableCommentPage = Math.max(1, comments.pageInfo.totalPages);
     const canManagePost = currentUser?.id === post.author.id;
 
-    function handleCommentPageChange(page: number) {
+    useEffect(() => {
+        if (commentPage <= lastAvailableCommentPage) {
+            return;
+        }
+
+        void navigate({
+            to: "/board/$postId",
+            params: {
+                postId: String(postId)
+            },
+            search: {
+                ...query,
+                commentPage: lastAvailableCommentPage
+            },
+            replace: true
+        });
+    }, [commentPage, lastAvailableCommentPage, navigate, postId, query]);
+
+    function handleCommentPageSelect(page: number) {
+        navigateToCommentPage(page);
+    }
+
+    function handleCommentCreateSuccess() {
+        if (commentPage !== 1) {
+            navigateToCommentPage(1);
+        }
+    }
+
+    function navigateToCommentPage(page: number) {
         if (page === commentPage) {
             return;
         }
@@ -92,9 +139,10 @@ export function BoardDetailPage({ postId, query, commentPage }: BoardDetailPageP
             </Card>
             <BoardCommentSection
                 postId={post.id}
-                page={commentPage}
+                comments={comments}
                 createPageHref={createCommentPageHref}
-                onPageChange={handleCommentPageChange}
+                onPageSelect={handleCommentPageSelect}
+                onCommentCreateSuccess={handleCommentCreateSuccess}
             />
         </section>
     );

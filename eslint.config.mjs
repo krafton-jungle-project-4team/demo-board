@@ -147,6 +147,32 @@ export default [
     },
 
     {
+        name: "mcp-server rules",
+        files: ["apps/mcp-server/**/*.ts"],
+        languageOptions: {
+            globals: globals.node
+        },
+        rules: {
+            // MCP 서버는 API 서버를 HTTP로만 호출하고 다른 앱 런타임에 의존하지 않는다.
+            "no-restricted-imports": restrictImports([
+                "@nmm/api-server",
+                "@nmm/api-server/*",
+                "@nmm/web-client",
+                "@nmm/web-client/*",
+                "@nmm/ui",
+                "@nmm/ui/*",
+                "@nestjs/*",
+                "react",
+                "react-dom",
+                "react-dom/*",
+                "vite",
+                "@vitejs/*",
+                "typeorm"
+            ])
+        }
+    },
+
+    {
         name: "shared package rules",
         files: ["packages/shared/**/*.ts"],
         rules: {

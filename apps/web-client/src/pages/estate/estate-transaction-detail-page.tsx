@@ -1,4 +1,5 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { Suspense } from "react";
+import { useQueryErrorResetBoundary, useSuspenseQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeftIcon } from "lucide-react";
 import type { EstateTransactionResponse } from "@nmm/shared";
@@ -6,7 +7,13 @@ import { Badge } from "@nmm/ui/components/badge";
 import { Button } from "@nmm/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components/card";
 import { Separator } from "@nmm/ui/components/separator";
-import { estateTransactionQueryOptions } from "@/features/estate";
+import { AppErrorBoundary } from "@/app/providers/app-error-boundary";
+import {
+    EstateSimilarTransactionList,
+    EstateSimilarTransactionListLoading,
+    estateTransactionQueryOptions,
+    renderEstateSimilarTransactionListError
+} from "@/features/estate";
 
 type EstateTransactionDetailPageProps = {
     transactionId: number;
@@ -15,6 +22,7 @@ type EstateTransactionDetailPageProps = {
 const SQUARE_METERS_PER_PYEONG = 3.305785;
 
 export function EstateTransactionDetailPage({ transactionId }: EstateTransactionDetailPageProps) {
+    const { reset } = useQueryErrorResetBoundary();
     const transactionQuery = useSuspenseQuery(estateTransactionQueryOptions(transactionId));
     const transaction = transactionQuery.data;
     const address = createEstateTransactionAddress(transaction);
@@ -78,6 +86,12 @@ export function EstateTransactionDetailPage({ transactionId }: EstateTransaction
                     </dl>
                 </CardContent>
             </Card>
+
+            <AppErrorBoundary key={transaction.id} fallback={renderEstateSimilarTransactionListError} onReset={reset}>
+                <Suspense fallback={<EstateSimilarTransactionListLoading />}>
+                    <EstateSimilarTransactionList transactionId={transaction.id} />
+                </Suspense>
+            </AppErrorBoundary>
         </section>
     );
 }

@@ -46,11 +46,11 @@ export const BoardPostSearchScopeSchema = z.enum(BOARD_POST_SEARCH_SCOPES).defau
 export type BoardPostSearchScope = z.infer<typeof BoardPostSearchScopeSchema>;
 
 const OptionalBoardSearchKeywordSchema = z.preprocess((value) => {
-    if (typeof value !== "string") {
+    if (typeof value !== "string" && typeof value !== "number") {
         return undefined;
     }
 
-    const keyword = value.trim();
+    const keyword = String(value).trim();
 
     return keyword.length > 0 ? keyword : undefined;
 }, z.string().min(1).max(100).optional());
