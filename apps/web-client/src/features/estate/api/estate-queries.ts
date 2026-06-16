@@ -17,8 +17,8 @@ export const estateQueryKeys = {
     transactionList: (query: EstateTransactionListQuery) =>
         [...estateQueryKeyRoot, "transactions", "list", query] as const,
     transaction: (transactionId: number) => [...estateQueryKeyRoot, "transactions", transactionId] as const,
-    similarTransactions: (transactionId: number, limit: number) =>
-        [...estateQueryKeyRoot, "transactions", transactionId, "similar", { limit }] as const
+    similarTransactions: (transactionId: number) =>
+        [...estateQueryKeyRoot, "transactions", transactionId, "similar"] as const
 };
 
 //어떤 데이터를 받아올지 설정
@@ -51,7 +51,7 @@ export function estateSimilarTransactionsQueryOptions(transactionId: number) {
     };
 
     return queryOptions({
-        queryKey: estateQueryKeys.similarTransactions(transactionId, ESTATE_SIMILAR_TRANSACTION_LIMIT),
+        queryKey: estateQueryKeys.similarTransactions(transactionId),
         queryFn: () => findSimilarEstateTransactions(request)
     });
 }
