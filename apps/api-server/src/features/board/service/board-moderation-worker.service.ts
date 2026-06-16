@@ -7,6 +7,7 @@ import { BOARD_POST_MODERATION_STATUS_HELD, BOARD_POST_MODERATION_STATUS_VISIBLE
 
 const BOARD_MODERATION_IDLE_DELAY_MS = 20_000;
 const BOARD_MODERATION_RETRY_DELAY_MS = 60_000;
+const BOARD_MODERATION_REQUEST_TIMEOUT_MS = 30_000;
 const BOARD_MODERATION_BATCH_SIZE = 20;
 const BOARD_MODERATION_HELD_REASON_MAX_LENGTH = 200;
 const DEFAULT_HELD_REASON = "AI 모더레이션 기준에 따라 보류되었습니다.";
@@ -265,53 +266,69 @@ export class BoardModerationWorkerService implements OnApplicationBootstrap, OnA
 
     private async requestModeration(post: BoardPostEntity): Promise<BoardPostModerationToolArguments> {
         const moderationConfig = serverEnv.ai.moderation;
-        const response = await fetch(`${moderationConfig.openAiBaseUrl}/responses`, {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${moderationConfig.openAiApiKey}`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                model: moderationConfig.model,
-                input: [
-                    {
-                        role: "system",
-                        content: BOARD_POST_MODERATION_SYSTEM_PROMPT
-                    },
-                    {
-                        role: "user",
-                        content: createBoardPostModerationInput(post)
-                    }
-                ],
-                tools: [
-                    {
-                        type: "function",
-                        name: SUBMIT_BOARD_POST_MODERATION_DECISION_TOOL_NAME,
-                        description: "게시글 Auto-Mod 최종 판단을 서버에 제출합니다.",
-                        parameters: boardPostModerationDecisionParameters,
-                        strict: true
-                    }
-                ],
-                tool_choice: {
-                    type: "function",
-                    name: SUBMIT_BOARD_POST_MODERATION_DECISION_TOOL_NAME
+        const abortController = new AbortController();
+        const timeout = setTimeout(() => {
+            abortController.abort();
+        }, BOARD_MODERATION_REQUEST_TIMEOUT_MS);
+
+        try {
+            const response = await fetch(`${moderationConfig.openAiBaseUrl}/responses`, {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${moderationConfig.openAiApiKey}`,
+                    "Content-Type": "application/json"
                 },
-                parallel_tool_calls: false,
-                max_output_tokens: 200
-            })
-        });
+                signal: abortController.signal,
+                body: JSON.stringify({
+                    model: moderationConfig.model,
+                    input: [
+                        {
+                            role: "system",
+                            content: BOARD_POST_MODERATION_SYSTEM_PROMPT
+                        },
+                        {
+                            role: "user",
+                            content: createBoardPostModerationInput(post)
+                        }
+                    ],
+                    tools: [
+                        {
+                            type: "function",
+                            name: SUBMIT_BOARD_POST_MODERATION_DECISION_TOOL_NAME,
+                            description: "게시글 Auto-Mod 최종 판단을 서버에 제출합니다.",
+                            parameters: boardPostModerationDecisionParameters,
+                            strict: true
+                        }
+                    ],
+                    tool_choice: {
+                        type: "function",
+                        name: SUBMIT_BOARD_POST_MODERATION_DECISION_TOOL_NAME
+                    },
+                    parallel_tool_calls: false,
+                    max_output_tokens: 200
+                })
+            });
 
-        if (!response.ok) {
-            const responseBody = await response.text();
-            throw new Error(
-                `OpenAI moderation request failed with status ${response.status}: ${responseBody.slice(0, 500)}`
-            );
+            if (!response.ok) {
+                const responseBody = await response.text();
+                throw new Error(
+                    `OpenAI moderation request failed with status ${response.status}: ${responseBody.slice(0, 500)}`
+                );
+            }
+
+            const responseBody = (await response.json()) as OpenAiResponsesApiResponse;
+            const functionCall = extractOpenAiFunctionCall(responseBody);
+
+            return BoardPostModerationToolArgumentsSchema.parse(JSON.parse(functionCall.arguments));
+        } catch (error) {
+            if (isAbortError(error)) {
+                throw new Error(`OpenAI moderation request timed out after ${BOARD_MODERATION_REQUEST_TIMEOUT_MS}ms.`);
+            }
+
+            throw error;
+        } finally {
+            clearTimeout(timeout);
         }
-
-        const responseBody = (await response.json()) as OpenAiResponsesApiResponse;
-        const functionCall = extractOpenAiFunctionCall(responseBody);
-
-        return BoardPostModerationToolArgumentsSchema.parse(JSON.parse(functionCall.arguments));
     }
 
     private warnMissingApiKey() {
@@ -417,4 +434,8 @@ function extractOpenAiFunctionCall(responseBody: OpenAiResponsesApiResponse): Op
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === "object" && value !== null;
+}
+
+function isAbortError(error: unknown) {
+    return isRecord(error) && error.name === "AbortError";
 }
