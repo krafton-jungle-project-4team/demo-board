@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { BotIcon, SearchIcon } from "lucide-react";
 import type { ChangeEvent, FormEvent } from "react";
 import { useState } from "react";
@@ -21,6 +21,9 @@ const SQUARE_METERS_PER_PYEONG = 3.305785;
 export function EstateTransactionChatSearch() {
     const [promptInput, setPromptInput] = useState("");
     const [submittedPrompt, setSubmittedPrompt] = useState("");
+    const [lastRecommendations, setLastRecommendations] = useState<EstateSimilarTransactionItem[]>([]);
+    const [commandErrorMessage, setCommandErrorMessage] = useState("");
+    const navigate = useNavigate();
     const recommendationMutation = useFindSimilarEstateTransactionsMutation();
     const trimmedPrompt = promptInput.trim();
     const canSubmit = trimmedPrompt.length > 0 && !recommendationMutation.isPending;
@@ -36,11 +39,45 @@ export function EstateTransactionChatSearch() {
             return;
         }
 
+        const detailRank = parseDetailCommandRank(trimmedPrompt);
+
+        if (detailRank !== null) {
+            openRecommendationDetail(detailRank);
+            return;
+        }
+
+        setCommandErrorMessage("");
         setSubmittedPrompt(trimmedPrompt);
-        recommendationMutation.mutate({
-            queryText: trimmedPrompt,
-            filters: {},
-            limit: RECOMMENDED_TRANSACTION_LIMIT
+        setLastRecommendations([]);
+        recommendationMutation.reset();
+        recommendationMutation.mutate(
+            {
+                queryText: trimmedPrompt,
+                filters: {},
+                limit: RECOMMENDED_TRANSACTION_LIMIT
+            },
+            {
+                onSuccess: (response) => {
+                    setLastRecommendations(response.items);
+                }
+            }
+        );
+    }
+
+    function openRecommendationDetail(rank: number) {
+        const recommendation = lastRecommendations[rank - 1];
+
+        if (!recommendation) {
+            setCommandErrorMessage(`${rank}번 추천 후보가 없습니다. 먼저 후보를 검색해주세요.`);
+            return;
+        }
+
+        setCommandErrorMessage("");
+        void navigate({
+            to: "/estate/transactions/$transactionId",
+            params: {
+                transactionId: String(recommendation.transaction.id)
+            }
         });
     }
 
@@ -80,6 +117,13 @@ export function EstateTransactionChatSearch() {
                         </Button>
                     </FieldGroup>
                 </form>
+
+                {commandErrorMessage ? (
+                    <Alert variant="destructive">
+                        <AlertTitle>명령을 실행하지 못했습니다.</AlertTitle>
+                        <AlertDescription>{commandErrorMessage}</AlertDescription>
+                    </Alert>
+                ) : null}
 
                 <EstateTransactionRecommendationResult
                     items={recommendationMutation.data?.items ?? []}
@@ -147,6 +191,7 @@ function EstateTransactionRecommendationResult({
                 <Table>
                     <TableHeader>
                         <TableRow>
+                            <TableHead className="min-w-16 text-center">번호</TableHead>
                             <TableHead>법정동</TableHead>
                             <TableHead>건물명</TableHead>
                             <TableHead>용도</TableHead>
@@ -157,18 +202,22 @@ function EstateTransactionRecommendationResult({
                             <TableHead className="min-w-24 text-right">상세</TableHead>
                         </TableRow>
                     </TableHeader>
-                    <TableBody>{items.map(renderRecommendationRow)}</TableBody>
+                    <TableBody>
+                        {items.map((item, index) => (
+                            <EstateTransactionRecommendationRow
+                                key={item.transaction.id}
+                                item={item}
+                                rank={index + 1}
+                            />
+                        ))}
+                    </TableBody>
                 </Table>
             </div>
         </div>
     );
 }
 
-function renderRecommendationRow(item: EstateSimilarTransactionItem) {
-    return <EstateTransactionRecommendationRow key={item.transaction.id} item={item} />;
-}
-
-function EstateTransactionRecommendationRow({ item }: { item: EstateSimilarTransactionItem }) {
+function EstateTransactionRecommendationRow({ item, rank }: { item: EstateSimilarTransactionItem; rank: number }) {
     const transaction = item.transaction;
     const transactionDetailParams = {
         transactionId: String(transaction.id)
@@ -176,6 +225,7 @@ function EstateTransactionRecommendationRow({ item }: { item: EstateSimilarTrans
 
     return (
         <TableRow>
+            <TableCell className="text-center tabular-nums">{rank}번</TableCell>
             <TableCell>{transaction.legalDongName}</TableCell>
             <TableCell className="font-medium">{transaction.buildingName ?? "건물명 없음"}</TableCell>
             <TableCell>{transaction.buildingUse}</TableCell>
@@ -196,6 +246,16 @@ function EstateTransactionRecommendationRow({ item }: { item: EstateSimilarTrans
             </TableCell>
         </TableRow>
     );
+}
+
+function parseDetailCommandRank(prompt: string) {
+    const detailCommandMatch = /(\d+)\s*번.*(?:상세|열어|보여|이동|페이지)/.exec(prompt);
+
+    if (!detailCommandMatch) {
+        return null;
+    }
+
+    return Number(detailCommandMatch[1]);
 }
 
 function getRecommendationErrorMessage(error: Error | null) {
