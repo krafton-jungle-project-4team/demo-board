@@ -3,6 +3,7 @@ import {
     EstateMarketSummaryResponseSchema,
     EstateSimilarTransactionResponseSchema,
     EstateTransactionListResponseSchema,
+    EstateTransactionResponseSchema,
     type EstateLegalDongListResponse,
     type EstateMarketSummaryRequest,
     type EstateMarketSummaryResponse,
@@ -10,7 +11,8 @@ import {
     type EstateSimilarTransactionResponse,
     type EstateTransactionFilter,
     type EstateTransactionListQuery,
-    type EstateTransactionListResponse
+    type EstateTransactionListResponse,
+    type EstateTransactionResponse
 } from "@nmm/shared";
 import { requestApiData } from "./http-client.js";
 
@@ -22,6 +24,10 @@ export function getEstateTransactions(query: EstateTransactionListQuery): Promis
 
 export function getEstateLegalDongs(): Promise<EstateLegalDongListResponse> {
     return requestApiData("estate/legal-dongs", EstateLegalDongListResponseSchema);
+}
+
+export function getEstateTransaction(transactionId: number): Promise<EstateTransactionResponse> {
+    return requestApiData(`estate/transactions/${transactionId}`, EstateTransactionResponseSchema);
 }
 
 export function findSimilarEstateTransactions(

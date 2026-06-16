@@ -2,11 +2,13 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
     EstateMarketSummaryRequestSchema,
     EstateSimilarTransactionRequestSchema,
-    EstateTransactionListQuerySchema
+    EstateTransactionListQuerySchema,
+    EstateTransactionParamsSchema
 } from "@nmm/shared";
 import {
     findSimilarEstateTransactions,
     getEstateLegalDongs,
+    getEstateTransaction,
     getEstateTransactions,
     summarizeEstateMarket
 } from "../api/estate-api.js";
@@ -16,10 +18,12 @@ import {
     formatLegalDongList,
     formatMarketSummary,
     formatSimilarTransactions,
+    formatTransactionDetail,
     formatTransactionList
 } from "./estate-formatters.js";
 import {
     EstateFindSimilarTransactionsToolInputSchema,
+    EstateGetTransactionToolInputSchema,
     EstateListLegalDongsToolInputSchema,
     EstateSearchTransactionsToolInputSchema,
     EstateSummarizeMarketToolInputSchema
@@ -35,6 +39,7 @@ const READ_ONLY_TOOL_ANNOTATIONS = {
 export function registerEstateTools(server: McpServer) {
     registerSearchTransactionsTool(server);
     registerListLegalDongsTool(server);
+    registerGetTransactionTool(server);
     registerFindSimilarTransactionsTool(server);
     registerSummarizeMarketTool(server);
 }
@@ -81,6 +86,29 @@ function registerListLegalDongsTool(server: McpServer) {
                 const output = createLegalDongListOutput(filteredLegalDongs, input.limit, input.offset);
 
                 return createToolSuccessResult(formatLegalDongList(output), toStructuredContent(output));
+            } catch (error) {
+                return createToolErrorResult(error);
+            }
+        }
+    );
+}
+
+function registerGetTransactionTool(server: McpServer) {
+    server.registerTool(
+        "estate_get_transaction",
+        {
+            title: "Get Estate Transaction",
+            description:
+                "실거래 ID로 단건 상세를 조회합니다. API 서버의 GET /api/estate/transactions/:transactionId를 호출합니다. DB를 직접 읽지 않습니다.",
+            inputSchema: EstateGetTransactionToolInputSchema,
+            annotations: READ_ONLY_TOOL_ANNOTATIONS
+        },
+        async (input) => {
+            try {
+                const { transactionId } = EstateTransactionParamsSchema.parse(input);
+                const response = await getEstateTransaction(transactionId);
+
+                return createToolSuccessResult(formatTransactionDetail(response), toStructuredContent(response));
             } catch (error) {
                 return createToolErrorResult(error);
             }

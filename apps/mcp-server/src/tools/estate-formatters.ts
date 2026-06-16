@@ -1,7 +1,8 @@
 import type {
     EstateMarketSummaryResponse,
     EstateSimilarTransactionResponse,
-    EstateTransactionListResponse
+    EstateTransactionListResponse,
+    EstateTransactionResponse
 } from "@nmm/shared";
 
 type LegalDongListOutput = {
@@ -53,6 +54,28 @@ export function formatLegalDongList(output: LegalDongListOutput) {
         `법정동 후보 ${output.totalItems.toLocaleString("ko-KR")}개 중 ${output.items.length.toLocaleString("ko-KR")}개를 반환했습니다.`,
         `다음 페이지: ${output.hasMore ? `offset=${output.nextOffset}` : "없음"}`,
         output.items.join(", ")
+    ].join("\n");
+}
+
+export function formatTransactionDetail(transaction: EstateTransactionResponse) {
+    const buildingName = transaction.buildingName ?? "건물명 없음";
+    const address = [
+        transaction.districtName,
+        transaction.legalDongName,
+        transaction.mainLotNumber,
+        transaction.subLotNumber ? `-${transaction.subLotNumber}` : ""
+    ]
+        .filter(Boolean)
+        .join(" ");
+    const floor = transaction.floor === null ? "층 정보 없음" : `${transaction.floor}층`;
+    const canceled = transaction.canceledAt ? `해제일 ${transaction.canceledAt}` : "정상 거래";
+
+    return [
+        `실거래 #${transaction.id} 상세입니다.`,
+        `${address} ${buildingName}`,
+        `${transaction.buildingUse}, ${transaction.buildingAreaSquareMeter}㎡, ${floor}, ${transaction.builtYear}년 건축`,
+        `계약일 ${transaction.contractDate}, 거래금액 ${transaction.dealAmount10kKrw.toLocaleString("ko-KR")}만원, ${canceled}`,
+        `신고구분 ${transaction.reportType}, 중개사 소재지 ${transaction.brokeredAgentSggName ?? "-"}`
     ].join("\n");
 }
 

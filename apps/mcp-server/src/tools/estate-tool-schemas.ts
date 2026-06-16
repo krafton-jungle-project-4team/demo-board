@@ -60,6 +60,14 @@ export const EstateListLegalDongsToolInputSchema = z
 
 export type EstateListLegalDongsToolInput = z.infer<typeof EstateListLegalDongsToolInputSchema>;
 
+export const EstateGetTransactionToolInputSchema = z
+    .object({
+        transactionId: z.number().int().positive().describe("조회할 실거래 ID입니다.")
+    })
+    .strict();
+
+export type EstateGetTransactionToolInput = z.infer<typeof EstateGetTransactionToolInputSchema>;
+
 export const EstateFindSimilarTransactionsToolInputSchema = z
     .object({
         referenceTransactionId: z

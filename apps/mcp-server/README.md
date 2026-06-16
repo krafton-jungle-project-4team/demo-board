@@ -22,6 +22,7 @@ npm run dev:mcp
 
 - `estate_search_transactions`: `GET /api/estate/transactions`를 호출해 실거래 목록을 검색한다.
 - `estate_list_legal_dongs`: `GET /api/estate/legal-dongs`를 호출해 법정동 후보를 반환한다.
+- `estate_get_transaction`: `GET /api/estate/transactions/:transactionId`를 호출해 실거래 단건 상세를 반환한다.
 - `estate_find_similar_transactions`: `POST /api/estate/ai/transactions/similar`를 호출해 RAG 유사 실거래를 찾는다.
 - `estate_summarize_market`: `GET /api/estate/ai/market-summary`를 호출해 시세 요약을 반환한다.
 
@@ -43,6 +44,7 @@ npm run verify
 - 잠실동 실거래 최근 목록을 10개만 보여줘.
 - 헬리오시티 관련 실거래를 찾아줘.
 - 잠실동 법정동 후보가 있는지 확인해줘.
+- 실거래 ID 1번의 상세 정보를 보여줘.
 - 송파구 아파트 80제곱미터 이상 거래의 시세를 요약해줘.
 - 헬리오시티 80제곱미터 이상 최근 거래금액 범위를 알려줘.
 - 취소 거래를 제외하고 방이동 오피스텔 시세를 요약해줘.
