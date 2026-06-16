@@ -80,7 +80,19 @@ export const EstateFindSimilarTransactionsToolInputSchema = z
         filters: EstateTransactionFilterToolInputSchema.default({}).describe("유사 매물 후보를 좁히는 필터입니다."),
         limit: z.number().int().min(1).max(50).default(10).describe("반환할 유사 실거래 수입니다.")
     })
-    .strict();
+    .strict()
+    .superRefine((input, context) => {
+        const hasReferenceTransactionId = input.referenceTransactionId !== undefined;
+        const hasQueryText = input.queryText !== undefined;
+
+        if (hasReferenceTransactionId === hasQueryText) {
+            context.addIssue({
+                code: "custom",
+                path: ["referenceTransactionId"],
+                message: "referenceTransactionId와 queryText 중 정확히 하나만 입력해야 합니다."
+            });
+        }
+    });
 
 export type EstateFindSimilarTransactionsToolInput = z.infer<typeof EstateFindSimilarTransactionsToolInputSchema>;
 
