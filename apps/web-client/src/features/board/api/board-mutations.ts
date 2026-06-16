@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { BoardCommentWriteRequest, BoardPostWriteRequest } from "@nmm/shared";
+import type { BoardCommentWriteRequest, BoardPostCreateRequest, BoardPostUpdateRequest } from "@nmm/shared";
 import {
     createBoardComment,
     createBoardCommentReply,
@@ -13,7 +13,7 @@ import { boardQueryKeys } from "./board-queries";
 
 type UpdateBoardPostVariables = {
     postId: number;
-    request: BoardPostWriteRequest;
+    request: BoardPostUpdateRequest;
 };
 
 type BoardCommentVariables = {
@@ -25,7 +25,7 @@ export function useCreateBoardPostMutation() {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: createBoardPost,
+        mutationFn: (request: BoardPostCreateRequest) => createBoardPost(request),
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: boardQueryKeys.all });
         }

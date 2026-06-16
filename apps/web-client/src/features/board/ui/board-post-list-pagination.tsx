@@ -181,5 +181,9 @@ function createBoardPostListPageHref(query: BoardPostListQuery, page: number) {
         searchParams.set("q", query.q);
     }
 
+    if (query.dongCode) {
+        searchParams.set("dongCode", query.dongCode);
+    }
+
     return `/board?${searchParams.toString()}`;
 }

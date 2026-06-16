@@ -2,6 +2,7 @@ export {
     estateNearbyTransportByTransactionQueryOptions,
     estateLegalDongListQueryOptions,
     estateQueryKeys,
+    estateSimilarTransactionsQueryOptions,
     estateTransactionQueryOptions,
     estateTransactionListQueryOptions,
     estateWalkTimeToTransportByTransactionQueryOptions
@@ -13,3 +14,8 @@ export {
     renderEstateTransactionListError,
     type AreaUnit
 } from "./ui/estate-transaction-list";
+export {
+    EstateSimilarTransactionList,
+    EstateSimilarTransactionListLoading,
+    renderEstateSimilarTransactionListError
+} from "./ui/estate-similar-transaction-list";

@@ -1,15 +1,18 @@
 import {
-    EstateNearbyTransportResponseSchema,
-    EstateWalkTimeToTransportResponseSchema,
     EstateLegalDongListResponseSchema,
-    EstateTransactionResponseSchema,
+    EstateNearbyTransportResponseSchema,
+    EstateSimilarTransactionResponseSchema,
     EstateTransactionListResponseSchema,
+    EstateTransactionResponseSchema,
+    EstateWalkTimeToTransportResponseSchema,
+    type EstateLegalDongListResponse,
     type EstateNearbyTransportQuery,
     type EstateNearbyTransportResponse,
-    type EstateLegalDongListResponse,
-    type EstateTransactionResponse,
+    type EstateSimilarTransactionRequest,
+    type EstateSimilarTransactionResponse,
     type EstateTransactionListQuery,
     type EstateTransactionListResponse,
+    type EstateTransactionResponse,
     type EstateWalkTimeToTransportQuery,
     type EstateWalkTimeToTransportResponse
 } from "@nmm/shared";
@@ -45,6 +48,15 @@ export function getEstateWalkTimeToTransportByTransaction(
         `estate/transactions/${transactionId}/walk-time-to-transport?${createEstateWalkTimeToTransportSearchParams(query)}`,
         EstateWalkTimeToTransportResponseSchema
     );
+}
+
+export function findSimilarEstateTransactions(
+    request: EstateSimilarTransactionRequest
+): Promise<EstateSimilarTransactionResponse> {
+    return requestApiData("estate/ai/transactions/similar", EstateSimilarTransactionResponseSchema, {
+        method: "POST",
+        json: request
+    });
 }
 
 function createEstateTransactionListPath(query: EstateTransactionListQuery) {

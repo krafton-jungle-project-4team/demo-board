@@ -1,4 +1,10 @@
 import { z } from "zod";
+import {
+    NullableSongpaBoardDongCodeSchema,
+    NullableSongpaBoardDongNameSchema,
+    SongpaBoardDongCodeSchema,
+    SongpaBoardDongNameSchema
+} from "./songpa-dong.contract";
 
 const DEFAULT_BOARD_POST_LIST_PAGE = 1;
 const DEFAULT_BOARD_POST_LIST_PAGE_SIZE = 10;
@@ -13,7 +19,9 @@ export const BoardIdSchema = z.number().int().positive();
 export const BoardAuthorSchema = z.object({
     id: BoardIdSchema,
     name: z.string().min(1),
-    email: z.string().email()
+    email: z.string().email(),
+    residenceDongCode: NullableSongpaBoardDongCodeSchema,
+    residenceDongName: NullableSongpaBoardDongNameSchema
 });
 
 export type BoardAuthor = z.infer<typeof BoardAuthorSchema>;
@@ -38,16 +46,33 @@ export const BoardPostSearchScopeSchema = z.enum(BOARD_POST_SEARCH_SCOPES).defau
 export type BoardPostSearchScope = z.infer<typeof BoardPostSearchScopeSchema>;
 
 const OptionalBoardSearchKeywordSchema = z.preprocess((value) => {
-    if (typeof value !== "string") {
+    if (typeof value !== "string" && typeof value !== "number") {
         return undefined;
     }
 
-    const keyword = value.trim();
+    const keyword = String(value).trim();
 
     return keyword.length > 0 ? keyword : undefined;
 }, z.string().min(1).max(100).optional());
 
+const OptionalBoardDongCodeSchema = z.preprocess((value) => {
+    if (value === undefined || value === null) {
+        return undefined;
+    }
+
+    if (typeof value !== "string" && typeof value !== "number") {
+        return value;
+    }
+
+    const dongCode = String(value)
+        .trim()
+        .replace(/^"(.+)"$/, "$1");
+
+    return dongCode.length > 0 ? dongCode : undefined;
+}, SongpaBoardDongCodeSchema.optional());
+
 export const BoardPostListQuerySchema = z.object({
+    dongCode: OptionalBoardDongCodeSchema,
     page: z.coerce.number().int().min(1).default(DEFAULT_BOARD_POST_LIST_PAGE),
     pageSize: z.coerce
         .number()
@@ -77,6 +102,8 @@ export type BoardCommentParams = z.infer<typeof BoardCommentParamsSchema>;
 
 export const BoardPostListItemSchema = z.object({
     id: BoardIdSchema,
+    dongCode: SongpaBoardDongCodeSchema.nullable(),
+    dongName: SongpaBoardDongNameSchema.nullable(),
     title: z.string().min(1),
     excerpt: z.string(),
     tags: BoardTagListResponseSchema,
@@ -101,6 +128,8 @@ export type BoardPostListResponse = z.infer<typeof BoardPostListResponseSchema>;
 
 export const BoardPostDetailResponseSchema = z.object({
     id: BoardIdSchema,
+    dongCode: SongpaBoardDongCodeSchema.nullable(),
+    dongName: SongpaBoardDongNameSchema.nullable(),
     title: z.string().min(1),
     content: z.string().min(1),
     tags: BoardTagListResponseSchema,
@@ -111,13 +140,21 @@ export const BoardPostDetailResponseSchema = z.object({
 
 export type BoardPostDetailResponse = z.infer<typeof BoardPostDetailResponseSchema>;
 
-export const BoardPostWriteRequestSchema = z.object({
+export const BoardPostUpdateRequestSchema = z.object({
     title: z.string().trim().min(1).max(200),
     content: z.string().trim().min(1).max(20000),
     tags: BoardPostTagsSchema
 });
 
-export type BoardPostWriteRequest = z.infer<typeof BoardPostWriteRequestSchema>;
+export type BoardPostUpdateRequest = z.infer<typeof BoardPostUpdateRequestSchema>;
+
+export const BoardPostCreateRequestSchema = BoardPostUpdateRequestSchema;
+
+export type BoardPostCreateRequest = z.infer<typeof BoardPostCreateRequestSchema>;
+
+export const BoardPostWriteRequestSchema = BoardPostUpdateRequestSchema;
+
+export type BoardPostWriteRequest = BoardPostUpdateRequest;
 
 export const BoardCommandResponseSchema = z.object({
     id: BoardIdSchema

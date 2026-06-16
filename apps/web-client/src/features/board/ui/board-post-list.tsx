@@ -1,14 +1,18 @@
 import { Link } from "@tanstack/react-router";
 import { PencilIcon, Trash2Icon } from "lucide-react";
-import { DEFAULT_BOARD_POST_LIST_QUERY, type BoardPostListItem, type BoardPostListResponse } from "@nmm/shared";
+import type { BoardPostListItem, BoardPostListQuery, BoardPostListResponse } from "@nmm/shared";
 import { Badge } from "@nmm/ui/components/badge";
 import { Button } from "@nmm/ui/components/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@nmm/ui/components/empty";
 import { Spinner } from "@nmm/ui/components/spinner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@nmm/ui/components/table";
+import { BoardAuthorLabel } from "./board-author-label";
+import { BoardPostDongBadge } from "./board-post-dong-badge";
 
 type BoardPostListProps = {
+    query: BoardPostListQuery;
     postList: BoardPostListResponse;
+    currentUserId?: number;
     deletingPostId?: number;
     onDeletePost: (post: BoardPostListItem) => void;
 };
@@ -18,7 +22,7 @@ const boardPostDateFormatter = new Intl.DateTimeFormat("ko-KR", {
     timeStyle: "short"
 });
 
-export function BoardPostList({ postList, deletingPostId, onDeletePost }: BoardPostListProps) {
+export function BoardPostList({ query, postList, currentUserId, deletingPostId, onDeletePost }: BoardPostListProps) {
     if (postList.items.length === 0) {
         return (
             <Empty>
@@ -33,6 +37,9 @@ export function BoardPostList({ postList, deletingPostId, onDeletePost }: BoardP
         );
     }
 
+    const showManagementColumn =
+        currentUserId !== undefined && postList.items.some((post) => post.author.id === currentUserId);
+
     return (
         <Table>
             <TableHeader>
@@ -41,15 +48,18 @@ export function BoardPostList({ postList, deletingPostId, onDeletePost }: BoardP
                     <TableHead className="w-56">태그</TableHead>
                     <TableHead className="w-40">작성자</TableHead>
                     <TableHead className="w-44">작성일</TableHead>
-                    <TableHead className="w-36 text-right">관리</TableHead>
+                    {showManagementColumn ? <TableHead className="w-36 text-right">관리</TableHead> : null}
                 </TableRow>
             </TableHeader>
             <TableBody>
                 {postList.items.map((post) => (
                     <BoardPostListRow
                         key={post.id}
+                        query={query}
                         post={post}
                         isDeleting={deletingPostId === post.id}
+                        canManagePost={post.author.id === currentUserId}
+                        showManagementColumn={showManagementColumn}
                         onDeletePost={onDeletePost}
                     />
                 ))}
@@ -59,12 +69,22 @@ export function BoardPostList({ postList, deletingPostId, onDeletePost }: BoardP
 }
 
 type BoardPostListRowProps = {
+    query: BoardPostListQuery;
     post: BoardPostListItem;
     isDeleting: boolean;
+    canManagePost: boolean;
+    showManagementColumn: boolean;
     onDeletePost: (post: BoardPostListItem) => void;
 };
 
-function BoardPostListRow({ post, isDeleting, onDeletePost }: BoardPostListRowProps) {
+function BoardPostListRow({
+    query,
+    post,
+    isDeleting,
+    canManagePost,
+    showManagementColumn,
+    onDeletePost
+}: BoardPostListRowProps) {
     function handleDeleteClick() {
         onDeletePost(post);
     }
@@ -77,38 +97,57 @@ function BoardPostListRow({ post, isDeleting, onDeletePost }: BoardPostListRowPr
                     params={{
                         postId: String(post.id)
                     }}
-                    search={DEFAULT_BOARD_POST_LIST_QUERY}
+                    search={query}
                     className="flex flex-col gap-1"
                 >
-                    <span className="font-medium">{post.title}</span>
+                    <span className="flex flex-wrap items-center gap-1.5">
+                        <BoardPostDongBadge dongName={post.dongName} />
+                        <span className="font-medium">{post.title}</span>
+                    </span>
                     <span className="line-clamp-2 text-muted-foreground">{post.excerpt}</span>
                 </Link>
             </TableCell>
             <TableCell>
                 <BoardPostTags post={post} />
             </TableCell>
-            <TableCell className="text-muted-foreground">{post.author.name}</TableCell>
-            <TableCell className="text-muted-foreground">{formatBoardPostDate(post.createdAt)}</TableCell>
-            <TableCell>
-                <div className="flex justify-end gap-2">
-                    <Button asChild type="button" variant="outline" size="sm">
-                        <Link
-                            to="/board/$postId/edit"
-                            params={{
-                                postId: String(post.id)
-                            }}
-                            search={DEFAULT_BOARD_POST_LIST_QUERY}
-                        >
-                            <PencilIcon data-icon="inline-start" />
-                            수정
-                        </Link>
-                    </Button>
-                    <Button type="button" variant="outline" size="sm" disabled={isDeleting} onClick={handleDeleteClick}>
-                        {isDeleting ? <Spinner data-icon="inline-start" /> : <Trash2Icon data-icon="inline-start" />}
-                        삭제
-                    </Button>
-                </div>
+            <TableCell className="text-muted-foreground">
+                <BoardAuthorLabel author={post.author} />
             </TableCell>
+            <TableCell className="text-muted-foreground">{formatBoardPostDate(post.createdAt)}</TableCell>
+            {showManagementColumn ? (
+                <TableCell>
+                    {canManagePost ? (
+                        <div className="flex justify-end gap-2">
+                            <Button asChild type="button" variant="outline" size="sm">
+                                <Link
+                                    to="/board/$postId/edit"
+                                    params={{
+                                        postId: String(post.id)
+                                    }}
+                                    search={query}
+                                >
+                                    <PencilIcon data-icon="inline-start" />
+                                    수정
+                                </Link>
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={isDeleting}
+                                onClick={handleDeleteClick}
+                            >
+                                {isDeleting ? (
+                                    <Spinner data-icon="inline-start" />
+                                ) : (
+                                    <Trash2Icon data-icon="inline-start" />
+                                )}
+                                삭제
+                            </Button>
+                        </div>
+                    ) : null}
+                </TableCell>
+            ) : null}
         </TableRow>
     );
 }

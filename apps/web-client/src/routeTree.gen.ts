@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as EstateRouteImport } from './routes/estate'
 import { Route as BoardRouteImport } from './routes/board'
 import { Route as IndexRouteImport } from './routes/index'
@@ -19,6 +20,11 @@ import { Route as AuthLoginRouteImport } from './routes/auth.login'
 import { Route as EstateTransactionsTransactionIdRouteImport } from './routes/estate.transactions.$transactionId'
 import { Route as BoardPostIdEditRouteImport } from './routes/board.$postId.edit'
 
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EstateRoute = EstateRouteImport.update({
   id: '/estate',
   path: '/estate',
@@ -70,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/board': typeof BoardRouteWithChildren
   '/estate': typeof EstateRouteWithChildren
+  '/profile': typeof ProfileRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/signup': typeof AuthSignupRoute
   '/board/$postId': typeof BoardPostIdRouteWithChildren
@@ -81,6 +88,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/board': typeof BoardRouteWithChildren
   '/estate': typeof EstateRouteWithChildren
+  '/profile': typeof ProfileRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/signup': typeof AuthSignupRoute
   '/board/$postId': typeof BoardPostIdRouteWithChildren
@@ -93,6 +101,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/board': typeof BoardRouteWithChildren
   '/estate': typeof EstateRouteWithChildren
+  '/profile': typeof ProfileRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/signup': typeof AuthSignupRoute
   '/board/$postId': typeof BoardPostIdRouteWithChildren
@@ -106,6 +115,7 @@ export interface FileRouteTypes {
     | '/'
     | '/board'
     | '/estate'
+    | '/profile'
     | '/auth/login'
     | '/auth/signup'
     | '/board/$postId'
@@ -117,6 +127,7 @@ export interface FileRouteTypes {
     | '/'
     | '/board'
     | '/estate'
+    | '/profile'
     | '/auth/login'
     | '/auth/signup'
     | '/board/$postId'
@@ -128,6 +139,7 @@ export interface FileRouteTypes {
     | '/'
     | '/board'
     | '/estate'
+    | '/profile'
     | '/auth/login'
     | '/auth/signup'
     | '/board/$postId'
@@ -140,12 +152,20 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BoardRoute: typeof BoardRouteWithChildren
   EstateRoute: typeof EstateRouteWithChildren
+  ProfileRoute: typeof ProfileRoute
   AuthLoginRoute: typeof AuthLoginRoute
   AuthSignupRoute: typeof AuthSignupRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/estate': {
       id: '/estate'
       path: '/estate'
@@ -251,6 +271,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BoardRoute: BoardRouteWithChildren,
   EstateRoute: EstateRouteWithChildren,
+  ProfileRoute: ProfileRoute,
   AuthLoginRoute: AuthLoginRoute,
   AuthSignupRoute: AuthSignupRoute,
 }

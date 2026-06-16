@@ -4,6 +4,7 @@ WORKDIR /app
 
 COPY package.json package-lock.json ./
 COPY apps/api-server/package.json ./apps/api-server/package.json
+COPY apps/mcp-server/package.json ./apps/mcp-server/package.json
 COPY apps/web-client/package.json ./apps/web-client/package.json
 COPY packages/shared/package.json ./packages/shared/package.json
 COPY packages/ui/package.json ./packages/ui/package.json

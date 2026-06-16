@@ -1,10 +1,12 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 import { type ChangeEvent, type FormEvent, type MouseEvent, useEffect, useState } from "react";
 import {
     BoardPostSearchScopeSchema,
-    DEFAULT_BOARD_POST_LIST_QUERY,
+    SONGPA_BOARD_DONGS,
+    SongpaBoardDongCodeSchema,
+    getSongpaBoardDongName,
     type BoardPostListItem,
     type BoardPostListQuery
 } from "@nmm/shared";
@@ -22,6 +24,7 @@ import { Button } from "@nmm/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components/card";
 import { toast } from "@nmm/ui/components/sonner";
 import { Spinner } from "@nmm/ui/components/spinner";
+import { currentUserQueryOptions } from "@/features/auth";
 import {
     BoardPostList,
     BoardPostListPagination,
@@ -35,15 +38,22 @@ type BoardListPageProps = {
     query: BoardPostListQuery;
 };
 
+const DONG_FILTER_ALL_VALUE = "ALL";
+
 export function BoardListPage({ query }: BoardListPageProps) {
     const navigate = useNavigate({ from: "/board" });
+    const { data: currentUser, isPending: isCurrentUserPending } = useQuery(currentUserQueryOptions);
     const postListQuery = useSuspenseQuery(boardPostListQueryOptions(query));
+    const postList = postListQuery.data;
     const deletePostMutation = useDeleteBoardPostMutation();
     const [keyword, setKeyword] = useState(query.q ?? "");
     const [searchScope, setSearchScope] = useState(query.searchScope);
     const [deleteTargetPost, setDeleteTargetPost] = useState<BoardPostListItem | null>(null);
-    const postList = postListQuery.data;
     const deletingPostId = deletePostMutation.isPending ? deleteTargetPost?.id : undefined;
+    const selectedDongName = getSongpaBoardDongName(query.dongCode);
+    const boardTitle = getBoardTitle(selectedDongName);
+    const boardDescription = getBoardDescription(selectedDongName);
+    const isSignedIn = currentUser !== null && currentUser !== undefined;
 
     useEffect(() => {
         setKeyword(query.q ?? "");
@@ -67,10 +77,21 @@ export function BoardListPage({ query }: BoardListPageProps) {
 
         setSearchScope(nextSearchScope);
         void navigateToList({
+            dongCode: query.dongCode,
             page: 1,
             pageSize: query.pageSize,
             searchScope: nextSearchScope,
             q: nextKeyword.length > 0 ? nextKeyword : undefined
+        });
+    }
+
+    function handleDongFilterChange(value: string) {
+        const nextDongCode = value === DONG_FILTER_ALL_VALUE ? undefined : SongpaBoardDongCodeSchema.parse(value);
+
+        void navigateToList({
+            ...query,
+            dongCode: nextDongCode,
+            page: 1
         });
     }
 
@@ -80,6 +101,7 @@ export function BoardListPage({ query }: BoardListPageProps) {
         const nextKeyword = keyword.trim();
 
         void navigateToList({
+            dongCode: query.dongCode,
             page: 1,
             pageSize: query.pageSize,
             searchScope,
@@ -90,6 +112,7 @@ export function BoardListPage({ query }: BoardListPageProps) {
     function handleClearSearch() {
         setKeyword("");
         void navigateToList({
+            dongCode: query.dongCode,
             page: 1,
             pageSize: query.pageSize,
             searchScope,
@@ -147,15 +170,12 @@ export function BoardListPage({ query }: BoardListPageProps) {
         <section className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10 sm:px-6 lg:px-8">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-2xl font-semibold tracking-tight">게시글</h1>
-                    <p className="text-sm text-muted-foreground">검색과 태그로 게시글을 찾아보세요.</p>
+                    <h1 className="text-2xl font-semibold tracking-tight">{boardTitle}</h1>
+                    <p className="text-sm text-muted-foreground">{boardDescription}</p>
                 </div>
-                <Button asChild>
-                    <Link to="/board/new" search={DEFAULT_BOARD_POST_LIST_QUERY}>
-                        <PlusIcon data-icon="inline-start" />새 게시글
-                    </Link>
-                </Button>
+                <BoardCreateButton query={query} isPending={isCurrentUserPending} isSignedIn={isSignedIn} />
             </div>
+            <DongBoardFilter dongCode={query.dongCode} onDongFilterChange={handleDongFilterChange} />
             <BoardPostListSearchForm
                 keyword={keyword}
                 searchScope={searchScope}
@@ -171,7 +191,9 @@ export function BoardListPage({ query }: BoardListPageProps) {
                 </CardHeader>
                 <CardContent>
                     <BoardPostList
+                        query={query}
                         postList={postList}
+                        currentUserId={currentUser?.id}
                         deletingPostId={deletingPostId}
                         onDeletePost={handleDeletePost}
                     />
@@ -201,6 +223,119 @@ export function BoardListPage({ query }: BoardListPageProps) {
             </AlertDialog>
         </section>
     );
+}
+
+function BoardCreateButton({
+    query,
+    isPending,
+    isSignedIn
+}: {
+    query: BoardPostListQuery;
+    isPending: boolean;
+    isSignedIn: boolean;
+}) {
+    if (isPending) {
+        return (
+            <Button disabled>
+                <PlusIcon data-icon="inline-start" />새 게시글
+            </Button>
+        );
+    }
+
+    if (!isSignedIn) {
+        return (
+            <Button asChild>
+                <Link to="/auth/login">
+                    <PlusIcon data-icon="inline-start" />새 게시글
+                </Link>
+            </Button>
+        );
+    }
+
+    return (
+        <Button asChild>
+            <Link to="/board/new" search={query}>
+                <PlusIcon data-icon="inline-start" />새 게시글
+            </Link>
+        </Button>
+    );
+}
+
+type DongBoardFilterProps = {
+    dongCode?: string;
+    onDongFilterChange: (value: string) => void;
+};
+
+function DongBoardFilter({ dongCode, onDongFilterChange }: DongBoardFilterProps) {
+    const selectedValue = dongCode ?? DONG_FILTER_ALL_VALUE;
+
+    return (
+        <div className="flex flex-wrap gap-2" aria-label="동네 필터">
+            <DongBoardFilterButton
+                value={DONG_FILTER_ALL_VALUE}
+                label="전체"
+                isSelected={selectedValue === DONG_FILTER_ALL_VALUE}
+                onSelect={onDongFilterChange}
+            />
+            {SONGPA_BOARD_DONGS.map((dong) => {
+                const isSelected = selectedValue === dong.stdgCd;
+
+                return (
+                    <DongBoardFilterButton
+                        key={dong.stdgCd}
+                        value={dong.stdgCd}
+                        label={dong.stdgNm}
+                        isSelected={isSelected}
+                        onSelect={onDongFilterChange}
+                    />
+                );
+            })}
+        </div>
+    );
+}
+
+function DongBoardFilterButton({
+    value,
+    label,
+    isSelected,
+    onSelect
+}: {
+    value: string;
+    label: string;
+    isSelected: boolean;
+    onSelect: (value: string) => void;
+}) {
+    function handleClick() {
+        onSelect(value);
+    }
+
+    return (
+        <Button
+            type="button"
+            size="sm"
+            variant={isSelected ? "default" : "outline"}
+            aria-pressed={isSelected}
+            onClick={handleClick}
+        >
+            {label}
+        </Button>
+    );
+}
+
+function getBoardTitle(dongName?: string | null) {
+    if (dongName) {
+        return `${dongName} 동네 게시판`;
+    }
+
+    return "송파구 동네 게시판";
+}
+
+function getBoardDescription(dongName?: string | null) {
+    if (dongName) {
+        return `${dongName} 주민들이 남긴 이야기를 확인해보세요.`;
+    }
+
+    return "송파구 13개 동의 이야기를 모아봤어요.";
 }
 
 function getErrorMessage(error: unknown) {

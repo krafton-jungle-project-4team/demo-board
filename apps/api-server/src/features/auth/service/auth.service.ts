@@ -4,9 +4,11 @@ import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
 import { typeormAdapter } from "@hedystia/better-auth-typeorm";
 import { betterAuth } from "better-auth";
 import { fromNodeHeaders, toNodeHandler } from "better-auth/node";
-import type { AuthUser } from "@nmm/shared";
+import type { AuthUser, UpdateResidenceDongRequest } from "@nmm/shared";
 import { DataSource, Repository } from "typeorm";
+import { createDomainError } from "../../../app-errors";
 import { serverEnv } from "../../../infra/env";
+import { AUTH_ERRORS } from "../auth-errors";
 import { AuthUserEntity } from "../database";
 
 type BetterAuthUser = {
@@ -101,6 +103,18 @@ export class AuthService {
         });
     }
 
+    async updateResidenceDong(authUser: AuthUser, request: UpdateResidenceDongRequest): Promise<AuthUser> {
+        const appUser = await this.findAuthUserById(authUser.id);
+
+        if (!appUser) {
+            throw createDomainError(AUTH_ERRORS.UNAUTHORIZED);
+        }
+
+        appUser.residenceDongCode = request.residenceDongCode;
+
+        return (await this.authUsers.save(appUser)).toAuthUser();
+    }
+
     private async findOrCreateAppUser(user: BetterAuthUser): Promise<AuthUser> {
         const appUser = await this.findAuthUser(user.id);
 
@@ -115,6 +129,14 @@ export class AuthService {
         return this.authUsers.findOne({
             where: {
                 authUserId
+            }
+        });
+    }
+
+    private async findAuthUserById(id: number) {
+        return this.authUsers.findOne({
+            where: {
+                id
             }
         });
     }

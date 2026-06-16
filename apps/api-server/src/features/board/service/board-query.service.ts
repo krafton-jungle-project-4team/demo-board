@@ -31,12 +31,16 @@ type BoardTagJson = {
 
 type BoardPostListRow = {
     id: string;
+    dong_code: string | null;
+    dong_name: string | null;
     title: string;
     content: string;
     tags: BoardTagJson[] | null;
     author_id: string;
     author_name: string;
     author_email: string;
+    author_residence_dong_code: string | null;
+    author_residence_dong_name: string | null;
     created_at: Date | string;
     updated_at: Date | string;
 };
@@ -54,6 +58,8 @@ type BoardCommentRow = {
     author_id: string;
     author_name: string;
     author_email: string;
+    author_residence_dong_code: string | null;
+    author_residence_dong_name: string | null;
     content: string;
     depth: number;
     deleted_at: Date | string | null;
@@ -83,8 +89,8 @@ WITH board_post_tag_names AS (
 )
 `;
 
-const boardPostSearchWhereSql = `
-WHERE (
+const boardPostSearchConditionSql = `
+(
     $1::text IS NULL
     OR (
         $2::text = 'title'
@@ -113,6 +119,11 @@ WHERE (
 )
 `;
 
+const boardPostListWhereSql = `
+WHERE ($3::text IS NULL OR board_posts.dong_code = $3::text)
+    AND ${boardPostSearchConditionSql}
+`;
+
 @Injectable()
 export class BoardQueryService {
     constructor(
@@ -123,13 +134,15 @@ export class BoardQueryService {
     async getPostList(query: BoardPostListQuery): Promise<BoardPostListResponse> {
         const offset = (query.page - 1) * query.pageSize;
         const keyword = query.q ?? null;
+        const dongCode = query.dongCode ?? null;
         const [countRows, rows] = await Promise.all([
-            this.dataSource.query(this.createPostListCountSql(), [keyword, query.searchScope]) as Promise<
+            this.dataSource.query(this.createPostListCountSql(), [keyword, query.searchScope, dongCode]) as Promise<
                 BoardPostCountRow[]
             >,
             this.dataSource.query(this.createPostListSql(), [
                 keyword,
                 query.searchScope,
+                dongCode,
                 query.pageSize,
                 offset
             ]) as Promise<BoardPostListRow[]>
@@ -158,6 +171,8 @@ export class BoardQueryService {
 
         return BoardPostDetailResponseSchema.parse({
             id: Number(row.id),
+            dongCode: row.dong_code,
+            dongName: row.dong_name,
             title: row.title,
             content: row.content,
             tags: parseBoardTags(row.tags),
@@ -197,6 +212,8 @@ export class BoardQueryService {
                 SELECT ${this.boardCommentSelectSql()}
                 FROM board_comments
                 JOIN auth_users ON auth_users.id = board_comments.author_id
+                LEFT JOIN board_songpa_dongs author_dongs
+                    ON author_dongs.code = auth_users.residence_dong_code
                 WHERE board_comments.post_id = $1
                     AND board_comments.parent_comment_id IS NULL
                 ORDER BY board_comments.created_at ASC, board_comments.id ASC
@@ -239,6 +256,8 @@ export class BoardQueryService {
             SELECT ${this.boardCommentSelectSql()}
             FROM board_comments
             JOIN auth_users ON auth_users.id = board_comments.author_id
+            LEFT JOIN board_songpa_dongs author_dongs
+                ON author_dongs.code = auth_users.residence_dong_code
             WHERE board_comments.parent_comment_id = ANY($1::bigint[])
             ORDER BY board_comments.created_at ASC, board_comments.id ASC
             `,
@@ -271,7 +290,9 @@ export class BoardQueryService {
             board_comments.updated_at,
             auth_users.id::text AS author_id,
             auth_users.name AS author_name,
-            auth_users.email AS author_email
+            auth_users.email AS author_email,
+            auth_users.residence_dong_code AS author_residence_dong_code,
+            author_dongs.name AS author_residence_dong_name
         `;
     }
 
@@ -282,7 +303,7 @@ export class BoardQueryService {
         FROM board_posts
         LEFT JOIN board_post_tag_names
             ON board_post_tag_names.post_id = board_posts.id
-        ${boardPostSearchWhereSql}
+        ${boardPostListWhereSql}
         `;
     }
 
@@ -291,12 +312,16 @@ export class BoardQueryService {
         ${boardTagCteSql}
         SELECT
             board_posts.id::text AS id,
+            board_posts.dong_code,
+            board_dongs.name AS dong_name,
             board_posts.title,
             board_posts.content,
             COALESCE(board_post_tag_names.tags, '[]'::jsonb) AS tags,
             auth_users.id::text AS author_id,
             auth_users.name AS author_name,
             auth_users.email AS author_email,
+            auth_users.residence_dong_code AS author_residence_dong_code,
+            author_dongs.name AS author_residence_dong_name,
             board_posts.created_at,
             board_posts.updated_at,
             CASE
@@ -323,15 +348,19 @@ export class BoardQueryService {
             END AS search_rank
         FROM board_posts
         JOIN auth_users ON auth_users.id = board_posts.author_id
+        LEFT JOIN board_songpa_dongs board_dongs
+            ON board_dongs.code = board_posts.dong_code
+        LEFT JOIN board_songpa_dongs author_dongs
+            ON author_dongs.code = auth_users.residence_dong_code
         LEFT JOIN board_post_tag_names
             ON board_post_tag_names.post_id = board_posts.id
-        ${boardPostSearchWhereSql}
+        ${boardPostListWhereSql}
         ORDER BY
             search_rank DESC,
             board_posts.created_at DESC,
             board_posts.id DESC
-        LIMIT $3
-        OFFSET $4
+        LIMIT $4
+        OFFSET $5
         `;
     }
 
@@ -340,16 +369,24 @@ export class BoardQueryService {
         ${boardTagCteSql}
         SELECT
             board_posts.id::text AS id,
+            board_posts.dong_code,
+            board_dongs.name AS dong_name,
             board_posts.title,
             board_posts.content,
             COALESCE(board_post_tag_names.tags, '[]'::jsonb) AS tags,
             auth_users.id::text AS author_id,
             auth_users.name AS author_name,
             auth_users.email AS author_email,
+            auth_users.residence_dong_code AS author_residence_dong_code,
+            author_dongs.name AS author_residence_dong_name,
             board_posts.created_at,
             board_posts.updated_at
         FROM board_posts
         JOIN auth_users ON auth_users.id = board_posts.author_id
+        LEFT JOIN board_songpa_dongs board_dongs
+            ON board_dongs.code = board_posts.dong_code
+        LEFT JOIN board_songpa_dongs author_dongs
+            ON author_dongs.code = auth_users.residence_dong_code
         LEFT JOIN board_post_tag_names
             ON board_post_tag_names.post_id = board_posts.id
         WHERE board_posts.id = $1
@@ -360,6 +397,8 @@ export class BoardQueryService {
 function toBoardPostListItem(row: BoardPostListRow) {
     return BoardPostListItemSchema.parse({
         id: Number(row.id),
+        dongCode: row.dong_code,
+        dongName: row.dong_name,
         title: row.title,
         excerpt: createExcerpt(row.content),
         tags: parseBoardTags(row.tags),
@@ -398,11 +437,19 @@ function toBoardCommentReplyResponse(row: BoardCommentRow): BoardCommentReplyRes
     });
 }
 
-function toBoardAuthor(row: { author_id: string; author_name: string; author_email: string }) {
+function toBoardAuthor(row: {
+    author_id: string;
+    author_name: string;
+    author_email: string;
+    author_residence_dong_code?: string | null;
+    author_residence_dong_name?: string | null;
+}) {
     return {
         id: Number(row.author_id),
         name: row.author_name,
-        email: row.author_email
+        email: row.author_email,
+        residenceDongCode: row.author_residence_dong_code ?? null,
+        residenceDongName: row.author_residence_dong_name ?? null
     };
 }
 
