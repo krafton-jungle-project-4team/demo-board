@@ -26,6 +26,11 @@ export const BOARD_ERRORS = {
         statusCode: HttpStatus.BAD_REQUEST,
         code: "BOARD_COMMENT_DELETED_UPDATE",
         message: "삭제된 댓글은 수정할 수 없습니다."
+    },
+    DONG_RESIDENCE_REQUIRED: {
+        statusCode: HttpStatus.BAD_REQUEST,
+        code: "BOARD_DONG_RESIDENCE_REQUIRED",
+        message: "내 동네 글을 작성하려면 거주동을 설정해주세요."
     }
 } as const;
 

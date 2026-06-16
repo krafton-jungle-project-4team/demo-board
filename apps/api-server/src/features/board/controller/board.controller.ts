@@ -3,9 +3,10 @@ import {
     BoardCommentListQuerySchema,
     BoardCommentParamsSchema,
     BoardCommentWriteRequestSchema,
+    BoardPostCreateRequestSchema,
     BoardPostListQuerySchema,
     BoardPostParamsSchema,
-    BoardPostWriteRequestSchema,
+    BoardPostUpdateRequestSchema,
     type AuthUser as AuthUserPayload,
     type BoardCommentListResponse,
     type BoardCommandResponse,
@@ -34,7 +35,7 @@ export class BoardController {
     @Post("posts")
     @UseGuards(AuthGuard)
     createPost(@AuthUser() authUser: AuthUserPayload, @Body() body: unknown): Promise<BoardCommandResponse> {
-        const request = BoardPostWriteRequestSchema.parse(body);
+        const request = BoardPostCreateRequestSchema.parse(body);
 
         return this.boardCommandService.createPost(authUser, request);
     }
@@ -54,7 +55,7 @@ export class BoardController {
         @Body() body: unknown
     ): Promise<BoardCommandResponse> {
         const { postId } = BoardPostParamsSchema.parse(params);
-        const request = BoardPostWriteRequestSchema.parse(body);
+        const request = BoardPostUpdateRequestSchema.parse(body);
 
         return this.boardCommandService.updatePost(authUser, postId, request);
     }

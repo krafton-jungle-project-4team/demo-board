@@ -8,10 +8,11 @@ import {
     type BoardCommentListResponse,
     type BoardCommentWriteRequest,
     type BoardCommandResponse,
+    type BoardPostCreateRequest,
     type BoardPostDetailResponse,
     type BoardPostListQuery,
     type BoardPostListResponse,
-    type BoardPostWriteRequest,
+    type BoardPostUpdateRequest,
     type BoardTagResponse
 } from "@nmm/shared";
 import { requestApiData } from "@/shared/api/http-client";
@@ -28,14 +29,14 @@ export function getBoardTags(): Promise<BoardTagResponse[]> {
     return requestApiData("board/tags", BoardTagListResponseSchema);
 }
 
-export function createBoardPost(request: BoardPostWriteRequest): Promise<BoardCommandResponse> {
+export function createBoardPost(request: BoardPostCreateRequest): Promise<BoardCommandResponse> {
     return requestApiData("board/posts", BoardCommandResponseSchema, {
         method: "POST",
         json: request
     });
 }
 
-export function updateBoardPost(postId: number, request: BoardPostWriteRequest): Promise<BoardCommandResponse> {
+export function updateBoardPost(postId: number, request: BoardPostUpdateRequest): Promise<BoardCommandResponse> {
     return requestApiData(`board/posts/${postId}`, BoardCommandResponseSchema, {
         method: "PATCH",
         json: request
@@ -99,6 +100,10 @@ function createBoardPostListSearchParams(query: BoardPostListQuery) {
 
     if (query.q) {
         searchParams.set("q", query.q);
+    }
+
+    if (query.dongCode) {
+        searchParams.set("dongCode", query.dongCode);
     }
 
     return searchParams.toString();
