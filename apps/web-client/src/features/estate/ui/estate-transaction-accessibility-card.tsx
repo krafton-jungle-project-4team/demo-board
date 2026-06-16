@@ -13,6 +13,7 @@ import type {
 import { Alert, AlertDescription, AlertTitle } from "@nmm/ui/components/alert";
 import { Badge } from "@nmm/ui/components/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components/card";
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from "@nmm/ui/components/empty";
 import { Separator } from "@nmm/ui/components/separator";
 import { Skeleton } from "@nmm/ui/components/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@nmm/ui/components/table";
@@ -31,11 +32,20 @@ type TransportTypeOption = {
     label: string;
 };
 
+type EstatePlannedStation = {
+    key: string;
+    name: string;
+    straightDistanceM?: number;
+    walkDistanceM?: number;
+    walkTimeMin?: number;
+};
+
 const DEFAULT_TRANSPORT_TYPE: EstateTransportType = "subway";
 const DEFAULT_RADIUS_KM = 1;
 const DEFAULT_NEARBY_TRANSPORT_LIMIT = 5;
 const DEFAULT_WALK_CANDIDATE_COUNT = 3;
 const DEFAULT_WALK_SEARCH_OPTION: EstateWalkRouteSearchOption = "recommended";
+const PLANNED_STATION_KEYWORDS = ["개통예정", "개통 예정", "예정역", "미개통", "공사중", "공사 중", "계획", "가칭"];
 
 const TRANSPORT_TYPE_OPTIONS: TransportTypeOption[] = [
     { value: "subway", label: "지하철" },
@@ -55,6 +65,12 @@ export function EstateTransactionAccessibilityCard({ transactionId }: EstateTran
     );
     const isLoading = nearbyTransportResult.isLoading || walkTimeToTransportResult.isLoading;
     const error = nearbyTransportResult.error ?? walkTimeToTransportResult.error;
+    const transportPois = nearbyTransportResult.data?.transportPois ?? [];
+    const walkRouteCandidates = walkTimeToTransportResult.data?.candidates ?? [];
+    const plannedStations = createPlannedStations(transportPois, walkRouteCandidates);
+    const visibleTransportPois = transportPois.filter((transportPoi) => !isPlannedStationPoi(transportPoi));
+    const visibleWalkRouteCandidates = walkRouteCandidates.filter((route) => !isPlannedStationRoute(route));
+    const bestWalkRoute = selectBestWalkRoute(walkTimeToTransportResult.data?.best ?? null, visibleWalkRouteCandidates);
 
     function handleTransportTypeChange(value: string) {
         if (isEstateTransportType(value)) {
@@ -93,13 +109,16 @@ export function EstateTransactionAccessibilityCard({ transactionId }: EstateTran
                 {isLoading ? <EstateAccessibilityLoading /> : null}
                 {!isLoading && error ? <EstateAccessibilityError error={error} /> : null}
                 {!isLoading && !error && walkTimeToTransportResult.data ? (
-                    <EstateBestWalkRoute route={walkTimeToTransportResult.data.best} />
+                    <EstateBestWalkRoute route={bestWalkRoute} />
                 ) : null}
                 {!isLoading && !error && nearbyTransportResult.data ? (
-                    <EstateNearbyTransportList transportPois={nearbyTransportResult.data.transportPois} />
+                    <EstateNearbyTransportList transportPois={visibleTransportPois} />
+                ) : null}
+                {!isLoading && !error && nearbyTransportResult.data && walkTimeToTransportResult.data ? (
+                    <EstatePlannedStationList plannedStations={plannedStations} />
                 ) : null}
                 {!isLoading && !error && walkTimeToTransportResult.data ? (
-                    <EstateWalkRouteCandidateList candidates={walkTimeToTransportResult.data.candidates} />
+                    <EstateWalkRouteCandidateList candidates={visibleWalkRouteCandidates} />
                 ) : null}
                 {!isLoading && !error && walkTimeToTransportResult.data ? (
                     <p className="text-xs text-muted-foreground">{walkTimeToTransportResult.data.notice}</p>
@@ -192,6 +211,51 @@ function EstateNearbyTransportList({ transportPois }: { transportPois: EstateTra
     );
 }
 
+function EstatePlannedStationList({ plannedStations }: { plannedStations: EstatePlannedStation[] }) {
+    return (
+        <section className="flex flex-col gap-3">
+            <Separator />
+            <div className="flex items-center justify-between gap-3">
+                <h2 className="text-base font-semibold">개통예정 역</h2>
+                <Badge variant="secondary">{plannedStations.length}개</Badge>
+            </div>
+            {plannedStations.length === 0 ? (
+                <Empty className="py-8 md:p-8">
+                    <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                            <TrainFrontIcon aria-hidden="true" />
+                        </EmptyMedia>
+                        <EmptyTitle>확인된 개통예정 역이 없습니다.</EmptyTitle>
+                    </EmptyHeader>
+                </Empty>
+            ) : (
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>이름</TableHead>
+                            <TableHead className="w-28 text-right">직선거리</TableHead>
+                            <TableHead className="w-32 text-right">도보</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {plannedStations.map((station) => (
+                            <TableRow key={station.key}>
+                                <TableCell>{station.name}</TableCell>
+                                <TableCell className="text-right tabular-nums">
+                                    {formatOptionalDistance(station.straightDistanceM)}
+                                </TableCell>
+                                <TableCell className="text-right tabular-nums">
+                                    {formatOptionalWalkSummary(station.walkTimeMin, station.walkDistanceM)}
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            )}
+        </section>
+    );
+}
+
 function EstateWalkRouteCandidateList({ candidates }: { candidates: EstateWalkRoute[] }) {
     if (candidates.length === 0) {
         return null;
@@ -254,8 +318,79 @@ function isEstateTransportType(value: string): value is EstateTransportType {
     return value === "subway" || value === "bus_stop" || value === "all";
 }
 
+function selectBestWalkRoute(bestRoute: EstateWalkRoute | null, visibleCandidates: EstateWalkRoute[]) {
+    if (!bestRoute || !isPlannedStationRoute(bestRoute)) {
+        return bestRoute;
+    }
+
+    return visibleCandidates[0] ?? null;
+}
+
+function createPlannedStations(transportPois: EstateTransportPoi[], walkRouteCandidates: EstateWalkRoute[]) {
+    const plannedStationMap = new Map<string, EstatePlannedStation>();
+
+    for (const transportPoi of transportPois) {
+        if (!isPlannedStationPoi(transportPoi)) {
+            continue;
+        }
+
+        const key = createPlannedStationKey(transportPoi.name, transportPoi.latitude, transportPoi.longitude);
+        plannedStationMap.set(key, {
+            key,
+            name: transportPoi.name,
+            straightDistanceM: transportPoi.straightDistanceM
+        });
+    }
+
+    for (const walkRoute of walkRouteCandidates) {
+        if (!isPlannedStationRoute(walkRoute)) {
+            continue;
+        }
+
+        const key = createPlannedStationKey(
+            walkRoute.destination.name,
+            walkRoute.destination.latitude,
+            walkRoute.destination.longitude
+        );
+        const plannedStation = plannedStationMap.get(key);
+        plannedStationMap.set(key, {
+            key,
+            name: walkRoute.destination.name,
+            straightDistanceM: plannedStation?.straightDistanceM,
+            walkDistanceM: walkRoute.totalDistanceM,
+            walkTimeMin: walkRoute.totalTimeMin
+        });
+    }
+
+    return [...plannedStationMap.values()];
+}
+
+function isPlannedStationPoi(transportPoi: EstateTransportPoi) {
+    if (transportPoi.operationStatus === "planned") {
+        return transportPoi.category !== "bus_stop";
+    }
+
+    return transportPoi.category === "subway" && isPlannedStationName(transportPoi.name);
+}
+
+function isPlannedStationRoute(route: EstateWalkRoute) {
+    if (route.destination.operationStatus === "planned") {
+        return route.destination.category !== "bus_stop";
+    }
+
+    return route.destination.category === "subway" && isPlannedStationName(route.destination.name);
+}
+
+function isPlannedStationName(name: string) {
+    return PLANNED_STATION_KEYWORDS.some((keyword) => name.includes(keyword));
+}
+
 function createTransportPoiKey(transportPoi: EstateTransportPoi) {
     return transportPoi.id ?? `${transportPoi.name}:${transportPoi.latitude}:${transportPoi.longitude}`;
+}
+
+function createPlannedStationKey(name: string, latitude: number, longitude: number) {
+    return `${name}:${latitude}:${longitude}`;
 }
 
 function createWalkRouteKey(route: EstateWalkRoute) {
@@ -288,6 +423,18 @@ function formatTransportPoiCategory(category: EstateTransportPoiCategory) {
 
 function formatOptionalDistance(distanceM: number | undefined) {
     return distanceM === undefined ? "-" : formatRouteDistance(distanceM);
+}
+
+function formatOptionalWalkSummary(walkTimeMin: number | undefined, walkDistanceM: number | undefined) {
+    if (walkTimeMin === undefined) {
+        return "-";
+    }
+
+    if (walkDistanceM === undefined) {
+        return `${walkTimeMin}분`;
+    }
+
+    return `${walkTimeMin}분 / ${formatRouteDistance(walkDistanceM)}`;
 }
 
 function formatRouteDistance(distanceM: number) {

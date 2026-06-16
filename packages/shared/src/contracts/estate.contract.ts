@@ -231,6 +231,10 @@ export const EstateTransportPoiCategorySchema = z.enum(["subway", "bus_stop", "u
 
 export type EstateTransportPoiCategory = z.infer<typeof EstateTransportPoiCategorySchema>;
 
+export const EstateTransportOperationStatusSchema = z.enum(["operating", "planned"]).default("operating");
+
+export type EstateTransportOperationStatus = z.infer<typeof EstateTransportOperationStatusSchema>;
+
 export const EstateWalkRouteSearchOptionSchema = z
     .enum(["recommended", "main_road", "shortest", "shortest_no_stairs"])
     .default("recommended");
@@ -290,6 +294,7 @@ export const EstateTransportPoiSchema = z.object({
     id: z.string().min(1).optional(),
     name: z.string().min(1),
     category: EstateTransportPoiCategorySchema,
+    operationStatus: EstateTransportOperationStatusSchema,
     latitude: EstateLatitudeSchema,
     longitude: EstateLongitudeSchema,
     straightDistanceM: z.number().min(0).optional(),
@@ -308,6 +313,7 @@ export const EstateWalkRouteSchema = z.object({
     destination: z.object({
         name: z.string().min(1),
         category: EstateTransportPoiCategorySchema,
+        operationStatus: EstateTransportOperationStatusSchema,
         latitude: EstateLatitudeSchema,
         longitude: EstateLongitudeSchema
     }),

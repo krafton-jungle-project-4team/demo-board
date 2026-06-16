@@ -249,6 +249,7 @@ export class EstateAccessibilityService {
             destination: {
                 name: transportPoi.name,
                 category: transportPoi.category,
+                operationStatus: transportPoi.operationStatus,
                 latitude: transportPoi.latitude,
                 longitude: transportPoi.longitude
             },

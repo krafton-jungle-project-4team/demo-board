@@ -36,6 +36,17 @@ export type TmapPedestrianRouteSummary = {
     totalTimeSec: number;
 };
 
+const TMAP_PLANNED_STATION_KEYWORDS = [
+    "개통예정",
+    "개통 예정",
+    "예정역",
+    "미개통",
+    "공사중",
+    "공사 중",
+    "계획",
+    "가칭"
+];
+
 const TMAP_WALK_ROUTE_SEARCH_OPTION: Record<EstateWalkRouteSearchOption, string> = {
     recommended: "0",
     main_road: "4",
@@ -223,6 +234,7 @@ function toEstateTransportPoi(poi: Record<string, unknown>): EstateTransportPoi 
         id: readString(poi, ["id", "poiId"]) ?? undefined,
         name,
         category: inferPoiCategory(poi),
+        operationStatus: inferPoiOperationStatus(poi),
         latitude,
         longitude,
         straightDistanceM: normalizeDistanceMeters(readNumber(poi, ["radius", "distance", "dist"])),
@@ -252,6 +264,16 @@ function inferPoiCategory(poi: Record<string, unknown>): EstateTransportPoiCateg
     }
 
     return "unknown";
+}
+
+function inferPoiOperationStatus(poi: Record<string, unknown>) {
+    const text = [
+        ...readStrings(poi, ["name", "poiName", "bizName"]),
+        ...readStrings(poi, ["upperBizName", "middleBizName", "lowerBizName", "detailBizName"]),
+        ...readStrings(poi, ["desc", "description", "telNo", "parkFlag"])
+    ].join(" ");
+
+    return TMAP_PLANNED_STATION_KEYWORDS.some((keyword) => text.includes(keyword)) ? "planned" : "operating";
 }
 
 function normalizeDistanceMeters(distance: number | null) {
