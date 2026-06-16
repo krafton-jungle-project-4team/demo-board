@@ -33,14 +33,14 @@ export function EstateSimilarTransactionList({ transactionId }: EstateSimilarTra
         return (
             <Card>
                 <CardHeader>
-                    <CardTitle>비슷한 실거래</CardTitle>
-                    <CardDescription>RAG 기반 추천</CardDescription>
+                    <CardTitle>비슷한 조건의 거래</CardTitle>
+                    <CardDescription>현재 거래와 조건이 가까운 실거래를 보여드려요.</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Empty>
                         <EmptyHeader>
-                            <EmptyTitle>비슷한 실거래가 없습니다.</EmptyTitle>
-                            <EmptyDescription>추천할 수 있는 거래가 아직 없습니다.</EmptyDescription>
+                            <EmptyTitle>비슷한 조건의 거래가 없습니다.</EmptyTitle>
+                            <EmptyDescription>다른 거래를 보면 추천 결과가 달라질 수 있어요.</EmptyDescription>
                         </EmptyHeader>
                     </Empty>
                 </CardContent>
@@ -51,8 +51,8 @@ export function EstateSimilarTransactionList({ transactionId }: EstateSimilarTra
     return (
         <Card>
             <CardHeader>
-                <CardTitle>비슷한 실거래</CardTitle>
-                <CardDescription>RAG 기반 추천 {similarTransactions.length}개</CardDescription>
+                <CardTitle>비슷한 조건의 거래</CardTitle>
+                <CardDescription>조건이 가까운 실거래 {similarTransactions.length}건</CardDescription>
             </CardHeader>
             <CardContent className="overflow-x-auto">
                 <Table>
@@ -64,7 +64,7 @@ export function EstateSimilarTransactionList({ transactionId }: EstateSimilarTra
                             <TableHead className="min-w-32 text-center">면적</TableHead>
                             <TableHead>거래금액</TableHead>
                             <TableHead>계약일</TableHead>
-                            <TableHead className="min-w-20 text-center">유사도</TableHead>
+                            <TableHead className="min-w-24 text-center">비슷한 정도</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -130,13 +130,13 @@ export function EstateSimilarTransactionListLoading() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>비슷한 실거래</CardTitle>
-                <CardDescription>RAG 기반 추천</CardDescription>
+                <CardTitle>비슷한 조건의 거래</CardTitle>
+                <CardDescription>현재 거래와 조건이 가까운 실거래를 보여드려요.</CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Spinner />
-                    추천을 불러오는 중
+                    비슷한 거래를 찾는 중
                 </div>
             </CardContent>
         </Card>
@@ -152,8 +152,8 @@ export function renderEstateSimilarTransactionListError({
     return (
         <Card>
             <CardHeader>
-                <CardTitle>비슷한 실거래</CardTitle>
-                <CardDescription>RAG 기반 추천</CardDescription>
+                <CardTitle>비슷한 조건의 거래</CardTitle>
+                <CardDescription>현재 거래와 조건이 가까운 실거래를 보여드려요.</CardDescription>
             </CardHeader>
             <CardContent>
                 <Alert variant="destructive">
@@ -173,13 +173,13 @@ export function renderEstateSimilarTransactionListError({
 function getEstateSimilarTransactionErrorMessage(error: Error) {
     if (error instanceof ApiClientError && error.error.code === "ESTATE_EMBEDDING_NOT_FOUND") {
         return {
-            title: "임베딩 동기화가 필요합니다.",
-            description: "유사 매물 추천을 보려면 실거래 임베딩을 먼저 준비해야 합니다."
+            title: "추천을 준비하고 있습니다.",
+            description: "데이터 준비가 끝나면 비슷한 거래를 확인할 수 있어요."
         };
     }
 
     return {
-        title: "비슷한 실거래를 불러오지 못했습니다.",
+        title: "추천 거래를 불러오지 못했습니다.",
         description: "잠시 뒤 다시 시도해주세요."
     };
 }
