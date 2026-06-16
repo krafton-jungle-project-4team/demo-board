@@ -200,12 +200,6 @@ export const EstateLegalDongListResponseSchema = z.array(z.string().min(1));
 
 export type EstateLegalDongListResponse = z.infer<typeof EstateLegalDongListResponseSchema>;
 
-export const EstateTransactionParamsSchema = z.object({
-    transactionId: z.coerce.number().int().positive()
-});
-
-export type EstateTransactionParams = z.infer<typeof EstateTransactionParamsSchema>;
-
 export const EstatePropertyParamsSchema = z.object({
     propertyId: z.coerce.number().int().positive()
 });

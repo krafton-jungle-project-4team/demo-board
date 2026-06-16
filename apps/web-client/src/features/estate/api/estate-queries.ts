@@ -1,6 +1,16 @@
 import { queryOptions } from "@tanstack/react-query";
-import type { EstateTransactionListQuery } from "@nmm/shared";
-import { getEstateLegalDongs, getEstateTransaction, getEstateTransactions } from "./estate-api";
+import type {
+    EstateNearbyTransportQuery,
+    EstateTransactionListQuery,
+    EstateWalkTimeToTransportQuery
+} from "@nmm/shared";
+import {
+    getEstateLegalDongs,
+    getEstateNearbyTransportByTransaction,
+    getEstateTransaction,
+    getEstateTransactions,
+    getEstateWalkTimeToTransportByTransaction
+} from "./estate-api";
 
 const estateQueryKeyRoot = ["estate"] as const; //리액트 쿼리로 부동산 관련 데이터인걸 입력
 
@@ -10,7 +20,11 @@ export const estateQueryKeys = {
     legalDongList: () => [...estateQueryKeyRoot, "legal-dongs", "list"] as const,
     transactionList: (query: EstateTransactionListQuery) =>
         [...estateQueryKeyRoot, "transactions", "list", query] as const,
-    transaction: (transactionId: number) => [...estateQueryKeyRoot, "transactions", transactionId] as const
+    transaction: (transactionId: number) => [...estateQueryKeyRoot, "transactions", transactionId] as const,
+    nearbyTransportByTransaction: (transactionId: number, query: EstateNearbyTransportQuery) =>
+        [...estateQueryKeyRoot, "transactions", transactionId, "nearby-transport", query] as const,
+    walkTimeToTransportByTransaction: (transactionId: number, query: EstateWalkTimeToTransportQuery) =>
+        [...estateQueryKeyRoot, "transactions", transactionId, "walk-time-to-transport", query] as const
 };
 
 //어떤 데이터를 받아올지 설정
@@ -32,5 +46,25 @@ export function estateLegalDongListQueryOptions() {
     return queryOptions({
         queryKey: estateQueryKeys.legalDongList(),
         queryFn: getEstateLegalDongs
+    });
+}
+
+export function estateNearbyTransportByTransactionQueryOptions(
+    transactionId: number,
+    query: EstateNearbyTransportQuery
+) {
+    return queryOptions({
+        queryKey: estateQueryKeys.nearbyTransportByTransaction(transactionId, query),
+        queryFn: () => getEstateNearbyTransportByTransaction(transactionId, query)
+    });
+}
+
+export function estateWalkTimeToTransportByTransactionQueryOptions(
+    transactionId: number,
+    query: EstateWalkTimeToTransportQuery
+) {
+    return queryOptions({
+        queryKey: estateQueryKeys.walkTimeToTransportByTransaction(transactionId, query),
+        queryFn: () => getEstateWalkTimeToTransportByTransaction(transactionId, query)
     });
 }

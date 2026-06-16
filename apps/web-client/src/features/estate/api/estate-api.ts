@@ -1,11 +1,17 @@
 import {
+    EstateNearbyTransportResponseSchema,
+    EstateWalkTimeToTransportResponseSchema,
     EstateLegalDongListResponseSchema,
     EstateTransactionResponseSchema,
     EstateTransactionListResponseSchema,
+    type EstateNearbyTransportQuery,
+    type EstateNearbyTransportResponse,
     type EstateLegalDongListResponse,
     type EstateTransactionResponse,
     type EstateTransactionListQuery,
-    type EstateTransactionListResponse
+    type EstateTransactionListResponse,
+    type EstateWalkTimeToTransportQuery,
+    type EstateWalkTimeToTransportResponse
 } from "@nmm/shared";
 import { requestApiData } from "@/shared/api/http-client";
 
@@ -19,6 +25,26 @@ export function getEstateTransaction(transactionId: number): Promise<EstateTrans
 
 export function getEstateLegalDongs(): Promise<EstateLegalDongListResponse> {
     return requestApiData("estate/legal-dongs", EstateLegalDongListResponseSchema);
+}
+
+export function getEstateNearbyTransportByTransaction(
+    transactionId: number,
+    query: EstateNearbyTransportQuery
+): Promise<EstateNearbyTransportResponse> {
+    return requestApiData(
+        `estate/transactions/${transactionId}/nearby-transport?${createEstateNearbyTransportSearchParams(query)}`,
+        EstateNearbyTransportResponseSchema
+    );
+}
+
+export function getEstateWalkTimeToTransportByTransaction(
+    transactionId: number,
+    query: EstateWalkTimeToTransportQuery
+): Promise<EstateWalkTimeToTransportResponse> {
+    return requestApiData(
+        `estate/transactions/${transactionId}/walk-time-to-transport?${createEstateWalkTimeToTransportSearchParams(query)}`,
+        EstateWalkTimeToTransportResponseSchema
+    );
 }
 
 function createEstateTransactionListPath(query: EstateTransactionListQuery) {
@@ -40,6 +66,27 @@ function createEstateTransactionListSearchParams(query: EstateTransactionListQue
     if (query.legalDongName) {
         searchParams.set("legalDongName", query.legalDongName);
     }
+
+    return searchParams.toString();
+}
+
+function createEstateNearbyTransportSearchParams(query: EstateNearbyTransportQuery) {
+    const searchParams = new URLSearchParams();
+
+    searchParams.set("transportType", query.transportType);
+    searchParams.set("radiusKm", String(query.radiusKm));
+    searchParams.set("limit", String(query.limit));
+
+    return searchParams.toString();
+}
+
+function createEstateWalkTimeToTransportSearchParams(query: EstateWalkTimeToTransportQuery) {
+    const searchParams = new URLSearchParams();
+
+    searchParams.set("transportType", query.transportType);
+    searchParams.set("radiusKm", String(query.radiusKm));
+    searchParams.set("maxCandidates", String(query.maxCandidates));
+    searchParams.set("searchOption", query.searchOption);
 
     return searchParams.toString();
 }

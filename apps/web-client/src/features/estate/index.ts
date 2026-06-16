@@ -1,9 +1,12 @@
 export {
+    estateNearbyTransportByTransactionQueryOptions,
     estateLegalDongListQueryOptions,
     estateQueryKeys,
     estateTransactionQueryOptions,
-    estateTransactionListQueryOptions
+    estateTransactionListQueryOptions,
+    estateWalkTimeToTransportByTransactionQueryOptions
 } from "./api/estate-queries";
+export { EstateTransactionAccessibilityCard } from "./ui/estate-transaction-accessibility-card";
 export {
     EstateTransactionList,
     EstateTransactionListLoading,

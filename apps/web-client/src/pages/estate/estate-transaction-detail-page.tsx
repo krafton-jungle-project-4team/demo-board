@@ -6,7 +6,7 @@ import { Badge } from "@nmm/ui/components/badge";
 import { Button } from "@nmm/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components/card";
 import { Separator } from "@nmm/ui/components/separator";
-import { estateTransactionQueryOptions } from "@/features/estate";
+import { EstateTransactionAccessibilityCard, estateTransactionQueryOptions } from "@/features/estate";
 
 type EstateTransactionDetailPageProps = {
     transactionId: number;
@@ -78,6 +78,8 @@ export function EstateTransactionDetailPage({ transactionId }: EstateTransaction
                     </dl>
                 </CardContent>
             </Card>
+
+            <EstateTransactionAccessibilityCard transactionId={transactionId} />
         </section>
     );
 }
