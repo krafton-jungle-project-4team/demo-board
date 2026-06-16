@@ -51,6 +51,31 @@ services:
             postgres:
                 condition: service_healthy
 
+    mcp-server:
+        build:
+            context: .
+            dockerfile: apps/mcp-server/Dockerfile
+            target: development
+        image: namanmu-mcp-server:dev
+        container_name: namanmu-mcp-server
+        command: npm run dev -w @nmm/mcp-server
+        env_file:
+            - apps/api-server/.env
+        environment:
+            NODE_ENV: ${NODE_ENV:-development}
+            NMM_MCP_PORT: ${NMM_MCP_PORT:-3002}
+            NMM_MCP_API_BASE_URL: ${NMM_MCP_API_BASE_URL:-http://api-server:3000/api}
+            NMM_MCP_BEARER_TOKEN: ${NMM_MCP_BEARER_TOKEN:-change-me-mcp-token}
+            NMM_MCP_ALLOWED_ORIGINS: ${NMM_MCP_ALLOWED_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://localhost:6274,http://127.0.0.1:6274}
+            NMM_MCP_REQUEST_TIMEOUT_MS: ${NMM_MCP_REQUEST_TIMEOUT_MS:-5000}
+        ports:
+            - "${NMM_MCP_PORT:-3002}:${NMM_MCP_PORT:-3002}"
+        volumes:
+            - .:/app
+            - node_modules:/app/node_modules
+        depends_on:
+            - api-server
+
 volumes:
     node_modules:
     postgres_data:

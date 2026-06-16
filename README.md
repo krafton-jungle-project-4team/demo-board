@@ -24,3 +24,11 @@ npm run estate:embeddings:sync -- --limit 20
 ```
 
 `OPENAI_API_KEY`가 있어야 임베딩을 생성한다.
+
+## MCP 서버
+
+```sh
+npm run dev:mcp
+```
+
+MCP endpoint는 기본 `http://localhost:3002/mcp`다.

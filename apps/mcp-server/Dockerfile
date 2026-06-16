@@ -15,15 +15,15 @@ FROM workspace-deps AS development
 
 COPY . .
 
-EXPOSE 3000
+EXPOSE 3002
 
-CMD ["sh", "-c", "npm run build -w @nmm/shared && cd apps/api-server && npx nest start --watch"]
+CMD ["npm", "run", "dev", "-w", "@nmm/mcp-server"]
 
 FROM workspace-deps AS build
 
 COPY . .
 
-RUN npm run build -w @nmm/shared && npm run build -w @nmm/api-server
+RUN npm run build -w @nmm/shared && npm run build -w @nmm/mcp-server
 RUN npm prune --omit=dev
 
 FROM node:24-alpine AS production
@@ -32,13 +32,13 @@ WORKDIR /app
 
 COPY --from=build /app/package.json /app/package-lock.json ./
 COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/apps/api-server/package.json ./apps/api-server/package.json
-COPY --from=build /app/apps/api-server/dist ./apps/api-server/dist
+COPY --from=build /app/apps/mcp-server/package.json ./apps/mcp-server/package.json
+COPY --from=build /app/apps/mcp-server/dist ./apps/mcp-server/dist
 COPY --from=build /app/packages/shared/package.json ./packages/shared/package.json
 COPY --from=build /app/packages/shared/dist ./packages/shared/dist
 
-WORKDIR /app/apps/api-server
+WORKDIR /app/apps/mcp-server
 
-EXPOSE 3000
+EXPOSE 3002
 
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/index.js"]
