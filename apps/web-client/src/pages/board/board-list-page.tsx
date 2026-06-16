@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 import { type ChangeEvent, type FormEvent, type MouseEvent, useEffect, useState } from "react";
@@ -23,7 +23,6 @@ import {
 } from "@nmm/ui/components/alert-dialog";
 import { Badge } from "@nmm/ui/components/badge";
 import { Button } from "@nmm/ui/components/button";
-import { Card, CardContent } from "@nmm/ui/components/card";
 import { toast } from "@nmm/ui/components/sonner";
 import { Spinner } from "@nmm/ui/components/spinner";
 import { ToggleGroup, ToggleGroupItem } from "@nmm/ui/components/toggle-group";
@@ -56,12 +55,7 @@ const DONG_BOARD_FILTER_OPTIONS = [
 export function BoardListPage({ query }: BoardListPageProps) {
     const navigate = useNavigate({ from: "/board" });
     const { data: currentUser, isPending: isCurrentUserPending } = useQuery(currentUserQueryOptions);
-    const {
-        data: postList,
-        error: postListError,
-        isError: isPostListError,
-        isPending: isPostListPending
-    } = useQuery(boardPostListQueryOptions(query));
+    const { data: postList } = useSuspenseQuery(boardPostListQueryOptions(query));
     const deletePostMutation = useDeleteBoardPostMutation();
     const [keyword, setKeyword] = useState(query.q ?? "");
     const [searchScope, setSearchScope] = useState(query.searchScope);
@@ -71,7 +65,7 @@ export function BoardListPage({ query }: BoardListPageProps) {
     const boardTitle = getBoardTitle(selectedDongName);
     const boardDescription = getBoardDescription(selectedDongName);
     const isSignedIn = currentUser !== null && currentUser !== undefined;
-    const postTotalCount = postList?.totalItems;
+    const postTotalCount = postList.totalItems;
 
     useEffect(() => {
         setKeyword(query.q ?? "");
@@ -185,10 +179,6 @@ export function BoardListPage({ query }: BoardListPageProps) {
         });
     }
 
-    if (isPostListError) {
-        throw postListError;
-    }
-
     return (
         <section className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-4 py-8 sm:px-6 lg:px-8">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -212,21 +202,15 @@ export function BoardListPage({ query }: BoardListPageProps) {
                 onSubmit={handleSearchSubmit}
                 onClear={handleClearSearch}
             />
-            {isPostListPending ? (
-                <BoardListPendingCard />
-            ) : postList ? (
-                <>
-                    <BoardPostList
-                        query={query}
-                        postList={postList}
-                        currentUserId={currentUser?.id}
-                        deletingPostId={deletingPostId}
-                        onDeletePost={handleDeletePost}
-                        onTagSearch={handleTagSearch}
-                    />
-                    <BoardPostListPagination query={query} postList={postList} onPageChange={handlePageChange} />
-                </>
-            ) : null}
+            <BoardPostList
+                query={query}
+                postList={postList}
+                currentUserId={currentUser?.id}
+                deletingPostId={deletingPostId}
+                onDeletePost={handleDeletePost}
+                onTagSearch={handleTagSearch}
+            />
+            <BoardPostListPagination query={query} postList={postList} onPageChange={handlePageChange} />
             <AlertDialog open={deleteTargetPost !== null} onOpenChange={handleDeleteDialogOpenChange}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -328,14 +312,6 @@ function renderDongBoardFilterOption(option: DongBoardFilterOption) {
         >
             {option.label}
         </ToggleGroupItem>
-    );
-}
-
-function BoardListPendingCard() {
-    return (
-        <Card className="border-border bg-card p-4 shadow-none">
-            <CardContent className="p-0 text-sm text-muted-foreground">게시글을 불러오는 중</CardContent>
-        </Card>
     );
 }
 
