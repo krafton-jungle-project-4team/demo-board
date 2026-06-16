@@ -2,7 +2,7 @@ name: namanmu
 
 services:
     postgres:
-        image: postgres:18
+        image: pgvector/pgvector:pg18-trixie
         container_name: namanmu-postgres
         environment:
             POSTGRES_DB: ${NMM_DB_DATABASE:-namanmu}
