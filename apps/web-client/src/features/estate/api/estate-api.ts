@@ -1,7 +1,9 @@
 import {
     EstateLegalDongListResponseSchema,
+    EstateTransactionResponseSchema,
     EstateTransactionListResponseSchema,
     type EstateLegalDongListResponse,
+    type EstateTransactionResponse,
     type EstateTransactionListQuery,
     type EstateTransactionListResponse
 } from "@nmm/shared";
@@ -9,6 +11,10 @@ import { requestApiData } from "@/shared/api/http-client";
 
 export function getEstateTransactions(query: EstateTransactionListQuery): Promise<EstateTransactionListResponse> {
     return requestApiData(createEstateTransactionListPath(query), EstateTransactionListResponseSchema);
+}
+
+export function getEstateTransaction(transactionId: number): Promise<EstateTransactionResponse> {
+    return requestApiData(`estate/transactions/${transactionId}`, EstateTransactionResponseSchema);
 }
 
 export function getEstateLegalDongs(): Promise<EstateLegalDongListResponse> {

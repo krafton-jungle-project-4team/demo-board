@@ -1,6 +1,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import type { MouseEvent, ReactNode } from "react";
-import type { EstateTransactionListQuery, EstateTransactionListResponse } from "@nmm/shared";
+import type { EstateTransactionListItem, EstateTransactionListQuery, EstateTransactionListResponse } from "@nmm/shared";
 import { Alert, AlertDescription, AlertTitle } from "@nmm/ui/components/alert";
 import { Button } from "@nmm/ui/components/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@nmm/ui/components/card";
@@ -77,19 +78,11 @@ export function EstateTransactionList({ query, areaUnit, onAreaUnitToggle, onPag
                     </TableHeader>
                     <TableBody>
                         {transactionList.items.map((transaction) => (
-                            <TableRow key={transaction.id}>
-                                <TableCell>{transaction.legalDongName}</TableCell>
-                                <TableCell>{transaction.buildingName ?? "-"}</TableCell>
-                                <TableCell>{transaction.buildingUse}</TableCell>
-                                <TableCell className="min-w-32 text-center tabular-nums">
-                                    {formatArea(transaction.buildingAreaSquareMeter, areaUnit)}
-                                </TableCell>
-                                <TableCell className="min-w-20 text-center tabular-nums">
-                                    {transaction.floor === null ? "-" : `${transaction.floor}층`}
-                                </TableCell>
-                                <TableCell>{transaction.dealAmount10kKrw.toLocaleString("ko-KR")}만원</TableCell>
-                                <TableCell>{transaction.contractDate}</TableCell>
-                            </TableRow>
+                            <EstateTransactionTableRow
+                                key={transaction.id}
+                                transaction={transaction}
+                                areaUnit={areaUnit}
+                            />
                         ))}
                     </TableBody>
                 </Table>
@@ -100,6 +93,40 @@ export function EstateTransactionList({ query, areaUnit, onAreaUnitToggle, onPag
                 />
             </CardContent>
         </Card>
+    );
+}
+
+type EstateTransactionTableRowProps = {
+    transaction: EstateTransactionListItem;
+    areaUnit: AreaUnit;
+};
+
+function EstateTransactionTableRow({ transaction, areaUnit }: EstateTransactionTableRowProps) {
+    const navigate = useNavigate();
+
+    function handleClick() {
+        void navigate({
+            to: "/estate/transactions/$transactionId",
+            params: {
+                transactionId: String(transaction.id)
+            }
+        });
+    }
+
+    return (
+        <TableRow className="cursor-pointer" onClick={handleClick}>
+            <TableCell>{transaction.legalDongName}</TableCell>
+            <TableCell>{transaction.buildingName ?? "-"}</TableCell>
+            <TableCell>{transaction.buildingUse}</TableCell>
+            <TableCell className="min-w-32 text-center tabular-nums">
+                {formatArea(transaction.buildingAreaSquareMeter, areaUnit)}
+            </TableCell>
+            <TableCell className="min-w-20 text-center tabular-nums">
+                {transaction.floor === null ? "-" : `${transaction.floor}층`}
+            </TableCell>
+            <TableCell>{transaction.dealAmount10kKrw.toLocaleString("ko-KR")}만원</TableCell>
+            <TableCell>{transaction.contractDate}</TableCell>
+        </TableRow>
     );
 }
 
