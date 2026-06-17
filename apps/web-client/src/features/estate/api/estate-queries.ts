@@ -78,7 +78,8 @@ export function estateSimilarTransactionsQueryOptions(transactionId: number) {
     const request: EstateSimilarTransactionRequest = {
         referenceTransactionId: transactionId,
         filters: {},
-        limit: ESTATE_SIMILAR_TRANSACTION_LIMIT
+        limit: ESTATE_SIMILAR_TRANSACTION_LIMIT,
+        sortBy: "similarity"
     };
 
     return queryOptions({

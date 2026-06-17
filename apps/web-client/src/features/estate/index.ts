@@ -7,6 +7,7 @@ export {
     estateTransactionListQueryOptions,
     estateWalkTimeToTransportByTransactionQueryOptions
 } from "./api/estate-queries";
+export { useChatWithEstateAgentMutation, useFindSimilarEstateTransactionsMutation } from "./api/estate-mutations";
 export { EstateTransactionAccessibilityCard } from "./ui/estate-transaction-accessibility-card";
 export {
     EstateTransactionList,
@@ -19,3 +20,4 @@ export {
     EstateSimilarTransactionListLoading,
     renderEstateSimilarTransactionListError
 } from "./ui/estate-similar-transaction-list";
+export { EstateTransactionChatSearch } from "./ui/estate-transaction-chat-search";

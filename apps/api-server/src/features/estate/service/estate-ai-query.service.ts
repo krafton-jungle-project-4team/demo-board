@@ -24,6 +24,10 @@ import {
 
 const SIMILAR_CANDIDATE_MULTIPLIER = 5;
 const MAX_SIMILAR_CANDIDATE_LIMIT = 100;
+const MIN_SIMILAR_VECTOR_SIMILARITY = 0.45;
+const TEN_THOUSAND_KRW_PER_EOK = 10_000;
+const SQUARE_METERS_PER_PYEONG = 3.305785;
+const BUILDING_USE_KEYWORDS = ["아파트", "오피스텔", "연립", "다세대", "단독", "다가구"];
 
 type EstateTransactionRow = {
     id: string;
@@ -81,7 +85,7 @@ type WhereSql = {
 export class EstateAiQueryService {
     constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
 
-    private async getTransaction(transactionId: number): Promise<EstateTransactionResponse> {
+    async getTransaction(transactionId: number): Promise<EstateTransactionResponse> {
         const transaction = await this.findTransaction(transactionId);
 
         if (!transaction) {
@@ -92,6 +96,7 @@ export class EstateAiQueryService {
     }
 
     async findSimilarTransactions(request: EstateSimilarTransactionRequest): Promise<EstateSimilarTransactionResponse> {
+        const filters = createSimilarTransactionFilter(request);
         const referenceTransaction =
             request.referenceTransactionId === undefined
                 ? null
@@ -100,10 +105,16 @@ export class EstateAiQueryService {
             request.referenceTransactionId === undefined
                 ? await this.createQueryEmbedding(request.queryText ?? "")
                 : await this.getTransactionEmbedding(request.referenceTransactionId);
-        const rows = await this.findSimilarTransactionRows(queryEmbedding, request, referenceTransaction);
+        const rows = await this.findSimilarTransactionRows(
+            queryEmbedding,
+            { ...request, filters },
+            referenceTransaction
+        );
+        const hasSpecificFilters = hasSpecificTransactionFilter(filters);
         const items = rows
-            .map((row) => this.toSimilarTransactionItem(row, request.filters, referenceTransaction))
-            .sort((left, right) => right.score - left.score)
+            .map((row) => this.toSimilarTransactionItem(row, filters, referenceTransaction))
+            .filter((item) => hasSpecificFilters || item.vectorSimilarity >= MIN_SIMILAR_VECTOR_SIMILARITY)
+            .sort((left, right) => compareSimilarTransactionItems(left, right, request.sortBy))
             .slice(0, request.limit);
 
         return EstateSimilarTransactionResponseSchema.parse({ items });
@@ -204,12 +215,16 @@ export class EstateAiQueryService {
         referenceTransaction: EstateTransactionResponse | null
     ) {
         const filter = request.filters;
-        const whereSql = this.createWhereSql(filter);
+        const whereSql = this.createWhereSql(filter, 1);
         const excludeReferenceSql = referenceTransaction
             ? `AND estate_transactions.id <> $${whereSql.values.length + 2}`
             : "";
         const limitParameterIndex = whereSql.values.length + (referenceTransaction ? 3 : 2);
         const candidateLimit = Math.min(request.limit * SIMILAR_CANDIDATE_MULTIPLIER, MAX_SIMILAR_CANDIDATE_LIMIT);
+        const orderBySql =
+            request.sortBy === "recent"
+                ? "estate_transactions.contract_date DESC, estate_transactions.id DESC"
+                : createSimilarTransactionOrderBySql(request.sortBy);
         const rows = (await this.dataSource.query(
             `
             SELECT
@@ -220,7 +235,7 @@ export class EstateAiQueryService {
                 ON estate_transactions.id = estate_transaction_embeddings.transaction_id
             ${whereSql.whereSql}
                 ${excludeReferenceSql}
-            ORDER BY estate_transaction_embeddings.embedding <=> $1::vector
+            ORDER BY ${orderBySql}
             LIMIT $${limitParameterIndex}
             `,
             [
@@ -234,7 +249,7 @@ export class EstateAiQueryService {
         return rows;
     }
 
-    private createWhereSql(filter: Partial<EstateTransactionFilter>): WhereSql {
+    private createWhereSql(filter: Partial<EstateTransactionFilter>, parameterOffset = 0): WhereSql {
         const values: unknown[] = [];
         const clauses: string[] = [];
         let searchRankSql = "0";
@@ -244,18 +259,20 @@ export class EstateAiQueryService {
         }
 
         if (filter.q) {
-            const parameterIndex = pushValue(values, filter.q);
+            const parameterIndex = pushValue(values, filter.q, parameterOffset);
             const searchTargetSql = this.searchTargetSql(parameterIndex);
             clauses.push(`(${searchTargetSql})`);
             searchRankSql = this.searchRankSql(parameterIndex);
         }
 
         if (filter.districtName) {
-            clauses.push(`estate_transactions.district_name = $${pushValue(values, filter.districtName)}`);
+            clauses.push(
+                `estate_transactions.district_name = $${pushValue(values, filter.districtName, parameterOffset)}`
+            );
         }
 
         if (filter.legalDongName) {
-            const parameterIndex = pushValue(values, filter.legalDongName);
+            const parameterIndex = pushValue(values, filter.legalDongName, parameterOffset);
             clauses.push(
                 `(
                     estate_transactions.legal_dong_name = $${parameterIndex}
@@ -266,7 +283,7 @@ export class EstateAiQueryService {
         }
 
         if (filter.buildingName) {
-            const parameterIndex = pushValue(values, filter.buildingName);
+            const parameterIndex = pushValue(values, filter.buildingName, parameterOffset);
             clauses.push(
                 `(
                     COALESCE(estate_transactions.building_name, '') = $${parameterIndex}
@@ -277,7 +294,7 @@ export class EstateAiQueryService {
         }
 
         if (filter.buildingUse) {
-            const parameterIndex = pushValue(values, filter.buildingUse);
+            const parameterIndex = pushValue(values, filter.buildingUse, parameterOffset);
             clauses.push(
                 `(
                     estate_transactions.building_use = $${parameterIndex}
@@ -288,34 +305,54 @@ export class EstateAiQueryService {
         }
 
         if (filter.contractDateFrom) {
-            clauses.push(`estate_transactions.contract_date >= $${pushValue(values, filter.contractDateFrom)}::date`);
+            clauses.push(
+                `estate_transactions.contract_date >= $${pushValue(values, filter.contractDateFrom, parameterOffset)}::date`
+            );
         }
 
         if (filter.contractDateTo) {
-            clauses.push(`estate_transactions.contract_date <= $${pushValue(values, filter.contractDateTo)}::date`);
+            clauses.push(
+                `estate_transactions.contract_date <= $${pushValue(values, filter.contractDateTo, parameterOffset)}::date`
+            );
         }
 
         if (filter.dealAmountMin10kKrw) {
             clauses.push(
-                `estate_transactions.deal_amount_10k_krw >= $${pushValue(values, filter.dealAmountMin10kKrw)}`
+                `estate_transactions.deal_amount_10k_krw >= $${pushValue(
+                    values,
+                    filter.dealAmountMin10kKrw,
+                    parameterOffset
+                )}`
             );
         }
 
         if (filter.dealAmountMax10kKrw) {
             clauses.push(
-                `estate_transactions.deal_amount_10k_krw <= $${pushValue(values, filter.dealAmountMax10kKrw)}`
+                `estate_transactions.deal_amount_10k_krw <= $${pushValue(
+                    values,
+                    filter.dealAmountMax10kKrw,
+                    parameterOffset
+                )}`
             );
         }
 
         if (filter.areaMinSquareMeter) {
             clauses.push(
-                `estate_transactions.building_area_square_meter >= $${pushValue(values, filter.areaMinSquareMeter)}`
+                `estate_transactions.building_area_square_meter >= $${pushValue(
+                    values,
+                    filter.areaMinSquareMeter,
+                    parameterOffset
+                )}`
             );
         }
 
         if (filter.areaMaxSquareMeter) {
             clauses.push(
-                `estate_transactions.building_area_square_meter <= $${pushValue(values, filter.areaMaxSquareMeter)}`
+                `estate_transactions.building_area_square_meter <= $${pushValue(
+                    values,
+                    filter.areaMaxSquareMeter,
+                    parameterOffset
+                )}`
             );
         }
 
@@ -448,10 +485,10 @@ export class EstateAiQueryService {
     }
 }
 
-function pushValue(values: unknown[], value: unknown) {
+function pushValue(values: unknown[], value: unknown, parameterOffset = 0) {
     values.push(value);
 
-    return values.length;
+    return values.length + parameterOffset;
 }
 
 function toDateString(value: Date | string | null): string | null {
@@ -497,8 +534,136 @@ function exactMatchScore(candidateValue: string, referenceValue?: string) {
     return referenceValue && candidateValue === referenceValue ? 1 : 0;
 }
 
+function compareSimilarTransactionItems(
+    left: EstateSimilarTransactionItem,
+    right: EstateSimilarTransactionItem,
+    sortBy: EstateSimilarTransactionRequest["sortBy"]
+) {
+    if (sortBy === "recent") {
+        return (
+            right.transaction.contractDate.localeCompare(left.transaction.contractDate) ||
+            right.transaction.id - left.transaction.id
+        );
+    }
+
+    if (sortBy === "dealAmountDesc") {
+        return (
+            right.transaction.dealAmount10kKrw - left.transaction.dealAmount10kKrw ||
+            right.transaction.contractDate.localeCompare(left.transaction.contractDate) ||
+            right.transaction.id - left.transaction.id
+        );
+    }
+
+    if (sortBy === "dealAmountAsc") {
+        return (
+            left.transaction.dealAmount10kKrw - right.transaction.dealAmount10kKrw ||
+            right.transaction.contractDate.localeCompare(left.transaction.contractDate) ||
+            right.transaction.id - left.transaction.id
+        );
+    }
+
+    return right.score - left.score;
+}
+
+function createSimilarTransactionOrderBySql(sortBy: EstateSimilarTransactionRequest["sortBy"]) {
+    if (sortBy === "dealAmountDesc") {
+        return "estate_transactions.deal_amount_10k_krw DESC, estate_transactions.contract_date DESC, estate_transactions.id DESC";
+    }
+
+    if (sortBy === "dealAmountAsc") {
+        return "estate_transactions.deal_amount_10k_krw ASC, estate_transactions.contract_date DESC, estate_transactions.id DESC";
+    }
+
+    return "estate_transaction_embeddings.embedding <=> $1::vector";
+}
+
+function hasSpecificTransactionFilter(filter: EstateTransactionFilter) {
+    return (
+        filter.q !== undefined ||
+        filter.districtName !== undefined ||
+        filter.legalDongName !== undefined ||
+        filter.buildingName !== undefined ||
+        filter.buildingUse !== undefined ||
+        filter.contractDateFrom !== undefined ||
+        filter.contractDateTo !== undefined ||
+        filter.dealAmountMin10kKrw !== undefined ||
+        filter.dealAmountMax10kKrw !== undefined ||
+        filter.areaMinSquareMeter !== undefined ||
+        filter.areaMaxSquareMeter !== undefined
+    );
+}
+
 function clamp(value: number, min: number, max: number) {
     return Math.min(Math.max(value, min), max);
+}
+
+function createSimilarTransactionFilter(request: EstateSimilarTransactionRequest): EstateTransactionFilter {
+    const queryTextFilter =
+        request.referenceTransactionId === undefined
+            ? createTransactionFilterFromQueryText(request.queryText ?? "")
+            : {};
+
+    return {
+        ...queryTextFilter,
+        ...request.filters
+    };
+}
+
+function createTransactionFilterFromQueryText(queryText: string): EstateTransactionFilter {
+    const pyeongRange = parsePyeongRange(queryText);
+
+    return {
+        legalDongName: parseLegalDongName(queryText),
+        buildingUse: parseBuildingUse(queryText),
+        dealAmountMin10kKrw: parseDealAmount10kKrw(queryText, "min"),
+        dealAmountMax10kKrw: parseDealAmount10kKrw(queryText, "max"),
+        areaMinSquareMeter: pyeongRange ? toSquareMeter(pyeongRange.minPyeong) : undefined,
+        areaMaxSquareMeter: pyeongRange ? toSquareMeter(pyeongRange.maxPyeong) : undefined
+    };
+}
+
+function parseLegalDongName(queryText: string) {
+    return /([가-힣]+동)/u.exec(queryText)?.[1];
+}
+
+function parseBuildingUse(queryText: string) {
+    return BUILDING_USE_KEYWORDS.find((buildingUse) => queryText.includes(buildingUse));
+}
+
+function parseDealAmount10kKrw(queryText: string, direction: "min" | "max") {
+    const pattern =
+        direction === "max"
+            ? /(\d+(?:\.\d+)?)\s*(억|만원)\s*(?:이하|미만|까지|이내|아래|안쪽|넘지)/u
+            : /(\d+(?:\.\d+)?)\s*(억|만원)\s*(?:이상|초과|부터)/u;
+    const match = pattern.exec(queryText);
+
+    if (!match) {
+        return undefined;
+    }
+
+    const amount = Number(match[1]);
+    const unit = match[2];
+
+    return unit === "억" ? amount * TEN_THOUSAND_KRW_PER_EOK : amount;
+}
+
+function parsePyeongRange(queryText: string) {
+    const match = /(\d+(?:\.\d+)?)\s*평대/u.exec(queryText);
+
+    if (!match) {
+        return null;
+    }
+
+    const minPyeong = Number(match[1]);
+
+    return {
+        minPyeong,
+        maxPyeong: minPyeong + 10
+    };
+}
+
+function toSquareMeter(pyeong: number) {
+    return pyeong * SQUARE_METERS_PER_PYEONG;
 }
 
 export function toEstateEmbeddingSource(transaction: EstateTransactionResponse): EstateEmbeddingSource {

@@ -78,7 +78,11 @@ export const EstateFindSimilarTransactionsToolInputSchema = z
             .describe("기준 실거래 ID입니다. queryText와 동시에 입력하지 않습니다."),
         queryText: OptionalQueryTextSchema,
         filters: EstateTransactionFilterToolInputSchema.default({}).describe("유사 매물 후보를 좁히는 필터입니다."),
-        limit: z.number().int().min(1).max(50).default(10).describe("반환할 유사 실거래 수입니다.")
+        limit: z.number().int().min(1).max(50).default(10).describe("반환할 유사 실거래 수입니다."),
+        sortBy: z
+            .enum(["similarity", "recent", "dealAmountDesc", "dealAmountAsc"])
+            .default("similarity")
+            .describe("유사도순, 최신 거래순, 거래금액 높은순, 거래금액 낮은순입니다.")
     })
     .strict()
     .superRefine((input, context) => {

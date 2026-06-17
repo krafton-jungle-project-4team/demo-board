@@ -71,6 +71,21 @@ export const ESTATE_ERRORS = {
         statusCode: HttpStatus.BAD_GATEWAY,
         code: "ESTATE_EMBEDDING_REQUEST_FAILED",
         message: "임베딩 생성 요청에 실패했습니다."
+    },
+    AGENT_API_KEY_MISSING: {
+        statusCode: HttpStatus.SERVICE_UNAVAILABLE,
+        code: "ESTATE_AGENT_API_KEY_MISSING",
+        message: "AI 에이전트 API 키가 설정되지 않았습니다."
+    },
+    AGENT_REQUEST_FAILED: {
+        statusCode: HttpStatus.BAD_GATEWAY,
+        code: "ESTATE_AGENT_REQUEST_FAILED",
+        message: "AI 에이전트 요청에 실패했습니다."
+    },
+    AGENT_STEP_LIMIT_EXCEEDED: {
+        statusCode: HttpStatus.BAD_GATEWAY,
+        code: "ESTATE_AGENT_STEP_LIMIT_EXCEEDED",
+        message: "AI 에이전트 실행 단계가 제한을 초과했습니다."
     }
 } as const;
 

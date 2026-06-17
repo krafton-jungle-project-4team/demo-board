@@ -14,6 +14,11 @@ export type AuthEnv = {
 };
 
 export type AiEnv = {
+    agent: {
+        openAiApiKey?: string;
+        openAiBaseUrl: string;
+        model: string;
+    };
     embedding: {
         provider: "openai";
         openAiApiKey?: string;
@@ -90,6 +95,7 @@ const ServerEnvSchema = z.object({
     NMM_EMBEDDING_PROVIDER: EmbeddingProviderSchema,
     NMM_EMBEDDING_MODEL: z.string().min(1).default("text-embedding-3-small"),
     NMM_EMBEDDING_DIMENSIONS: EmbeddingDimensionsSchema,
+    NMM_AGENT_MODEL: z.string().min(1).default("gpt-5.5"),
     NMM_MODERATION_MODEL: z.string().min(1).default("gpt-4.1-mini"),
     NMM_OPENAI_BASE_URL: OptionalStringSchema,
     OPENAI_API_KEY: OptionalStringSchema,
@@ -115,6 +121,11 @@ function createServerEnv(): ServerEnv {
             baseUrl: env.NMM_AUTH_BASE_URL
         },
         ai: {
+            agent: {
+                openAiApiKey: env.OPENAI_API_KEY,
+                openAiBaseUrl: env.NMM_OPENAI_BASE_URL ?? "https://api.openai.com/v1",
+                model: env.NMM_AGENT_MODEL
+            },
             embedding: {
                 provider: env.NMM_EMBEDDING_PROVIDER,
                 openAiApiKey: env.OPENAI_API_KEY,
