@@ -180,6 +180,89 @@ export const EstateSimilarTransactionResponseSchema = z.object({
 
 export type EstateSimilarTransactionResponse = z.infer<typeof EstateSimilarTransactionResponseSchema>;
 
+export const EstateAgentStateSchema = z.object({
+    recommendations: z.array(EstateSimilarTransactionItemSchema).default([])
+});
+
+export type EstateAgentState = z.infer<typeof EstateAgentStateSchema>;
+
+const EstateAgentScoreSchema = z.object({
+    label: z.string(),
+    value: z.string()
+});
+
+const EstateAgentComparisonRowSchema = z.object({
+    label: z.string(),
+    leftValue: z.string(),
+    rightValue: z.string()
+});
+
+export const EstateAgentRequestSchema = z.object({
+    message: z.string().trim().min(1).max(1000),
+    state: EstateAgentStateSchema.default({ recommendations: [] }),
+    limit: z.coerce
+        .number()
+        .int()
+        .min(1)
+        .max(MAX_ESTATE_SIMILAR_TRANSACTION_LIMIT)
+        .default(DEFAULT_ESTATE_SIMILAR_TRANSACTION_LIMIT)
+});
+
+export type EstateAgentRequest = z.infer<typeof EstateAgentRequestSchema>;
+
+export const EstateAgentActionSchema = z.discriminatedUnion("type", [
+    z.object({
+        type: z.literal("recommendations"),
+        message: z.string(),
+        items: z.array(EstateSimilarTransactionItemSchema)
+    }),
+    z.object({
+        type: z.literal("open_transaction"),
+        message: z.string(),
+        rank: z.number().int().positive(),
+        transactionId: z.number().int().positive()
+    }),
+    z.object({
+        type: z.literal("explanation"),
+        title: z.string(),
+        description: z.string(),
+        scores: z.array(EstateAgentScoreSchema)
+    }),
+    z.object({
+        type: z.literal("comparison"),
+        title: z.string(),
+        leftLabel: z.string(),
+        rightLabel: z.string(),
+        rows: z.array(EstateAgentComparisonRowSchema)
+    }),
+    z.object({
+        type: z.literal("message"),
+        message: z.string()
+    }),
+    z.object({
+        type: z.literal("error"),
+        message: z.string()
+    })
+]);
+
+export type EstateAgentAction = z.infer<typeof EstateAgentActionSchema>;
+
+export const EstateAgentToolCallSchema = z.object({
+    name: z.string(),
+    status: z.enum(["success", "error"])
+});
+
+export type EstateAgentToolCall = z.infer<typeof EstateAgentToolCallSchema>;
+
+export const EstateAgentResponseSchema = z.object({
+    message: z.string(),
+    action: EstateAgentActionSchema,
+    state: EstateAgentStateSchema,
+    toolCalls: z.array(EstateAgentToolCallSchema)
+});
+
+export type EstateAgentResponse = z.infer<typeof EstateAgentResponseSchema>;
+
 export const EstateMarketSummaryRequestSchema = EstateTransactionFilterSchema;
 
 export type EstateMarketSummaryRequest = z.infer<typeof EstateMarketSummaryRequestSchema>;

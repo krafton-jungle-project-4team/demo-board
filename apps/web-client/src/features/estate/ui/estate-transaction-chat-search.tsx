@@ -2,7 +2,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { BotIcon, SearchIcon } from "lucide-react";
 import type { ChangeEvent, FormEvent } from "react";
 import { useState } from "react";
-import type { EstateSimilarTransactionItem } from "@nmm/shared";
+import type { EstateAgentAction, EstateAgentState, EstateSimilarTransactionItem } from "@nmm/shared";
 import { Alert, AlertDescription, AlertTitle } from "@nmm/ui/components/alert";
 import { Badge } from "@nmm/ui/components/badge";
 import { Button } from "@nmm/ui/components/button";
@@ -12,25 +12,23 @@ import { Field, FieldDescription, FieldGroup, FieldLabel } from "@nmm/ui/compone
 import { Spinner } from "@nmm/ui/components/spinner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@nmm/ui/components/table";
 import { Textarea } from "@nmm/ui/components/textarea";
-import { useFindSimilarEstateTransactionsMutation } from "../api/estate-mutations";
+import { useEstateAgentMutation } from "../api/estate-mutations";
 import { ApiClientError } from "@/shared/api/http-client";
 
 const RECOMMENDED_TRANSACTION_LIMIT = 5;
 const SQUARE_METERS_PER_PYEONG = 3.305785;
-const DETAIL_COMMAND_REGEX = /(\d+)\s*번.*(?:상세|열어|보여|이동|페이지)/;
-const COMPARISON_COMMAND_REGEX = /(?:비교|차이|뭐가\s*더|어느\s*게|나아|낫)/;
-const EXPLANATION_COMMAND_REGEX = /(?:왜|이유|근거|설명)/;
-const RANK_COMMAND_REGEX = /(\d+)\s*번/g;
+const INITIAL_AGENT_STATE: EstateAgentState = {
+    recommendations: []
+};
 
 export function EstateTransactionChatSearch() {
     const [promptInput, setPromptInput] = useState("");
-    const [submittedPrompt, setSubmittedPrompt] = useState("");
-    const [lastRecommendations, setLastRecommendations] = useState<EstateSimilarTransactionItem[]>([]);
-    const [commandPanel, setCommandPanel] = useState<CommandPanel | null>(null);
+    const [recommendationPrompt, setRecommendationPrompt] = useState("");
+    const [agentState, setAgentState] = useState<EstateAgentState>(INITIAL_AGENT_STATE);
     const navigate = useNavigate();
-    const recommendationMutation = useFindSimilarEstateTransactionsMutation();
+    const estateAgentMutation = useEstateAgentMutation();
     const trimmedPrompt = promptInput.trim();
-    const canSubmit = trimmedPrompt.length > 0 && !recommendationMutation.isPending;
+    const canSubmit = trimmedPrompt.length > 0 && !estateAgentMutation.isPending;
 
     function handlePromptInputChange(event: ChangeEvent<HTMLTextAreaElement>) {
         setPromptInput(event.target.value);
@@ -43,100 +41,34 @@ export function EstateTransactionChatSearch() {
             return;
         }
 
-        const comparisonRanks = parseComparisonCommandRanks(trimmedPrompt);
-
-        if (comparisonRanks !== null) {
-            compareRecommendations(comparisonRanks);
-            return;
-        }
-
-        const detailRank = parseDetailCommandRank(trimmedPrompt);
-
-        if (detailRank !== null) {
-            openRecommendationDetail(detailRank);
-            return;
-        }
-
-        const explanationRank = parseExplanationCommandRank(trimmedPrompt);
-
-        if (explanationRank !== null) {
-            explainRecommendation(explanationRank);
-            return;
-        }
-
-        setCommandPanel(null);
-        setSubmittedPrompt(trimmedPrompt);
-        setLastRecommendations([]);
-        recommendationMutation.reset();
-        recommendationMutation.mutate(
+        estateAgentMutation.reset();
+        estateAgentMutation.mutate(
             {
-                queryText: trimmedPrompt,
-                filters: {},
+                message: trimmedPrompt,
+                state: agentState,
                 limit: RECOMMENDED_TRANSACTION_LIMIT
             },
             {
                 onSuccess: (response) => {
-                    setLastRecommendations(response.items);
+                    setAgentState(response.state);
+
+                    if (response.action.type === "recommendations") {
+                        setRecommendationPrompt(trimmedPrompt);
+                    }
+
+                    if (response.action.type === "open_transaction") {
+                        void navigate({
+                            to: "/estate/transactions/$transactionId",
+                            params: {
+                                transactionId: String(response.action.transactionId)
+                            }
+                        });
+                    }
                 }
             }
         );
     }
-
-    function openRecommendationDetail(rank: number) {
-        const recommendation = lastRecommendations[rank - 1];
-
-        if (!recommendation) {
-            setCommandPanel({
-                type: "error",
-                message: `${rank}번 추천 후보가 없습니다. 먼저 후보를 검색해주세요.`
-            });
-            return;
-        }
-
-        setCommandPanel(null);
-        void navigate({
-            to: "/estate/transactions/$transactionId",
-            params: {
-                transactionId: String(recommendation.transaction.id)
-            }
-        });
-    }
-
-    function explainRecommendation(rank: number) {
-        const recommendation = lastRecommendations[rank - 1];
-
-        if (!recommendation) {
-            setCommandPanel({
-                type: "error",
-                message: `${rank}번 추천 후보가 없습니다. 먼저 후보를 검색해주세요.`
-            });
-            return;
-        }
-
-        setCommandPanel({
-            type: "explanation",
-            explanation: createRecommendationExplanation(rank, recommendation)
-        });
-    }
-
-    function compareRecommendations(ranks: [number, number]) {
-        const [leftRank, rightRank] = ranks;
-        const leftRecommendation = lastRecommendations[leftRank - 1];
-        const rightRecommendation = lastRecommendations[rightRank - 1];
-
-        if (!leftRecommendation || !rightRecommendation) {
-            setCommandPanel({
-                type: "error",
-                message: `${leftRank}번과 ${rightRank}번 중 없는 추천 후보가 있습니다.`
-            });
-            return;
-        }
-
-        setCommandPanel({
-            type: "comparison",
-            comparison: createRecommendationComparison(leftRank, leftRecommendation, rightRank, rightRecommendation)
-        });
-    }
+    const agentAction = estateAgentMutation.data?.action ?? null;
 
     return (
         <Card>
@@ -156,8 +88,8 @@ export function EstateTransactionChatSearch() {
                                 id="estate-transaction-chat-search"
                                 value={promptInput}
                                 onChange={handlePromptInputChange}
-                                placeholder="예: 잠실 근처 10억 이하, 20평대 아파트 거래를 찾고 싶어요."
-                                disabled={recommendationMutation.isPending}
+                                placeholder="예: 잠실동 오피스텔을 찾아줘."
+                                disabled={estateAgentMutation.isPending}
                                 className="min-h-24 resize-y"
                             />
                             <FieldDescription>
@@ -165,64 +97,32 @@ export function EstateTransactionChatSearch() {
                             </FieldDescription>
                         </Field>
                         <Button type="submit" disabled={!canSubmit} className="w-full sm:w-fit">
-                            {recommendationMutation.isPending ? (
+                            {estateAgentMutation.isPending ? (
                                 <Spinner data-icon="inline-start" />
                             ) : (
                                 <SearchIcon data-icon="inline-start" />
                             )}
-                            후보 찾기
+                            요청하기
                         </Button>
                     </FieldGroup>
                 </form>
 
-                {commandPanel ? <RecommendationCommandPanel commandPanel={commandPanel} /> : null}
+                {agentAction && agentAction.type !== "recommendations" ? (
+                    <RecommendationCommandPanel action={agentAction} />
+                ) : null}
 
                 <EstateTransactionRecommendationResult
-                    items={recommendationMutation.data?.items ?? []}
-                    prompt={submittedPrompt}
-                    error={recommendationMutation.error}
-                    isError={recommendationMutation.isError}
-                    isIdle={recommendationMutation.isIdle}
-                    isPending={recommendationMutation.isPending}
+                    items={estateAgentMutation.data?.state.recommendations ?? []}
+                    prompt={recommendationPrompt}
+                    error={estateAgentMutation.error}
+                    isError={estateAgentMutation.isError}
+                    isIdle={estateAgentMutation.isIdle}
+                    isPending={estateAgentMutation.isPending}
                 />
             </CardContent>
         </Card>
     );
 }
-
-type RecommendationExplanation = {
-    title: string;
-    description: string;
-    scores: Array<{
-        label: string;
-        value: string;
-    }>;
-};
-
-type RecommendationComparison = {
-    title: string;
-    leftLabel: string;
-    rightLabel: string;
-    rows: Array<{
-        label: string;
-        leftValue: string;
-        rightValue: string;
-    }>;
-};
-
-type CommandPanel =
-    | {
-          type: "error";
-          message: string;
-      }
-    | {
-          type: "explanation";
-          explanation: RecommendationExplanation;
-      }
-    | {
-          type: "comparison";
-          comparison: RecommendationComparison;
-      };
 
 type EstateTransactionRecommendationResultProps = {
     items: EstateSimilarTransactionItem[];
@@ -334,68 +234,37 @@ function EstateTransactionRecommendationRow({ item, rank }: { item: EstateSimila
     );
 }
 
-function parseDetailCommandRank(prompt: string) {
-    const detailCommandMatch = DETAIL_COMMAND_REGEX.exec(prompt);
-
-    if (!detailCommandMatch) {
-        return null;
-    }
-
-    return Number(detailCommandMatch[1]);
-}
-
-function parseComparisonCommandRanks(prompt: string): [number, number] | null {
-    const isComparisonCommand = COMPARISON_COMMAND_REGEX.test(prompt);
-
-    if (!isComparisonCommand) {
-        return null;
-    }
-
-    const ranks = Array.from(prompt.matchAll(RANK_COMMAND_REGEX), (match) => Number(match[1]));
-
-    if (ranks.length < 2) {
-        return null;
-    }
-
-    const [leftRank, rightRank] = ranks;
-
-    if (leftRank === undefined || rightRank === undefined) {
-        return null;
-    }
-
-    return [leftRank, rightRank];
-}
-
-function parseExplanationCommandRank(prompt: string) {
-    const isExplanationCommand = EXPLANATION_COMMAND_REGEX.test(prompt);
-
-    if (!isExplanationCommand) {
-        return null;
-    }
-
-    const rankMatch = Array.from(prompt.matchAll(RANK_COMMAND_REGEX))[0];
-
-    return rankMatch ? Number(rankMatch[1]) : 1;
-}
-
-function RecommendationCommandPanel({ commandPanel }: { commandPanel: CommandPanel }) {
-    if (commandPanel.type === "error") {
+function RecommendationCommandPanel({ action }: { action: EstateAgentAction }) {
+    if (action.type === "error") {
         return (
             <Alert variant="destructive">
                 <AlertTitle>명령을 실행하지 못했습니다.</AlertTitle>
-                <AlertDescription>{commandPanel.message}</AlertDescription>
+                <AlertDescription>{action.message}</AlertDescription>
             </Alert>
         );
     }
 
-    if (commandPanel.type === "explanation") {
-        return <RecommendationExplanationAlert explanation={commandPanel.explanation} />;
+    if (action.type === "explanation") {
+        return <RecommendationExplanationAlert explanation={action} />;
     }
 
-    return <RecommendationComparisonAlert comparison={commandPanel.comparison} />;
+    if (action.type === "comparison") {
+        return <RecommendationComparisonAlert comparison={action} />;
+    }
+
+    return (
+        <Alert>
+            <AlertTitle>에이전트 응답</AlertTitle>
+            <AlertDescription>{action.message}</AlertDescription>
+        </Alert>
+    );
 }
 
-function RecommendationExplanationAlert({ explanation }: { explanation: RecommendationExplanation }) {
+function RecommendationExplanationAlert({
+    explanation
+}: {
+    explanation: Extract<EstateAgentAction, { type: "explanation" }>;
+}) {
     return (
         <Alert>
             <AlertTitle>{explanation.title}</AlertTitle>
@@ -416,7 +285,11 @@ function RecommendationExplanationAlert({ explanation }: { explanation: Recommen
     );
 }
 
-function RecommendationComparisonAlert({ comparison }: { comparison: RecommendationComparison }) {
+function RecommendationComparisonAlert({
+    comparison
+}: {
+    comparison: Extract<EstateAgentAction, { type: "comparison" }>;
+}) {
     return (
         <Alert>
             <AlertTitle>{comparison.title}</AlertTitle>
@@ -444,121 +317,6 @@ function RecommendationComparisonAlert({ comparison }: { comparison: Recommendat
             </AlertDescription>
         </Alert>
     );
-}
-
-function createRecommendationExplanation(rank: number, item: EstateSimilarTransactionItem): RecommendationExplanation {
-    const transaction = item.transaction;
-    const transactionName = transaction.buildingName ?? `${transaction.legalDongName} ${transaction.buildingUse}`;
-
-    return {
-        title: `${rank}번 추천 이유`,
-        description: `${transactionName}은 검색 문장과 실거래 정보의 임베딩 유사도, 가격, 면적, 법정동, 건물 용도 점수를 함께 반영해 추천됐습니다.`,
-        scores: [
-            {
-                label: "전체 추천도",
-                value: formatScore(item.score)
-            },
-            {
-                label: "문맥 유사도",
-                value: formatScore(item.vectorSimilarity)
-            },
-            {
-                label: "가격 조건",
-                value: formatScore(item.priceScore)
-            },
-            {
-                label: "면적 조건",
-                value: formatScore(item.areaScore)
-            },
-            {
-                label: "법정동 조건",
-                value: formatScore(item.legalDongScore)
-            },
-            {
-                label: "건물 용도",
-                value: formatScore(item.buildingUseScore)
-            }
-        ]
-    };
-}
-
-function createRecommendationComparison(
-    leftRank: number,
-    leftItem: EstateSimilarTransactionItem,
-    rightRank: number,
-    rightItem: EstateSimilarTransactionItem
-): RecommendationComparison {
-    const leftTransaction = leftItem.transaction;
-    const rightTransaction = rightItem.transaction;
-
-    return {
-        title: `${leftRank}번과 ${rightRank}번 비교`,
-        leftLabel: `${leftRank}번`,
-        rightLabel: `${rightRank}번`,
-        rows: [
-            {
-                label: "건물명",
-                leftValue: leftTransaction.buildingName ?? "건물명 없음",
-                rightValue: rightTransaction.buildingName ?? "건물명 없음"
-            },
-            {
-                label: "법정동",
-                leftValue: leftTransaction.legalDongName,
-                rightValue: rightTransaction.legalDongName
-            },
-            {
-                label: "용도",
-                leftValue: leftTransaction.buildingUse,
-                rightValue: rightTransaction.buildingUse
-            },
-            {
-                label: "거래금액",
-                leftValue: formatDealAmount(leftTransaction.dealAmount10kKrw),
-                rightValue: formatDealAmount(rightTransaction.dealAmount10kKrw)
-            },
-            {
-                label: "면적",
-                leftValue: formatArea(leftTransaction.buildingAreaSquareMeter),
-                rightValue: formatArea(rightTransaction.buildingAreaSquareMeter)
-            },
-            {
-                label: "평당가",
-                leftValue: formatPricePerPyeong(
-                    leftTransaction.dealAmount10kKrw,
-                    leftTransaction.buildingAreaSquareMeter
-                ),
-                rightValue: formatPricePerPyeong(
-                    rightTransaction.dealAmount10kKrw,
-                    rightTransaction.buildingAreaSquareMeter
-                )
-            },
-            {
-                label: "층",
-                leftValue: formatFloor(leftTransaction.floor),
-                rightValue: formatFloor(rightTransaction.floor)
-            },
-            {
-                label: "준공년도",
-                leftValue: `${leftTransaction.builtYear}년`,
-                rightValue: `${rightTransaction.builtYear}년`
-            },
-            {
-                label: "계약일",
-                leftValue: leftTransaction.contractDate,
-                rightValue: rightTransaction.contractDate
-            },
-            {
-                label: "추천도",
-                leftValue: formatScore(leftItem.score),
-                rightValue: formatScore(rightItem.score)
-            },
-            {
-                label: "문맥 유사도",
-                leftValue: formatScore(leftItem.vectorSimilarity),
-                rightValue: formatScore(rightItem.vectorSimilarity)
-            }
-        ]
-    };
 }
 
 function getRecommendationErrorMessage(error: Error | null) {
@@ -601,19 +359,6 @@ function formatArea(squareMeter: number) {
 
 function formatDealAmount(dealAmount10kKrw: number) {
     return `${dealAmount10kKrw.toLocaleString("ko-KR")}만원`;
-}
-
-function formatPricePerPyeong(dealAmount10kKrw: number, squareMeter: number) {
-    const pyeong = squareMeter / SQUARE_METERS_PER_PYEONG;
-    const pricePerPyeong = dealAmount10kKrw / pyeong;
-
-    return `${pricePerPyeong.toLocaleString("ko-KR", {
-        maximumFractionDigits: 0
-    })}만원/평`;
-}
-
-function formatFloor(floor: number | null) {
-    return floor === null ? "-" : `${floor}층`;
 }
 
 function formatScore(score: number) {
