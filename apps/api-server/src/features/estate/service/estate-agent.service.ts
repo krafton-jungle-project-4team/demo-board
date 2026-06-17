@@ -26,8 +26,13 @@ const ESTATE_AGENT_INSTRUCTIONS = [
     "새 매물 추천 요청은 search_similar_transactions를 사용하세요.",
     "사용자가 원하는 추천 개수를 말하면 search_similar_transactions의 limit으로 전달하세요.",
     "최근/최신 거래 요청은 search_similar_transactions의 sortBy를 recent로 전달하세요.",
-    "가장 비싼/최고가 거래 요청은 search_similar_transactions의 sortBy를 dealAmountDesc, limit을 1로 전달하세요.",
-    "가장 싼/최저가 거래 요청은 search_similar_transactions의 sortBy를 dealAmountAsc, limit을 1로 전달하세요.",
+    "가장 비싼/최고가 거래 요청은 search_similar_transactions의 sortBy를 dealAmountDesc로 전달하세요. 사용자가 개수를 말하지 않으면 limit은 1입니다.",
+    "가장 싼/최저가 거래 요청은 search_similar_transactions의 sortBy를 dealAmountAsc로 전달하세요. 사용자가 개수를 말하지 않으면 limit은 1입니다.",
+    "search_similar_transactions 결과는 원본 후보입니다.",
+    "층, 가격, 면적처럼 원본 후보를 검토한 뒤 제외할 수 있는 조건이 있으면 search_similar_transactions의 limit을 최종 필요 개수보다 여유 있게 전달하세요.",
+    "검색 결과 중 최종 화면에 보여줄 후보를 정했다면 최종 답변 전에 반드시 select_recommendations를 호출하세요.",
+    "조건에 맞지 않는 후보를 답변에서 제외할 때는 select_recommendations에서도 제외하세요.",
+    "select_recommendations의 ranks는 직전 search_similar_transactions 결과의 원래 번호입니다.",
     "법정동, 가격, 면적, 최신, 최고가, 최저가처럼 새 조건이 포함된 요청은 세션 후보만 보지 말고 새로 검색하세요.",
     "최근 추천 후보의 N번 상세/이동/페이지 요청은 get_transaction_detail을 사용하세요.",
     "최근 추천 후보의 추천 이유 요청은 explain_recommendation을 사용하세요.",
@@ -54,7 +59,8 @@ const ESTATE_AGENT_TOOLS: OpenAiToolDefinition[] = [
                     type: ["integer", "null"],
                     minimum: 1,
                     maximum: ESTATE_AGENT_MAX_RECOMMENDATION_LIMIT,
-                    description: "사용자가 원하는 추천 개수입니다. 개수 조건이 없으면 null입니다."
+                    description:
+                        "검색할 원본 후보 개수입니다. 사용자가 원하는 개수가 있으면 기본으로 그 개수를 쓰되, 조건 검토 후 제외할 수 있으면 최대 10까지 여유 있게 요청하세요. 개수 조건이 없으면 null입니다."
                 },
                 sortBy: {
                     type: ["string", "null"],
@@ -64,6 +70,33 @@ const ESTATE_AGENT_TOOLS: OpenAiToolDefinition[] = [
                 }
             },
             required: ["queryText", "limit", "sortBy"],
+            additionalProperties: false
+        }
+    },
+    {
+        type: "function",
+        name: "select_recommendations",
+        description:
+            "직전 검색 결과 중 최종 답변과 화면에 보여줄 추천 후보를 선택합니다. 검색 결과를 검토해 조건에 맞지 않는 후보를 제외하거나 순서를 조정할 때 사용합니다.",
+        strict: true,
+        parameters: {
+            type: "object",
+            properties: {
+                ranks: {
+                    type: "array",
+                    items: {
+                        type: "integer",
+                        minimum: 1
+                    },
+                    description:
+                        "직전 search_similar_transactions 결과의 1부터 시작하는 원래 번호 목록입니다. 이 순서대로 화면에 표시합니다."
+                },
+                reason: {
+                    type: ["string", "null"],
+                    description: "선택/제외 이유입니다. 필요 없으면 null입니다."
+                }
+            },
+            required: ["ranks", "reason"],
             additionalProperties: false
         }
     },
@@ -325,6 +358,10 @@ export class EstateAgentService {
             return this.searchSimilarTransactions(argumentsRecord, fallbackQueryText, session);
         }
 
+        if (functionCall.name === "select_recommendations") {
+            return this.selectRecommendations(argumentsRecord, session);
+        }
+
         if (functionCall.name === "get_transaction_detail") {
             return this.getTransactionDetail(argumentsRecord, session);
         }
@@ -361,12 +398,41 @@ export class EstateAgentService {
         return {
             status: "completed",
             message,
-            recommendations: response.items,
             output: {
                 type: "recommendations",
                 recommendations: response.items,
                 sortBy,
                 limit,
+                message
+            }
+        };
+    }
+
+    private selectRecommendations(
+        argumentsRecord: Record<string, unknown>,
+        session: EstateAgentSessionState
+    ): EstateAgentToolResult {
+        if (session.lastRecommendations.length === 0) {
+            return createFailedToolResult("선택할 추천 후보가 없습니다. 먼저 원하는 조건으로 매물을 검색해주세요.");
+        }
+
+        const ranks = [...new Set(readIntegerListArgument(argumentsRecord, "ranks"))];
+        const recommendations = ranks.flatMap((rank) => session.lastRecommendations[rank - 1] ?? []);
+        const message =
+            recommendations.length === 0
+                ? "화면에 표시할 추천 후보가 없습니다."
+                : `화면 표시 후보 ${recommendations.length.toLocaleString("ko-KR")}건을 선택했습니다.`;
+
+        session.lastRecommendations = recommendations;
+
+        return {
+            status: "completed",
+            message,
+            recommendations,
+            output: {
+                type: "selected_recommendations",
+                ranks,
+                recommendations,
                 message
             }
         };
@@ -493,7 +559,7 @@ function createSessionSummary(session: EstateAgentSessionState) {
             const transaction = item.transaction;
             const buildingName = transaction.buildingName ?? "건물명 없음";
 
-            return `${index + 1}번: transactionId=${transaction.id}, ${transaction.legalDongName} ${buildingName}, ${transaction.buildingUse}, 계약일 ${transaction.contractDate}, ${formatArea(transaction.buildingAreaSquareMeter)}, ${formatDealAmount(transaction.dealAmount10kKrw)}, 추천도 ${formatScore(item.score)}`;
+            return `${index + 1}번: transactionId=${transaction.id}, ${transaction.legalDongName} ${buildingName}, ${transaction.buildingUse}, ${formatFloor(transaction.floor)}, 계약일 ${transaction.contractDate}, ${formatArea(transaction.buildingAreaSquareMeter)}, ${formatDealAmount(transaction.dealAmount10kKrw)}, 추천도 ${formatScore(item.score)}`;
         })
         .join("\n");
 }
@@ -558,6 +624,16 @@ function readIntegerArgument(argumentsRecord: Record<string, unknown>, key: stri
     return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : undefined;
 }
 
+function readIntegerListArgument(argumentsRecord: Record<string, unknown>, key: string) {
+    const value = argumentsRecord[key];
+
+    if (!Array.isArray(value)) {
+        return [];
+    }
+
+    return value.filter((item): item is number => typeof item === "number" && Number.isInteger(item) && item > 0);
+}
+
 function resolveRecommendationLimit(argumentsRecord: Record<string, unknown>) {
     const limit = readIntegerArgument(argumentsRecord, "limit") ?? ESTATE_AGENT_RECOMMENDATION_LIMIT;
 
@@ -596,19 +672,18 @@ function formatSimilarTransactions(items: EstateSimilarTransactionItem[]) {
             const transaction = item.transaction;
             const buildingName = transaction.buildingName ?? "건물명 없음";
 
-            return `${index + 1}번: #${transaction.id} ${transaction.legalDongName} ${buildingName}, ${transaction.buildingUse}, 계약일 ${transaction.contractDate}, ${formatArea(transaction.buildingAreaSquareMeter)}, ${formatDealAmount(transaction.dealAmount10kKrw)}, 추천도 ${formatScore(item.score)}`;
+            return `${index + 1}번: #${transaction.id} ${transaction.legalDongName} ${buildingName}, ${transaction.buildingUse}, ${formatFloor(transaction.floor)}, 계약일 ${transaction.contractDate}, ${formatArea(transaction.buildingAreaSquareMeter)}, ${formatDealAmount(transaction.dealAmount10kKrw)}, 추천도 ${formatScore(item.score)}`;
         })
     ].join("\n");
 }
 
 function formatTransactionDetail(transaction: EstateTransactionResponse) {
     const buildingName = transaction.buildingName ?? "건물명 없음";
-    const floor = transaction.floor === null ? "층 정보 없음" : `${transaction.floor}층`;
 
     return [
         `실거래 #${transaction.id} 상세입니다.`,
         `${transaction.districtName} ${transaction.legalDongName} ${buildingName}`,
-        `${transaction.buildingUse}, ${formatArea(transaction.buildingAreaSquareMeter)}, ${floor}, ${transaction.builtYear}년 건축`,
+        `${transaction.buildingUse}, ${formatArea(transaction.buildingAreaSquareMeter)}, ${formatFloor(transaction.floor)}, ${transaction.builtYear}년 건축`,
         `계약일 ${transaction.contractDate}, 거래금액 ${formatDealAmount(transaction.dealAmount10kKrw)}`
     ].join("\n");
 }
@@ -652,6 +727,10 @@ function formatArea(squareMeter: number) {
 
 function formatDealAmount(dealAmount10kKrw: number) {
     return `${dealAmount10kKrw.toLocaleString("ko-KR")}만원`;
+}
+
+function formatFloor(floor: number | null) {
+    return floor === null ? "층 정보 없음" : `${floor}층`;
 }
 
 function formatScore(score: number) {
