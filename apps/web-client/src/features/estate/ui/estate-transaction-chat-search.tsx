@@ -39,6 +39,7 @@ export function EstateTransactionChatSearch() {
         }
 
         setSubmittedPrompt(trimmedPrompt);
+        setAgentResponse(null);
         agentMutation.reset();
         agentMutation.mutate(
             {
@@ -188,7 +189,7 @@ function EstateTransactionRecommendationResult({ items, prompt }: EstateTransact
                             <TableHead className="min-w-32 text-center">면적</TableHead>
                             <TableHead>거래금액</TableHead>
                             <TableHead>계약일</TableHead>
-                            <TableHead className="min-w-24 text-center">추천도</TableHead>
+                            <TableHead className="min-w-24 text-center">검색 적합도</TableHead>
                             <TableHead className="min-w-24 text-right">상세</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -352,7 +353,7 @@ function createRecommendationComparison(
                 rightValue: rightTransaction.contractDate
             },
             {
-                label: "추천도",
+                label: "검색 적합도",
                 leftValue: formatScore(leftItem.score),
                 rightValue: formatScore(rightItem.score)
             },
