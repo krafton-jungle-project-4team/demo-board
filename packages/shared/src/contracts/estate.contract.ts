@@ -5,6 +5,7 @@ const DEFAULT_ESTATE_TRANSACTION_LIST_PAGE_SIZE = 20;
 const MAX_ESTATE_TRANSACTION_LIST_PAGE_SIZE = 50;
 const DEFAULT_ESTATE_SIMILAR_TRANSACTION_LIMIT = 10;
 const MAX_ESTATE_SIMILAR_TRANSACTION_LIMIT = 50;
+const EstateSimilarTransactionSortSchema = z.enum(["similarity", "recent", "dealAmountDesc", "dealAmountAsc"]);
 
 const OptionalEstateSearchKeywordSchema = z.preprocess((value) => {
     if (typeof value !== "string") {
@@ -145,7 +146,8 @@ export const EstateSimilarTransactionRequestSchema = z
             .int()
             .min(1)
             .max(MAX_ESTATE_SIMILAR_TRANSACTION_LIMIT)
-            .default(DEFAULT_ESTATE_SIMILAR_TRANSACTION_LIMIT)
+            .default(DEFAULT_ESTATE_SIMILAR_TRANSACTION_LIMIT),
+        sortBy: EstateSimilarTransactionSortSchema.default("similarity")
     })
     .superRefine((request, context) => {
         const hasReferenceTransactionId = request.referenceTransactionId !== undefined;
@@ -179,6 +181,51 @@ export const EstateSimilarTransactionResponseSchema = z.object({
 });
 
 export type EstateSimilarTransactionResponse = z.infer<typeof EstateSimilarTransactionResponseSchema>;
+
+const OptionalEstateAgentSessionIdSchema = z.preprocess((value) => {
+    if (typeof value !== "string") {
+        return undefined;
+    }
+
+    const sessionId = value.trim();
+
+    return sessionId.length > 0 ? sessionId : undefined;
+}, z.string().min(1).max(100).optional());
+
+const EstateAgentMessageSchema = z.preprocess((value) => {
+    if (typeof value !== "string") {
+        return value;
+    }
+
+    return value.trim();
+}, z.string().min(1).max(1000));
+
+export const EstateAgentChatRequestSchema = z.object({
+    sessionId: OptionalEstateAgentSessionIdSchema,
+    message: EstateAgentMessageSchema
+});
+
+export type EstateAgentChatRequest = z.infer<typeof EstateAgentChatRequestSchema>;
+
+export const EstateAgentToolCallSchema = z.object({
+    name: z.string().min(1),
+    arguments: z.record(z.string(), z.unknown()),
+    status: z.enum(["completed", "failed"]),
+    message: z.string().optional()
+});
+
+export type EstateAgentToolCall = z.infer<typeof EstateAgentToolCallSchema>;
+
+export const EstateAgentChatResponseSchema = z.object({
+    sessionId: z.string().min(1),
+    answer: z.string(),
+    toolCalls: z.array(EstateAgentToolCallSchema),
+    recommendations: z.array(EstateSimilarTransactionItemSchema).optional(),
+    comparedTransactions: z.array(EstateSimilarTransactionItemSchema).optional(),
+    targetTransactionId: z.number().int().positive().optional()
+});
+
+export type EstateAgentChatResponse = z.infer<typeof EstateAgentChatResponseSchema>;
 
 export const EstateMarketSummaryRequestSchema = EstateTransactionFilterSchema;
 

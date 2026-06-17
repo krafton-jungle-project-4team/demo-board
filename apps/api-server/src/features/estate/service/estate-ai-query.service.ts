@@ -85,7 +85,7 @@ type WhereSql = {
 export class EstateAiQueryService {
     constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
 
-    private async getTransaction(transactionId: number): Promise<EstateTransactionResponse> {
+    async getTransaction(transactionId: number): Promise<EstateTransactionResponse> {
         const transaction = await this.findTransaction(transactionId);
 
         if (!transaction) {
@@ -110,10 +110,11 @@ export class EstateAiQueryService {
             { ...request, filters },
             referenceTransaction
         );
+        const hasSpecificFilters = hasSpecificTransactionFilter(filters);
         const items = rows
             .map((row) => this.toSimilarTransactionItem(row, filters, referenceTransaction))
-            .filter((item) => item.vectorSimilarity >= MIN_SIMILAR_VECTOR_SIMILARITY)
-            .sort((left, right) => right.score - left.score)
+            .filter((item) => hasSpecificFilters || item.vectorSimilarity >= MIN_SIMILAR_VECTOR_SIMILARITY)
+            .sort((left, right) => compareSimilarTransactionItems(left, right, request.sortBy))
             .slice(0, request.limit);
 
         return EstateSimilarTransactionResponseSchema.parse({ items });
@@ -220,6 +221,10 @@ export class EstateAiQueryService {
             : "";
         const limitParameterIndex = whereSql.values.length + (referenceTransaction ? 3 : 2);
         const candidateLimit = Math.min(request.limit * SIMILAR_CANDIDATE_MULTIPLIER, MAX_SIMILAR_CANDIDATE_LIMIT);
+        const orderBySql =
+            request.sortBy === "recent"
+                ? "estate_transactions.contract_date DESC, estate_transactions.id DESC"
+                : createSimilarTransactionOrderBySql(request.sortBy);
         const rows = (await this.dataSource.query(
             `
             SELECT
@@ -230,7 +235,7 @@ export class EstateAiQueryService {
                 ON estate_transactions.id = estate_transaction_embeddings.transaction_id
             ${whereSql.whereSql}
                 ${excludeReferenceSql}
-            ORDER BY estate_transaction_embeddings.embedding <=> $1::vector
+            ORDER BY ${orderBySql}
             LIMIT $${limitParameterIndex}
             `,
             [
@@ -527,6 +532,65 @@ function rangeScore(candidateValue: number, minValue?: number, maxValue?: number
 
 function exactMatchScore(candidateValue: string, referenceValue?: string) {
     return referenceValue && candidateValue === referenceValue ? 1 : 0;
+}
+
+function compareSimilarTransactionItems(
+    left: EstateSimilarTransactionItem,
+    right: EstateSimilarTransactionItem,
+    sortBy: EstateSimilarTransactionRequest["sortBy"]
+) {
+    if (sortBy === "recent") {
+        return (
+            right.transaction.contractDate.localeCompare(left.transaction.contractDate) ||
+            right.transaction.id - left.transaction.id
+        );
+    }
+
+    if (sortBy === "dealAmountDesc") {
+        return (
+            right.transaction.dealAmount10kKrw - left.transaction.dealAmount10kKrw ||
+            right.transaction.contractDate.localeCompare(left.transaction.contractDate) ||
+            right.transaction.id - left.transaction.id
+        );
+    }
+
+    if (sortBy === "dealAmountAsc") {
+        return (
+            left.transaction.dealAmount10kKrw - right.transaction.dealAmount10kKrw ||
+            right.transaction.contractDate.localeCompare(left.transaction.contractDate) ||
+            right.transaction.id - left.transaction.id
+        );
+    }
+
+    return right.score - left.score;
+}
+
+function createSimilarTransactionOrderBySql(sortBy: EstateSimilarTransactionRequest["sortBy"]) {
+    if (sortBy === "dealAmountDesc") {
+        return "estate_transactions.deal_amount_10k_krw DESC, estate_transactions.contract_date DESC, estate_transactions.id DESC";
+    }
+
+    if (sortBy === "dealAmountAsc") {
+        return "estate_transactions.deal_amount_10k_krw ASC, estate_transactions.contract_date DESC, estate_transactions.id DESC";
+    }
+
+    return "estate_transaction_embeddings.embedding <=> $1::vector";
+}
+
+function hasSpecificTransactionFilter(filter: EstateTransactionFilter) {
+    return (
+        filter.q !== undefined ||
+        filter.districtName !== undefined ||
+        filter.legalDongName !== undefined ||
+        filter.buildingName !== undefined ||
+        filter.buildingUse !== undefined ||
+        filter.contractDateFrom !== undefined ||
+        filter.contractDateTo !== undefined ||
+        filter.dealAmountMin10kKrw !== undefined ||
+        filter.dealAmountMax10kKrw !== undefined ||
+        filter.areaMinSquareMeter !== undefined ||
+        filter.areaMaxSquareMeter !== undefined
+    );
 }
 
 function clamp(value: number, min: number, max: number) {

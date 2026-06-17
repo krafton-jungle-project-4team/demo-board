@@ -1,8 +1,11 @@
 import {
+    EstateAgentChatResponseSchema,
     EstateLegalDongListResponseSchema,
     EstateSimilarTransactionResponseSchema,
     EstateTransactionListResponseSchema,
     EstateTransactionResponseSchema,
+    type EstateAgentChatRequest,
+    type EstateAgentChatResponse,
     type EstateLegalDongListResponse,
     type EstateSimilarTransactionRequest,
     type EstateSimilarTransactionResponse,
@@ -31,6 +34,14 @@ export function findSimilarEstateTransactions(
         method: "POST",
         json: request,
         timeout: 15_000
+    });
+}
+
+export function chatWithEstateAgent(request: EstateAgentChatRequest): Promise<EstateAgentChatResponse> {
+    return requestApiData("estate/ai/agent/chat", EstateAgentChatResponseSchema, {
+        method: "POST",
+        json: request,
+        timeout: 30_000
     });
 }
 

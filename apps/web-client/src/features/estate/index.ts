@@ -5,7 +5,7 @@ export {
     estateTransactionQueryOptions,
     estateTransactionListQueryOptions
 } from "./api/estate-queries";
-export { useFindSimilarEstateTransactionsMutation } from "./api/estate-mutations";
+export { useChatWithEstateAgentMutation, useFindSimilarEstateTransactionsMutation } from "./api/estate-mutations";
 export {
     EstateTransactionList,
     EstateTransactionListLoading,
