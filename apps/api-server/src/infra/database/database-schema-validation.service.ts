@@ -24,7 +24,18 @@ const REQUIRED_TABLE_COLUMNS = {
     auth_verification: ["id", "identifier", "value", "expiresAt", "createdAt", "updatedAt"],
     auth_users: ["id", "auth_user_id", "email", "name", "residence_dong_code", "created_at", "updated_at"],
     board_songpa_dongs: ["code", "name", "created_at"],
-    board_posts: ["id", "author_id", "dong_code", "title", "content", "created_at", "updated_at"],
+    board_posts: [
+        "id",
+        "author_id",
+        "dong_code",
+        "title",
+        "content",
+        "moderation_status",
+        "moderation_held_reason",
+        "moderation_checked_at",
+        "created_at",
+        "updated_at"
+    ],
     board_tags: ["id", "name", "normalized_name", "created_at"],
     board_post_tags: ["id", "post_id", "tag_id", "created_at"],
     board_comments: [
@@ -100,6 +111,8 @@ const REQUIRED_INDEXES = [
     "idx_board_posts_title_trgm",
     "idx_board_posts_content_trgm",
     "idx_board_posts_dong_code",
+    "idx_board_posts_moderation_status",
+    "idx_board_posts_moderation_status_checked_at",
     "idx_auth_users_residence_dong_code",
     "idx_board_tags_name_trgm",
     "idx_board_tags_normalized_name_unique",

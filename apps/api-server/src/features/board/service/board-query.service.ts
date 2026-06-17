@@ -18,11 +18,13 @@ import {
 } from "@nmm/shared";
 import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
 import { DataSource, Repository } from "typeorm";
-import { BoardTagEntity } from "../database";
+import { BOARD_POST_MODERATION_STATUS_HELD, type BoardPostModerationStatus, BoardTagEntity } from "../database";
 import { BOARD_ERRORS, createBoardError } from "../board.errors";
 
 const BOARD_POST_EXCERPT_LENGTH = 160;
 const DELETED_COMMENT_CONTENT = "삭제된 댓글입니다.";
+const MASKED_BOARD_POST_TITLE = "운영자 검토 중인 게시글입니다.";
+const MASKED_BOARD_POST_CONTENT = "운영자 검토 후 공개됩니다.";
 
 type BoardTagJson = {
     id: number | string;
@@ -35,6 +37,7 @@ type BoardPostListRow = {
     dong_name: string | null;
     title: string;
     content: string;
+    moderation_status: BoardPostModerationStatus;
     tags: BoardTagJson[] | null;
     author_id: string;
     author_name: string;
@@ -94,10 +97,12 @@ const boardPostSearchConditionSql = `
     $1::text IS NULL
     OR (
         $2::text = 'title'
+        AND board_posts.moderation_status <> 'held'
         AND (board_posts.title % $1 OR board_posts.title %> $1)
     )
     OR (
         $2::text = 'content'
+        AND board_posts.moderation_status <> 'held'
         AND (board_posts.content % $1 OR board_posts.content %> $1)
     )
     OR (
@@ -109,11 +114,23 @@ const boardPostSearchConditionSql = `
     )
     OR (
         $2::text = 'titleContent'
+        AND board_posts.moderation_status <> 'held'
         AND (
             board_posts.title % $1
             OR board_posts.title %> $1
             OR board_posts.content % $1
             OR board_posts.content %> $1
+        )
+    )
+    OR (
+        $2::text = 'all'
+        AND (
+            board_posts.title % $1
+            OR board_posts.title %> $1
+            OR board_posts.content % $1
+            OR board_posts.content %> $1
+            OR COALESCE(board_post_tag_names.tag_text, '') % $1
+            OR COALESCE(board_post_tag_names.tag_text, '') %> $1
         )
     )
 )
@@ -169,12 +186,14 @@ export class BoardQueryService {
             throw createBoardError(BOARD_ERRORS.POST_NOT_FOUND);
         }
 
+        const isHeld = isHeldBoardPost(row);
+
         return BoardPostDetailResponseSchema.parse({
             id: Number(row.id),
             dongCode: row.dong_code,
             dongName: row.dong_name,
-            title: row.title,
-            content: row.content,
+            title: isHeld ? MASKED_BOARD_POST_TITLE : row.title,
+            content: isHeld ? MASKED_BOARD_POST_CONTENT : row.content,
             tags: parseBoardTags(row.tags),
             author: toBoardAuthor(row),
             createdAt: toIsoString(row.created_at),
@@ -216,7 +235,7 @@ export class BoardQueryService {
                     ON author_dongs.code = auth_users.residence_dong_code
                 WHERE board_comments.post_id = $1
                     AND board_comments.parent_comment_id IS NULL
-                ORDER BY board_comments.created_at ASC, board_comments.id ASC
+                ORDER BY board_comments.created_at DESC, board_comments.id DESC
                 LIMIT $2
                 OFFSET $3
                 `,
@@ -316,6 +335,7 @@ export class BoardQueryService {
             board_dongs.name AS dong_name,
             board_posts.title,
             board_posts.content,
+            board_posts.moderation_status,
             COALESCE(board_post_tag_names.tags, '[]'::jsonb) AS tags,
             auth_users.id::text AS author_id,
             auth_users.name AS author_name,
@@ -326,11 +346,11 @@ export class BoardQueryService {
             board_posts.updated_at,
             CASE
                 WHEN $1::text IS NULL THEN 0
-                WHEN $2::text = 'title' THEN GREATEST(
+                WHEN $2::text = 'title' AND board_posts.moderation_status <> 'held' THEN GREATEST(
                     similarity(board_posts.title, $1),
                     word_similarity($1, board_posts.title)
                 )
-                WHEN $2::text = 'content' THEN GREATEST(
+                WHEN $2::text = 'content' AND board_posts.moderation_status <> 'held' THEN GREATEST(
                     similarity(board_posts.content, $1),
                     word_similarity($1, board_posts.content)
                 )
@@ -338,11 +358,19 @@ export class BoardQueryService {
                     similarity(COALESCE(board_post_tag_names.tag_text, ''), $1),
                     word_similarity($1, COALESCE(board_post_tag_names.tag_text, ''))
                 )
-                WHEN $2::text = 'titleContent' THEN GREATEST(
+                WHEN $2::text = 'titleContent' AND board_posts.moderation_status <> 'held' THEN GREATEST(
                     similarity(board_posts.title, $1),
                     word_similarity($1, board_posts.title),
                     similarity(board_posts.content, $1),
                     word_similarity($1, board_posts.content)
+                )
+                WHEN $2::text = 'all' THEN GREATEST(
+                    similarity(board_posts.title, $1),
+                    word_similarity($1, board_posts.title),
+                    similarity(board_posts.content, $1),
+                    word_similarity($1, board_posts.content),
+                    similarity(COALESCE(board_post_tag_names.tag_text, ''), $1),
+                    word_similarity($1, COALESCE(board_post_tag_names.tag_text, ''))
                 )
                 ELSE 0
             END AS search_rank
@@ -373,6 +401,7 @@ export class BoardQueryService {
             board_dongs.name AS dong_name,
             board_posts.title,
             board_posts.content,
+            board_posts.moderation_status,
             COALESCE(board_post_tag_names.tags, '[]'::jsonb) AS tags,
             auth_users.id::text AS author_id,
             auth_users.name AS author_name,
@@ -395,17 +424,23 @@ export class BoardQueryService {
 }
 
 function toBoardPostListItem(row: BoardPostListRow) {
+    const isHeld = isHeldBoardPost(row);
+
     return BoardPostListItemSchema.parse({
         id: Number(row.id),
         dongCode: row.dong_code,
         dongName: row.dong_name,
-        title: row.title,
-        excerpt: createExcerpt(row.content),
+        title: isHeld ? MASKED_BOARD_POST_TITLE : row.title,
+        excerpt: isHeld ? MASKED_BOARD_POST_CONTENT : createExcerpt(row.content),
         tags: parseBoardTags(row.tags),
         author: toBoardAuthor(row),
         createdAt: toIsoString(row.created_at),
         updatedAt: toIsoString(row.updated_at)
     });
+}
+
+function isHeldBoardPost(row: { moderation_status: BoardPostModerationStatus }) {
+    return row.moderation_status === BOARD_POST_MODERATION_STATUS_HELD;
 }
 
 function toBoardCommentResponse(row: BoardCommentRow, replies: BoardCommentReplyResponse[]): BoardCommentResponse {
