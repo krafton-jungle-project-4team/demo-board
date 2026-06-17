@@ -409,6 +409,10 @@ function formatToolName(toolName: string) {
         return "추천 검색";
     }
 
+    if (toolName === "select_recommendations") {
+        return "후보 선택";
+    }
+
     if (toolName === "get_transaction_detail") {
         return "상세 조회";
     }
